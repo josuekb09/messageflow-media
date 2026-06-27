@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using MessageFlow.App.Infrastructure;
@@ -25,6 +26,7 @@ public sealed class MainViewModel : ObservableObject
     private SavedParagraphViewModel? selectedHistoryParagraph;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private string statusText = "Ready";
+    private string? latestBackupPath;
     private bool isProjectionOpen;
     private bool isSearching;
     private bool isDatabaseOperationRunning;
@@ -52,6 +54,9 @@ public sealed class MainViewModel : ObservableObject
         RestoreDatabaseCommand = new RelayCommand(
             () => _ = RestoreDatabaseAsync(),
             () => !IsDatabaseOperationRunning);
+        OpenBackupFolderCommand = new RelayCommand(
+            OpenLatestBackupFolder,
+            CanOpenLatestBackupFolder);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -91,6 +96,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand BackupDatabaseCommand { get; }
 
     public RelayCommand RestoreDatabaseCommand { get; }
+
+    public RelayCommand OpenBackupFolderCommand { get; }
 
     public string SearchText
     {
@@ -207,6 +214,24 @@ public sealed class MainViewModel : ObservableObject
         set => SetProperty(ref statusText, value);
     }
 
+    public string? LatestBackupPath
+    {
+        get => latestBackupPath;
+        private set
+        {
+            if (SetProperty(ref latestBackupPath, value))
+            {
+                OnPropertyChanged(nameof(LatestBackupDisplay));
+                OpenBackupFolderCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string LatestBackupDisplay =>
+        string.IsNullOrWhiteSpace(LatestBackupPath)
+            ? "No backup created this session."
+            : LatestBackupPath;
+
     public bool IsSearching
     {
         get => isSearching;
@@ -222,6 +247,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 BackupDatabaseCommand.RaiseCanExecuteChanged();
                 RestoreDatabaseCommand.RaiseCanExecuteChanged();
+                OpenBackupFolderCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -359,7 +385,14 @@ public sealed class MainViewModel : ObservableObject
 
             await Task.Run(() => BackupDatabaseFile(databasePath, dialog.FileName));
 
-            StatusText = "Backup completed successfully.";
+            LatestBackupPath = dialog.FileName;
+            StatusText = $"Backup completed successfully:{Environment.NewLine}{dialog.FileName}";
+
+            MessageBox.Show(
+                $"Backup completed successfully{Environment.NewLine}{Environment.NewLine}{dialog.FileName}",
+                "MessageFlow Backup",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
@@ -419,6 +452,36 @@ public sealed class MainViewModel : ObservableObject
         finally
         {
             IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private void OpenLatestBackupFolder()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(LatestBackupPath))
+            {
+                StatusText = "No backup has been created yet.";
+                return;
+            }
+
+            var backupFolder = Path.GetDirectoryName(LatestBackupPath);
+            if (string.IsNullOrWhiteSpace(backupFolder) || !Directory.Exists(backupFolder))
+            {
+                StatusText = "Backup folder could not be found.";
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = backupFolder,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Open backup folder failed.", ex);
+            StatusText = $"Open backup folder failed: {ex.Message}";
         }
     }
 
@@ -1135,6 +1198,17 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private bool CanOpenLatestBackupFolder()
+    {
+        if (IsDatabaseOperationRunning || string.IsNullOrWhiteSpace(LatestBackupPath))
+        {
+            return false;
+        }
+
+        var backupFolder = Path.GetDirectoryName(LatestBackupPath);
+        return !string.IsNullOrWhiteSpace(backupFolder) && Directory.Exists(backupFolder);
+    }
+
     private static string CreateAuthorLabel(string displayName, string fullName, int authorId)
     {
         if (!string.IsNullOrWhiteSpace(displayName))
@@ -1169,6 +1243,7 @@ public sealed class MainViewModel : ObservableObject
         ToggleFavoriteCommand.RaiseCanExecuteChanged();
         BackupDatabaseCommand.RaiseCanExecuteChanged();
         RestoreDatabaseCommand.RaiseCanExecuteChanged();
+        OpenBackupFolderCommand.RaiseCanExecuteChanged();
     }
 
     private readonly record struct FilterLoadResult(int LinkedAuthorCount, int YearCount);
