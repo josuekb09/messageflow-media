@@ -9,6 +9,8 @@ namespace MessageFlow.Search;
 
 public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) : ISermonSearchService
 {
+    private const string FtsTableName = "SermonParagraphsFts";
+
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         string searchText,
         int maxResults = 50,
@@ -165,7 +167,14 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         }
 
         var keyword = query.Keyword?.Trim();
+        var hasKeyword = !string.IsNullOrWhiteSpace(keyword);
         var ftsQuery = string.IsNullOrWhiteSpace(keyword) ? null : BuildFtsPrefixQuery(keyword);
+
+        if (hasKeyword)
+        {
+            parameters.Add(new("$keywordExact", keyword!.ToUpperInvariant()));
+            parameters.Add(new("$keywordPrefix", BuildStartsWithLike(keyword.ToUpperInvariant())));
+        }
 
         if (!string.IsNullOrWhiteSpace(ftsQuery))
         {
@@ -177,7 +186,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     BuildFilteredSearchSql(
                         clauses,
                         useFts: true,
-                        BuildFilteredRankingOrder(hasGeneralText, hasTitle, hasSermonCode)),
+                        BuildFilteredRankingOrder(
+                            hasGeneralText,
+                            hasTitle,
+                            hasSermonCode,
+                            paragraphNumber is not null,
+                            hasKeyword)),
                     parameters,
                     cancellationToken);
             }
@@ -203,7 +217,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             BuildFilteredSearchSql(
                 clauses,
                 useFts: false,
-                BuildFilteredRankingOrder(hasGeneralText, hasTitle, hasSermonCode)),
+                BuildFilteredRankingOrder(
+                    hasGeneralText,
+                    hasTitle,
+                    hasSermonCode,
+                    paragraphNumber is not null,
+                    hasKeyword)),
             parameters,
             cancellationToken);
     }
@@ -213,8 +232,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         var clauses = new List<string>
         {
             "s.Title LIKE $like ESCAPE '\\'",
-            "s.SermonCode LIKE $like ESCAPE '\\'",
-            "p.SearchText LIKE $searchLike ESCAPE '\\'"
+            "s.SermonCode LIKE $like ESCAPE '\\'"
         };
 
         if (hasNumber)
@@ -226,13 +244,17 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         if (useFts)
         {
             clauses.Add(
-                """
+                $$"""
                 p.Id IN (
                     SELECT rowid
-                    FROM SermonParagraphSearch
-                    WHERE SermonParagraphSearch MATCH $fts
+                    FROM {{FtsTableName}}
+                    WHERE {{FtsTableName}} MATCH $fts
                 )
                 """);
+        }
+        else
+        {
+            clauses.Add("p.SearchText LIKE $searchLike ESCAPE '\\'");
         }
 
         return BuildBaseSelect(
@@ -248,11 +270,11 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         string rankingOrder)
     {
         var from = useFts
-            ? "SermonParagraphSearch JOIN SermonParagraphs p ON p.Id = SermonParagraphSearch.rowid"
+            ? $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid"
             : "SermonParagraphs p";
 
         var ftsClause = useFts
-            ? "SermonParagraphSearch MATCH $fts"
+            ? $"{FtsTableName} MATCH $fts"
             : string.Empty;
 
         var allClauses = clauses.ToList();
@@ -283,7 +305,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (orderByFtsRank)
         {
-            orderParts.Add("bm25(SermonParagraphSearch)");
+            orderParts.Add($"bm25({FtsTableName})");
         }
 
         orderParts.Add("s.Year");
@@ -415,6 +437,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private static bool IsFtsFailure(Exception ex)
     {
         return ex.Message.Contains("SermonParagraphSearch", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("SermonParagraphsFts", StringComparison.OrdinalIgnoreCase) ||
                ex.Message.Contains("fts5", StringComparison.OrdinalIgnoreCase) ||
                ex.Message.Contains("MATCH", StringComparison.OrdinalIgnoreCase);
     }
@@ -440,16 +463,48 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private static string BuildFilteredRankingOrder(
         bool hasGeneralText,
         bool hasTitle,
-        bool hasSermonCode)
+        bool hasSermonCode,
+        bool hasParagraphNumber,
+        bool hasKeyword)
     {
         var cases = new List<string>();
         var rank = 0;
+
+        if (hasParagraphNumber)
+        {
+            if (hasSermonCode)
+            {
+                cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $sermonCodeExact AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+            }
+
+            if (hasGeneralText)
+            {
+                cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $generalExact AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+                cases.Add($"WHEN s.Title COLLATE NOCASE = $generalExact AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+                cases.Add($"WHEN s.Title LIKE $generalPrefix ESCAPE '\\' AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+                cases.Add($"WHEN s.Title LIKE $generalLike ESCAPE '\\' AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+            }
+
+            if (hasTitle)
+            {
+                cases.Add($"WHEN s.Title COLLATE NOCASE = $titleExact AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+                cases.Add($"WHEN s.Title LIKE $titlePrefix ESCAPE '\\' AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+                cases.Add($"WHEN s.Title LIKE $title ESCAPE '\\' AND p.ParagraphNumber = $paragraphNumber THEN {rank++}");
+            }
+        }
 
         if (hasSermonCode)
         {
             cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $sermonCodeExact THEN {rank++}");
             cases.Add($"WHEN s.SermonCode LIKE $sermonCodePrefix ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN s.SermonCode LIKE $sermonCode ESCAPE '\\' THEN {rank++}");
+        }
+
+        if (hasGeneralText)
+        {
+            cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $generalExact THEN {rank++}");
+            cases.Add($"WHEN s.SermonCode LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN s.SermonCode LIKE $generalLike ESCAPE '\\' THEN {rank++}");
         }
 
         if (hasTitle)
@@ -461,14 +516,17 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (hasGeneralText)
         {
-            cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $generalExact THEN {rank++}");
             cases.Add($"WHEN s.Title COLLATE NOCASE = $generalExact THEN {rank++}");
-            cases.Add($"WHEN s.SermonCode LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN s.Title LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
-            cases.Add($"WHEN s.SermonCode LIKE $generalLike ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN s.Title LIKE $generalLike ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN p.SearchText = $generalSearchExact THEN {rank++}");
             cases.Add($"WHEN p.SearchText LIKE $generalSearchPrefix ESCAPE '\\' THEN {rank++}");
+        }
+
+        if (hasKeyword)
+        {
+            cases.Add($"WHEN p.SearchText = $keywordExact THEN {rank++}");
+            cases.Add($"WHEN p.SearchText LIKE $keywordPrefix ESCAPE '\\' THEN {rank++}");
         }
 
         if (cases.Count == 0)

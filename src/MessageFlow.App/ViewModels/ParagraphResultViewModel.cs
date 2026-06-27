@@ -40,8 +40,9 @@ public sealed class ParagraphResultViewModel : ObservableObject
         SermonCode = sermonCode;
         Year = year;
         ParagraphNumber = paragraphNumber;
-        ParagraphTextPreview = paragraphTextPreview;
-        FullParagraphText = fullParagraphText;
+        FullParagraphText = ParagraphDisplayTextCleaner.Clean(fullParagraphText);
+        ParagraphTextPreview = ParagraphDisplayTextCleaner.CreatePreview(
+            string.IsNullOrWhiteSpace(FullParagraphText) ? paragraphTextPreview : FullParagraphText);
         SourceFilePath = sourceFilePath;
         PageNumber = pageNumber;
     }

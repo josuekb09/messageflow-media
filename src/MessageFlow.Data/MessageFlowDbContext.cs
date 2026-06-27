@@ -129,6 +129,7 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
             entity.HasIndex(sermon => sermon.ContentSourceId);
             entity.HasIndex(sermon => sermon.Title);
             entity.HasIndex(sermon => sermon.SermonCode);
+            entity.HasIndex(sermon => new { sermon.SermonCode, sermon.Year });
             entity.HasIndex(sermon => sermon.Year);
             entity.HasIndex(sermon => new { sermon.Year, sermon.Title });
 
@@ -161,7 +162,9 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
             entity.HasIndex(paragraph => new { paragraph.SermonId, paragraph.ParagraphNumber })
                 .IsUnique();
 
+            entity.HasIndex(paragraph => paragraph.SermonId);
             entity.HasIndex(paragraph => paragraph.ParagraphNumber);
+            entity.HasIndex(paragraph => paragraph.SearchText);
             entity.HasIndex(paragraph => paragraph.PageNumber);
 
             entity.HasOne(paragraph => paragraph.Sermon)

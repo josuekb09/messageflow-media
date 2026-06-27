@@ -17,4 +17,9 @@ public sealed record ContentSourceTypeOption(string Value, string Label)
                 string.Equals(option.Value, value, StringComparison.OrdinalIgnoreCase))
             ?.Label ?? value;
     }
+
+    public override string ToString()
+    {
+        return Label;
+    }
 }

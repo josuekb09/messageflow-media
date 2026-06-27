@@ -251,6 +251,8 @@ namespace MessageFlow.Data.Migrations
 
                     b.HasIndex("SermonCode");
 
+                    b.HasIndex("SermonCode", "Year");
+
                     b.HasIndex("SourceFilePath")
                         .IsUnique();
 
@@ -296,6 +298,10 @@ namespace MessageFlow.Data.Migrations
                     b.HasIndex("PageNumber");
 
                     b.HasIndex("ParagraphNumber");
+
+                    b.HasIndex("SearchText");
+
+                    b.HasIndex("SermonId");
 
                     b.HasIndex("SermonId", "ParagraphNumber")
                         .IsUnique();

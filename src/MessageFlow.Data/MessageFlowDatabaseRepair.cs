@@ -17,6 +17,7 @@ public sealed record MessageFlowDatabaseRepairResult(
 public static class MessageFlowDatabaseRepair
 {
     private const string AddContentSourcesMigrationId = "20260627094500_AddContentSources";
+    private const string AddSearchPerformanceMigrationId = "20260627224500_AddSearchPerformanceIndexesAndFts";
     private const string ProductVersion = "10.0.9";
 
     public static async Task<MessageFlowDatabaseRepairResult> RepairAsync(
@@ -56,6 +57,10 @@ public static class MessageFlowDatabaseRepair
             var sermonsTableExists = await TableExistsAsync(
                 connection,
                 "Sermons",
+                cancellationToken);
+            var sermonParagraphsTableExists = await TableExistsAsync(
+                connection,
+                "SermonParagraphs",
                 cancellationToken);
             var sermonsContentSourceIdExisted = sermonsTableExists &&
                                                 await ColumnExistsAsync(
@@ -221,6 +226,27 @@ public static class MessageFlowDatabaseRepair
                 """,
                 cancellationToken);
 
+            if (sermonsTableExists)
+            {
+                await EnsureSearchPerformanceIndexesAsync(
+                    connection,
+                    sermonsContentSourceIdExisted ||
+                    await ColumnExistsAsync(connection, "Sermons", "ContentSourceId", cancellationToken),
+                    sermonParagraphsTableExists,
+                    log,
+                    cancellationToken);
+            }
+
+            if (sermonsTableExists && sermonParagraphsTableExists)
+            {
+                await TryEnsureSermonParagraphsFtsAsync(connection, log, cancellationToken);
+            }
+
+            await MarkMigrationAppliedIfHistoryExistsAsync(
+                connection,
+                AddSearchPerformanceMigrationId,
+                cancellationToken);
+
             var result = new MessageFlowDatabaseRepairResult(
                 databasePath,
                 favoriteParagraphsExisted,
@@ -306,6 +332,205 @@ public static class MessageFlowDatabaseRepair
         command.Parameters.AddWithValue("$migrationId", migrationId);
         command.Parameters.AddWithValue("$productVersion", ProductVersion);
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task EnsureSearchPerformanceIndexesAsync(
+        SqliteConnection connection,
+        bool hasContentSourceId,
+        bool hasSermonParagraphs,
+        Action<string>? log,
+        CancellationToken cancellationToken)
+    {
+        log?.Invoke("Ensuring search performance indexes.");
+
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Sermons_Title" ON "Sermons" ("Title");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Sermons_SermonCode" ON "Sermons" ("SermonCode");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Sermons_Year" ON "Sermons" ("Year");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Sermons_AuthorId" ON "Sermons" ("AuthorId");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Sermons_SermonCode_Year" ON "Sermons" ("SermonCode", "Year");""", cancellationToken);
+
+        if (hasContentSourceId)
+        {
+            await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Sermons_ContentSourceId" ON "Sermons" ("ContentSourceId");""", cancellationToken);
+        }
+
+        if (hasSermonParagraphs)
+        {
+            await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SermonParagraphs_SermonId" ON "SermonParagraphs" ("SermonId");""", cancellationToken);
+            await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SermonParagraphs_ParagraphNumber" ON "SermonParagraphs" ("ParagraphNumber");""", cancellationToken);
+            await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SermonParagraphs_SearchText" ON "SermonParagraphs" ("SearchText");""", cancellationToken);
+            await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_SermonParagraphs_SermonId_ParagraphNumber" ON "SermonParagraphs" ("SermonId", "ParagraphNumber");""", cancellationToken);
+        }
+    }
+
+    private static async Task TryEnsureSermonParagraphsFtsAsync(
+        SqliteConnection connection,
+        Action<string>? log,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ExecuteAsync(
+                connection,
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS "SermonParagraphsFts"
+                USING fts5(
+                    ParagraphId UNINDEXED,
+                    SermonId UNINDEXED,
+                    Title,
+                    SermonCode,
+                    ParagraphNumber UNINDEXED,
+                    SearchText,
+                    tokenize='unicode61'
+                );
+                """,
+                cancellationToken);
+
+            await EnsureSermonParagraphsFtsTriggersAsync(connection, cancellationToken);
+
+            var paragraphCount = await ExecuteScalarLongAsync(
+                connection,
+                """SELECT COUNT(1) FROM "SermonParagraphs";""",
+                cancellationToken);
+            var ftsCount = await ExecuteScalarLongAsync(
+                connection,
+                """SELECT COUNT(1) FROM "SermonParagraphsFts";""",
+                cancellationToken);
+
+            if (paragraphCount != ftsCount)
+            {
+                log?.Invoke($"Rebuilding SermonParagraphsFts. Paragraphs: {paragraphCount}. FTS rows: {ftsCount}.");
+                await RebuildSermonParagraphsFtsAsync(connection, cancellationToken);
+                log?.Invoke("SermonParagraphsFts rebuild completed.");
+                return;
+            }
+
+            log?.Invoke($"SermonParagraphsFts is ready. Rows: {ftsCount}.");
+        }
+        catch (SqliteException ex)
+        {
+            log?.Invoke($"SQLite FTS5 is unavailable. Search will use indexed LIKE fallback. Details: {ex.Message}");
+        }
+    }
+
+    private static async Task EnsureSermonParagraphsFtsTriggersAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TRIGGER IF NOT EXISTS "SermonParagraphsFts_ai"
+            AFTER INSERT ON "SermonParagraphs"
+            BEGIN
+                INSERT INTO "SermonParagraphsFts" (
+                    rowid,
+                    ParagraphId,
+                    SermonId,
+                    Title,
+                    SermonCode,
+                    ParagraphNumber,
+                    SearchText
+                )
+                SELECT
+                    new."Id",
+                    new."Id",
+                    new."SermonId",
+                    s."Title",
+                    s."SermonCode",
+                    new."ParagraphNumber",
+                    new."SearchText"
+                FROM "Sermons" s
+                WHERE s."Id" = new."SermonId";
+            END;
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TRIGGER IF NOT EXISTS "SermonParagraphsFts_ad"
+            AFTER DELETE ON "SermonParagraphs"
+            BEGIN
+                DELETE FROM "SermonParagraphsFts"
+                WHERE rowid = old."Id";
+            END;
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TRIGGER IF NOT EXISTS "SermonParagraphsFts_au"
+            AFTER UPDATE ON "SermonParagraphs"
+            BEGIN
+                DELETE FROM "SermonParagraphsFts"
+                WHERE rowid = old."Id";
+
+                INSERT INTO "SermonParagraphsFts" (
+                    rowid,
+                    ParagraphId,
+                    SermonId,
+                    Title,
+                    SermonCode,
+                    ParagraphNumber,
+                    SearchText
+                )
+                SELECT
+                    new."Id",
+                    new."Id",
+                    new."SermonId",
+                    s."Title",
+                    s."SermonCode",
+                    new."ParagraphNumber",
+                    new."SearchText"
+                FROM "Sermons" s
+                WHERE s."Id" = new."SermonId";
+            END;
+            """,
+            cancellationToken);
+    }
+
+    private static async Task RebuildSermonParagraphsFtsAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await ExecuteAsync(connection, """DELETE FROM "SermonParagraphsFts";""", cancellationToken);
+        await ExecuteAsync(
+            connection,
+            """
+            INSERT INTO "SermonParagraphsFts" (
+                rowid,
+                ParagraphId,
+                SermonId,
+                Title,
+                SermonCode,
+                ParagraphNumber,
+                SearchText
+            )
+            SELECT
+                p."Id",
+                p."Id",
+                p."SermonId",
+                s."Title",
+                s."SermonCode",
+                p."ParagraphNumber",
+                p."SearchText"
+            FROM "SermonParagraphs" p
+            JOIN "Sermons" s ON s."Id" = p."SermonId";
+            """,
+            cancellationToken);
+    }
+
+    private static async Task<long> ExecuteScalarLongAsync(
+        SqliteConnection connection,
+        string sql,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(result);
     }
 
     private static async Task ExecuteAsync(

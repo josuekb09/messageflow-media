@@ -57,9 +57,12 @@ database/messageflow.db
 The current schema stores:
 
 - Authors
+- Content sources
 - Sermons
 - Sermon paragraphs
 - Import logs
+- Favorite paragraphs
+- Projection history
 
 The initial migration seeds this author:
 
@@ -195,6 +198,29 @@ dotnet run --project src\MessageFlow.Importer -- search "47-0412 4"
 dotnet run --project src\MessageFlow.Importer -- search "Faith Is The Substance 4"
 ```
 
+## Search Performance and Indexing
+
+MessageFlow keeps search fast with normal SQLite indexes and optional SQLite FTS5 full-text search.
+
+Startup database repair safely creates missing indexes with `CREATE INDEX IF NOT EXISTS`, including:
+
+- Sermon title, sermon code, year, author, and content source indexes
+- Sermon code plus year composite index
+- Sermon paragraph sermon id, paragraph number, search text, and sermon id plus paragraph number indexes
+
+If SQLite FTS5 is available, startup repair also prepares `SermonParagraphsFts` for paragraph search. The FTS table stores paragraph search text plus sermon title/code metadata and is rebuilt only when its row count does not match `SermonParagraphs`.
+
+If FTS5 is unavailable, MessageFlow keeps working with indexed SQLite `LIKE` searches. Search status messages in the app include result count and elapsed milliseconds so operators can see when a query completed.
+
+Quick Project ranking prioritizes:
+
+- Exact sermon code with exact paragraph number
+- Exact title phrase with exact paragraph number
+- Title match with paragraph number
+- Sermon code match
+- Title match
+- Paragraph keyword match
+
 ## WPF App
 
 Run the desktop app:
@@ -215,12 +241,33 @@ The first WPF screen includes:
 
 Keyboard shortcuts:
 
-- `Ctrl+Enter` projects the selected paragraph
+- `Enter` in the search box projects the best matching paragraph
+- `Ctrl+F` focuses the search box
+- `Ctrl+P` projects the selected paragraph
 - `Ctrl+C` copies the selected paragraph
-- `Alt+Right` moves to the next paragraph
-- `Alt+Left` moves to the previous paragraph
+- `Right Arrow` moves to the next paragraph
+- `Left Arrow` moves to the previous paragraph
 - In the projection window, `Right Arrow` and `Left Arrow` move between paragraphs
 - In the projection window, `Esc` closes projection
+- In the projection window, `F11` toggles fullscreen
+
+## Manual QA Checklist
+
+Before using MessageFlow in a live service, run this quick manual checklist:
+
+- Search works with title, sermon code, year, paragraph number, and keyword queries.
+- Quick Project works by typing a title or code plus paragraph number and pressing `Enter`.
+- Next and Previous move to the adjacent paragraph in the same sermon.
+- Projection opens one borderless projection window and updates the existing window.
+- Projection text is readable, centered, and split into pages when needed.
+- Favorites can be added, removed, selected, and double-clicked for projection.
+- History records every projected paragraph and shows the most recent item first.
+- Backup Database creates a `.db` file and shows the full backup path.
+- Restore Database asks for confirmation, creates a safety backup, and reloads app data.
+- Tools tab shows Sources and Database sections without clipped buttons.
+- Add New Source dialog shows all fields and clean Source Type labels.
+- Import Source asks for confirmation and skips already imported PDFs.
+- Author, Year, and Projection Font Size filters show clean labels and stay usable.
 
 ## Current Status
 
@@ -232,8 +279,8 @@ Keyboard shortcuts:
 - Local SQLite database path is `database/messageflow.db`.
 - Importer scans local PDFs, extracts text from positioned PdfPig words, creates sermons and paragraphs, skips duplicates, supports `--force` and `--reset`, prints extraction diagnostics, and logs errors.
 - Search service supports title, code, year, paragraph number, keyword, and partial keyword search with SQLite FTS5.
-- WPF app has a working dark-theme MVP interface for searching, browsing paragraphs, copying text, and opening a projection window.
+- WPF app has a working dark-theme interface for searching, browsing paragraphs, copying text, favorites, history, backup/restore, source management, and projection.
 
 ## Next Development Step
 
-Re-run the importer with `--reset` so existing paragraphs are rebuilt with the improved spacing and paragraph cleanup.
+Run the manual QA checklist on the actual media-room machine and projector before using the app in a live service.

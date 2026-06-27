@@ -18,8 +18,10 @@ namespace MessageFlow.App.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
+    private const int SearchDebounceMilliseconds = 400;
     private readonly IServiceScopeFactory scopeFactory;
     private CancellationTokenSource? searchDebounce;
+    private int searchRequestVersion;
     private string searchText = string.Empty;
     private FilterOption? selectedAuthor;
     private FilterOption? selectedYear;
@@ -73,6 +75,8 @@ public sealed class MainViewModel : ObservableObject
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 60, 78));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 76, 98));
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
+
+        ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
     }
 
     public event Action? ProjectRequested;
@@ -332,6 +336,8 @@ public sealed class MainViewModel : ObservableObject
         SelectedParagraph?.IsFavorite == true ? "Remove Favorite" : "Add Favorite";
 
     public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
+
+    public bool IsParagraphResultsEmpty => ParagraphResults.Count == 0;
 
     public async Task InitializeAsync()
     {
@@ -667,7 +673,7 @@ public sealed class MainViewModel : ObservableObject
 
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
-                await ExecuteSearchAsync(CancellationToken.None);
+                await SearchNowAsync();
             }
 
             StatusText =
@@ -687,13 +693,13 @@ public sealed class MainViewModel : ObservableObject
     public async Task SearchNowAsync()
     {
         searchDebounce?.Cancel();
-        await ExecuteSearchAsync(CancellationToken.None);
+        await ExecuteSearchAsync(CreateSearchSnapshot(projectBestResult: false), CancellationToken.None);
     }
 
     public async Task QuickProjectAsync()
     {
         searchDebounce?.Cancel();
-        await ExecuteSearchAsync(CancellationToken.None, projectBestResult: true);
+        await ExecuteSearchAsync(CreateSearchSnapshot(projectBestResult: true), CancellationToken.None);
     }
 
     private void QueueSearch()
@@ -701,14 +707,15 @@ public sealed class MainViewModel : ObservableObject
         searchDebounce?.Cancel();
         searchDebounce = new CancellationTokenSource();
         var cancellationToken = searchDebounce.Token;
+        var snapshot = CreateSearchSnapshot(projectBestResult: false);
 
         _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(250, cancellationToken);
+                await Task.Delay(SearchDebounceMilliseconds, cancellationToken);
                 var operation = Application.Current.Dispatcher.InvokeAsync(
-                    () => ExecuteSearchAsync(cancellationToken));
+                    () => ExecuteSearchAsync(snapshot, cancellationToken));
 
                 await operation.Task.Unwrap();
             }
@@ -718,49 +725,61 @@ public sealed class MainViewModel : ObservableObject
         }, cancellationToken);
     }
 
-    private async Task ExecuteSearchAsync(
-        CancellationToken cancellationToken,
-        bool projectBestResult = false)
+    private SearchSnapshot CreateSearchSnapshot(bool projectBestResult)
     {
-        var queryText = SearchText.Trim();
-        var hasFilter = SelectedAuthor?.Value is not null || SelectedYear?.Value is not null;
+        return new SearchSnapshot(
+            SearchText.Trim(),
+            SelectedAuthor?.Value,
+            SelectedYear?.Value,
+            Interlocked.Increment(ref searchRequestVersion),
+            projectBestResult);
+    }
 
-        if (string.IsNullOrWhiteSpace(queryText) && !hasFilter)
+    private bool IsCurrentSearch(SearchSnapshot snapshot)
+    {
+        return snapshot.Version == Volatile.Read(ref searchRequestVersion);
+    }
+
+    private async Task ExecuteSearchAsync(
+        SearchSnapshot snapshot,
+        CancellationToken cancellationToken)
+    {
+        if (!IsCurrentSearch(snapshot))
         {
-            SetResults([]);
-            StatusText = projectBestResult
-                ? "No matching paragraph found."
-                : "Type to search sermons and paragraphs.";
             return;
         }
+
+        var hasFilter = snapshot.AuthorId is not null || snapshot.Year is not null;
+
+        if (string.IsNullOrWhiteSpace(snapshot.QueryText) && !hasFilter)
+        {
+            SetResults([]);
+            StatusText = snapshot.ProjectBestResult
+                ? "No matching paragraph found."
+                : "Type to search sermons and paragraphs.";
+            IsSearching = false;
+            return;
+        }
+
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
             IsSearching = true;
             StatusText = "Searching...";
 
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var searchService = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
+            var resultViewModels = await LoadSearchResultsAsync(snapshot, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentSearch(snapshot))
+            {
+                return;
+            }
 
-            var hasSelectedFilter = SelectedAuthor?.Value is not null || SelectedYear?.Value is not null;
-            var results = hasSelectedFilter
-                ? await searchService.SearchAsync(
-                    new SermonSearchQuery(
-                        AuthorId: SelectedAuthor?.Value,
-                        SearchText: string.IsNullOrWhiteSpace(queryText) ? null : queryText,
-                        Year: SelectedYear?.Value,
-                        MaxResults: 200),
-                    cancellationToken)
-                : await searchService.SearchAsync(queryText, 200, cancellationToken);
-
-            var resultViewModels = results
-                .Select(result => new ParagraphResultViewModel(result))
-                .ToList();
             var preferredParagraphId = resultViewModels.FirstOrDefault()?.ParagraphId;
 
             SetResults(resultViewModels, preferredParagraphId);
 
-            if (projectBestResult)
+            if (snapshot.ProjectBestResult)
             {
                 if (SelectedParagraph is null)
                 {
@@ -772,20 +791,55 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            StatusText = ResultCount == 0 ? "No results found." : $"{ResultCount} paragraph results.";
+            StatusText = ResultCount == 0
+                ? $"No results found in {stopwatch.ElapsedMilliseconds:N0} ms."
+                : $"{ResultCount} paragraph results in {stopwatch.ElapsedMilliseconds:N0} ms.";
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception ex)
         {
-            SetResults([]);
-            StatusText = $"Search failed: {ex.Message}";
+            if (IsCurrentSearch(snapshot))
+            {
+                SetResults([]);
+                StatusText = $"Search failed: {ex.Message}";
+            }
         }
         finally
         {
-            IsSearching = false;
+            if (IsCurrentSearch(snapshot))
+            {
+                IsSearching = false;
+            }
         }
+    }
+
+    private Task<List<ParagraphResultViewModel>> LoadSearchResultsAsync(
+        SearchSnapshot snapshot,
+        CancellationToken cancellationToken)
+    {
+        return Task.Run(async () =>
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var searchService = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
+
+            var hasSelectedFilter = snapshot.AuthorId is not null || snapshot.Year is not null;
+            var results = hasSelectedFilter
+                ? await searchService.SearchAsync(
+                    new SermonSearchQuery(
+                        AuthorId: snapshot.AuthorId,
+                        SearchText: string.IsNullOrWhiteSpace(snapshot.QueryText) ? null : snapshot.QueryText,
+                        Year: snapshot.Year,
+                        MaxResults: 200),
+                    cancellationToken)
+                : await searchService.SearchAsync(snapshot.QueryText, 200, cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return results
+                .Select(result => new ParagraphResultViewModel(result))
+                .ToList();
+        }, cancellationToken);
     }
 
     private void SetResults(
@@ -1222,7 +1276,7 @@ public sealed class MainViewModel : ObservableObject
 
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            await ExecuteSearchAsync(CancellationToken.None);
+            await SearchNowAsync();
         }
 
         RaiseCommandStates();
@@ -1476,15 +1530,7 @@ public sealed class MainViewModel : ObservableObject
 
     private static string CreatePreview(string text)
     {
-        const int maxLength = 160;
-
-        var preview = string.Join(' ', text.Split(
-            [' ', '\t', '\r', '\n'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-
-        return preview.Length <= maxLength
-            ? preview
-            : $"{preview[..maxLength].TrimEnd()}...";
+        return ParagraphDisplayTextCleaner.CreatePreview(text);
     }
 
     private static string TrimTo(string value, int maxLength)
@@ -1626,6 +1672,13 @@ public sealed class MainViewModel : ObservableObject
         AddNewSourceCommand.RaiseCanExecuteChanged();
         ImportSourceCommand.RaiseCanExecuteChanged();
     }
+
+    private sealed record SearchSnapshot(
+        string QueryText,
+        int? AuthorId,
+        int? Year,
+        int Version,
+        bool ProjectBestResult);
 
     private readonly record struct FilterLoadResult(int LinkedAuthorCount, int YearCount);
 }

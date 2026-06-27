@@ -233,14 +233,16 @@
                                 </ToggleButton.Template>
                             </ToggleButton>
 
-                            <TextBlock x:Name="ContentSite"
-                                       Margin="{TemplateBinding Padding}"
-                                       HorizontalAlignment="Left"
-                                       VerticalAlignment="Center"
-                                       IsHitTestVisible="False"
-                                       Foreground="{TemplateBinding Foreground}"
-                                       Text="{Binding SelectionBoxItem, RelativeSource={RelativeSource TemplatedParent}}"
-                                       TextTrimming="CharacterEllipsis" />
+                            <ContentPresenter x:Name="ContentSite"
+                                              Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                              IsHitTestVisible="False"
+                                              RecognizesAccessKey="True"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
 
                             <Popup x:Name="PART_Popup"
                                    AllowsTransparency="True"
