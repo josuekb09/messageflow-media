@@ -7,10 +7,13 @@ namespace MessageFlow.Importer;
 public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 {
     private const int AuthorId = 1;
+    private const string BrotherBranhamSourceName = "brother_branham";
     private readonly PdfTextExtractor textExtractor = new();
 
     public async Task<ImportSummary> ImportAsync(ImportOptions options, CancellationToken cancellationToken = default)
     {
+        Report(options, "Scanning PDF files...", 0, 0, 0, 0, 0);
+
         var pdfFiles = Directory.EnumerateFiles(options.SourceRoot, "*.pdf", SearchOption.AllDirectories)
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -22,8 +25,9 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
         Console.WriteLine($"PDF files found: {summary.TotalFiles}");
         Console.WriteLine();
+        Report(options, $"Found {summary.TotalFiles:N0} PDF files.", 0, summary.TotalFiles, 0, 0, 0);
 
-        await EnsureAuthorExistsAsync(cancellationToken);
+        var authorId = await EnsureAuthorExistsAsync(options, cancellationToken);
         if (options.Reset)
         {
             await ResetImportedSermonsAsync(options.SourceRoot, cancellationToken);
@@ -33,21 +37,45 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         {
             var filePath = Path.GetFullPath(pdfFiles[index]);
             Console.WriteLine($"[{index + 1}/{summary.TotalFiles}] {filePath}");
+            Report(
+                options,
+                $"Importing {Path.GetFileName(filePath)}",
+                index + 1,
+                summary.TotalFiles,
+                summary.ImportedParagraphs,
+                summary.SkippedFiles,
+                summary.ErrorCount);
 
             try
             {
-                var result = await ImportFileAsync(filePath, options, cancellationToken);
+                var result = await ImportFileAsync(filePath, options, authorId, cancellationToken);
 
                 if (result.Skipped)
                 {
                     summary.SkippedFiles++;
                     Console.WriteLine("  skipped: already imported");
+                    Report(
+                        options,
+                        $"Skipped {Path.GetFileName(filePath)}: already imported.",
+                        index + 1,
+                        summary.TotalFiles,
+                        summary.ImportedParagraphs,
+                        summary.SkippedFiles,
+                        summary.ErrorCount);
                     continue;
                 }
 
                 summary.ImportedFiles++;
                 summary.ImportedParagraphs += result.ParagraphCount;
                 Console.WriteLine($"  imported paragraphs: {result.ParagraphCount}");
+                Report(
+                    options,
+                    $"Imported {Path.GetFileName(filePath)}.",
+                    index + 1,
+                    summary.TotalFiles,
+                    summary.ImportedParagraphs,
+                    summary.SkippedFiles,
+                    summary.ErrorCount);
             }
             catch (Exception ex)
             {
@@ -55,8 +83,25 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
                 dbContext.ChangeTracker.Clear();
                 await WriteImportLogAsync(filePath, "Error", ex.Message, cancellationToken);
                 Console.WriteLine($"  error: {ex.Message}");
+                Report(
+                    options,
+                    $"Error importing {Path.GetFileName(filePath)}: {ex.Message}",
+                    index + 1,
+                    summary.TotalFiles,
+                    summary.ImportedParagraphs,
+                    summary.SkippedFiles,
+                    summary.ErrorCount);
             }
         }
+
+        Report(
+            options,
+            "Import complete.",
+            summary.TotalFiles,
+            summary.TotalFiles,
+            summary.ImportedParagraphs,
+            summary.SkippedFiles,
+            summary.ErrorCount);
 
         return summary;
     }
@@ -64,6 +109,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
     private async Task<ImportFileResult> ImportFileAsync(
         string filePath,
         ImportOptions options,
+        int authorId,
         CancellationToken cancellationToken)
     {
         var existingSermon = await dbContext.Sermons
@@ -103,7 +149,8 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
         var sermon = new Sermon
         {
-            AuthorId = AuthorId,
+            AuthorId = authorId,
+            ContentSourceId = options.ContentSourceId,
             Title = metadata.Title,
             SermonCode = metadata.SermonCode,
             Year = metadata.Year,
@@ -162,12 +209,81 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         Console.WriteLine();
     }
 
-    private async Task EnsureAuthorExistsAsync(CancellationToken cancellationToken)
+    private async Task<int> EnsureAuthorExistsAsync(
+        ImportOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (options.ContentSourceId is null)
+        {
+            var exists = await dbContext.Authors.AnyAsync(author => author.Id == AuthorId, cancellationToken);
+            if (exists)
+            {
+                return AuthorId;
+            }
+
+            dbContext.Authors.Add(new Author
+            {
+                Id = AuthorId,
+                FullName = "William Marrion Branham",
+                DisplayName = "Brother Branham",
+                Description = "Primary sermon author for the local MessageFlow sermon library."
+            });
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return AuthorId;
+        }
+
+        var source = await dbContext.ContentSources
+            .AsNoTracking()
+            .Where(contentSource => contentSource.Id == options.ContentSourceId.Value)
+            .Select(contentSource => new
+            {
+                contentSource.Name,
+                contentSource.DisplayName
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (source is null)
+        {
+            throw new InvalidOperationException($"Content source {options.ContentSourceId.Value} could not be found.");
+        }
+
+        if (string.Equals(source.Name, BrotherBranhamSourceName, StringComparison.OrdinalIgnoreCase))
+        {
+            return await EnsureBrotherBranhamAuthorExistsAsync(cancellationToken);
+        }
+
+        var displayName = TrimTo(source.DisplayName.Trim(), 120);
+        var fullName = TrimTo(source.DisplayName.Trim(), 200);
+        var existingAuthor = await dbContext.Authors
+            .Where(author => author.FullName == fullName || author.DisplayName == displayName)
+            .Select(author => new { author.Id })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingAuthor is not null)
+        {
+            return existingAuthor.Id;
+        }
+
+        var author = new Author
+        {
+            FullName = fullName,
+            DisplayName = displayName,
+            Description = $"Imported from the {source.DisplayName} local PDF source."
+        };
+
+        dbContext.Authors.Add(author);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return author.Id;
+    }
+
+    private async Task<int> EnsureBrotherBranhamAuthorExistsAsync(CancellationToken cancellationToken)
     {
         var exists = await dbContext.Authors.AnyAsync(author => author.Id == AuthorId, cancellationToken);
         if (exists)
         {
-            return;
+            return AuthorId;
         }
 
         dbContext.Authors.Add(new Author
@@ -179,6 +295,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        return AuthorId;
     }
 
     private async Task WriteImportLogAsync(
@@ -201,6 +318,24 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
     private static string TrimTo(string value, int maxLength)
     {
         return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
+    private static void Report(
+        ImportOptions options,
+        string message,
+        int currentFile,
+        int totalFiles,
+        int importedParagraphs,
+        int skippedFiles,
+        int errorCount)
+    {
+        options.Progress?.Report(new ImportProgress(
+            message,
+            currentFile,
+            totalFiles,
+            importedParagraphs,
+            skippedFiles,
+            errorCount));
     }
 
     private sealed record ImportFileResult(bool Skipped, int ParagraphCount)

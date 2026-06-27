@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MessageFlow.Core\MessageFlow.Core.csproj" />
     <ProjectReference Include="..\MessageFlow.Data\MessageFlow.Data.csproj" />
+    <ProjectReference Include="..\MessageFlow.Importer\MessageFlow.Importer.csproj" />
     <ProjectReference Include="..\MessageFlow.Search\MessageFlow.Search.csproj" />
   </ItemGroup>
 

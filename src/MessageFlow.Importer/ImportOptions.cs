@@ -4,6 +4,8 @@ public sealed record ImportOptions(
     string SourceRoot,
     bool Force,
     bool Reset,
+    int? ContentSourceId = null,
+    IProgress<ImportProgress>? Progress = null,
     bool ShowHelp = false,
     bool IsValid = true,
     string ErrorMessage = "")

@@ -278,6 +278,7 @@
                                            FontWeight="SemiBold"
                                            Margin="4,4,4,10" />
                                 <ListBox ItemsSource="{Binding ContentSources}"
+                                         SelectedItem="{Binding SelectedContentSource}"
                                          MaxHeight="210"
                                          Margin="0,0,0,10">
                                     <ListBox.ItemTemplate>
@@ -300,7 +301,7 @@
                                                                TextWrapping="Wrap" />
                                                     <TextBlock Grid.Row="1"
                                                                Margin="0,6,0,0"
-                                                               Text="{Binding SourceType}"
+                                                               Text="{Binding SourceTypeDisplay}"
                                                                Foreground="{StaticResource AccentBrush}"
                                                                FontSize="13"
                                                                FontWeight="SemiBold" />

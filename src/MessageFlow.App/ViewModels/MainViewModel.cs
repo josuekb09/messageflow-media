@@ -1,10 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Windows;
 using MessageFlow.App.Infrastructure;
+using MessageFlow.Core.ContentSources;
 using MessageFlow.Core.Sermons;
 using MessageFlow.Data;
+using MessageFlow.Importer;
 using MessageFlow.Search;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +27,7 @@ public sealed class MainViewModel : ObservableObject
     private ParagraphResultViewModel? selectedParagraph;
     private SavedParagraphViewModel? selectedFavoriteParagraph;
     private SavedParagraphViewModel? selectedHistoryParagraph;
+    private ContentSourceViewModel? selectedContentSource;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private string statusText = "Ready";
     private string? latestBackupPath;
@@ -57,8 +61,12 @@ public sealed class MainViewModel : ObservableObject
         OpenBackupFolderCommand = new RelayCommand(
             OpenLatestBackupFolder,
             CanOpenLatestBackupFolder);
-        AddNewSourceCommand = new RelayCommand(ShowSourceManagerComingSoon);
-        ImportSourceCommand = new RelayCommand(ShowSourceManagerComingSoon);
+        AddNewSourceCommand = new RelayCommand(
+            () => _ = AddNewSourceAsync(),
+            () => !IsDatabaseOperationRunning);
+        ImportSourceCommand = new RelayCommand(
+            () => _ = ImportSelectedSourceAsync(),
+            () => SelectedContentSource is not null && !IsDatabaseOperationRunning);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -203,6 +211,18 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public ContentSourceViewModel? SelectedContentSource
+    {
+        get => selectedContentSource;
+        set
+        {
+            if (SetProperty(ref selectedContentSource, value))
+            {
+                ImportSourceCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
     public ProjectionFontSizeOption? SelectedProjectionFontSize
     {
         get => selectedProjectionFontSize;
@@ -256,6 +276,8 @@ public sealed class MainViewModel : ObservableObject
                 BackupDatabaseCommand.RaiseCanExecuteChanged();
                 RestoreDatabaseCommand.RaiseCanExecuteChanged();
                 OpenBackupFolderCommand.RaiseCanExecuteChanged();
+                AddNewSourceCommand.RaiseCanExecuteChanged();
+                ImportSourceCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -503,14 +525,163 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void ShowSourceManagerComingSoon()
+    private async Task AddNewSourceAsync()
     {
-        StatusText = "Source import manager is coming soon.";
-        MessageBox.Show(
-            "Source import manager is coming soon.",
-            "MessageFlow Sources",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var dialog = new AddContentSourceWindow
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var sourceName = CreateSourceName(dialog.DisplayNameValue);
+        var description = string.IsNullOrWhiteSpace(dialog.DescriptionValue)
+            ? $"Local {ContentSourceTypeOption.GetLabel(dialog.SourceTypeValue)} source."
+            : dialog.DescriptionValue;
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Saving content source...";
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+            var duplicateExists = await dbContext.ContentSources
+                .AsNoTracking()
+                .AnyAsync(source => source.Name == sourceName);
+
+            if (duplicateExists)
+            {
+                StatusText = $"A source named {dialog.DisplayNameValue} already exists.";
+                MessageBox.Show(
+                    "A source with that generated name already exists. Use a different display name.",
+                    "MessageFlow Sources",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var source = new ContentSource
+            {
+                Name = sourceName,
+                DisplayName = TrimTo(dialog.DisplayNameValue, 200),
+                SourceType = dialog.SourceTypeValue,
+                Description = TrimTo(description, 1000),
+                LocalFolderPath = dialog.LocalFolderPathValue is null
+                    ? null
+                    : TrimTo(dialog.LocalFolderPathValue, 1024),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            dbContext.ContentSources.Add(source);
+            await dbContext.SaveChangesAsync();
+            await LoadContentSourcesAsync(source.Id);
+
+            StatusText = $"Source added: {source.DisplayName}.";
+        }
+        catch (DbUpdateException ex)
+        {
+            App.LogStartupError("Content source save failed.", ex);
+            StatusText = $"Source save failed: {ex.GetBaseException().Message}";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Content source save failed.", ex);
+            StatusText = $"Source save failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task ImportSelectedSourceAsync()
+    {
+        var source = SelectedContentSource;
+        if (source is null)
+        {
+            StatusText = "Select a source before importing.";
+            return;
+        }
+
+        if (!string.Equals(source.SourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase))
+        {
+            StatusText = "Import for this source type is coming soon.";
+            MessageBox.Show(
+                "Import for this source type is coming soon.",
+                "MessageFlow Sources",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(source.LocalFolderPath) || !Directory.Exists(source.LocalFolderPath))
+        {
+            StatusText = "The selected source folder could not be found.";
+            MessageBox.Show(
+                "The selected source folder could not be found. Edit or recreate the source with a valid local folder.",
+                "MessageFlow Sources",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            $"Import local PDF files from:{Environment.NewLine}{source.LocalFolderPath}{Environment.NewLine}{Environment.NewLine}Existing imported files will be skipped.",
+            $"Import {source.DisplayName}",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question,
+            MessageBoxResult.No);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = $"Scanning PDFs for {source.DisplayName}...";
+
+            var progress = new Progress<ImportProgress>(UpdateImportProgress);
+            var summary = await Task.Run(async () =>
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+                var importer = new PdfSermonImporter(dbContext);
+                return await importer.ImportAsync(
+                    new ImportOptions(
+                        source.LocalFolderPath,
+                        Force: false,
+                        Reset: false,
+                        ContentSourceId: source.Id,
+                        Progress: progress));
+            });
+
+            await RefreshFilterOptionsPreservingSelectionAsync();
+            await LoadContentSourcesAsync(source.Id);
+
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                await ExecuteSearchAsync(CancellationToken.None);
+            }
+
+            StatusText =
+                $"Import complete for {source.DisplayName}: {summary.ImportedFiles:N0} files, {summary.ImportedParagraphs:N0} paragraphs, {summary.SkippedFiles:N0} skipped, {summary.ErrorCount:N0} errors.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Source import failed.", ex);
+            StatusText = $"Source import failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
     }
 
     public async Task SearchNowAsync()
@@ -682,32 +853,53 @@ public sealed class MainViewModel : ObservableObject
               ParagraphResults.FirstOrDefault();
     }
 
-    private void SelectPreviousParagraph()
+    private async void SelectPreviousParagraph()
     {
-        MoveSelection(-1);
+        await MoveSelectionAsync(-1);
     }
 
-    private void SelectNextParagraph()
+    private async void SelectNextParagraph()
     {
-        MoveSelection(1);
+        await MoveSelectionAsync(1);
     }
 
-    private void MoveSelection(int offset)
+    private async Task MoveSelectionAsync(int offset)
     {
-        if (SelectedParagraph is null || ParagraphResults.Count == 0)
+        var currentParagraph = SelectedParagraph;
+        if (currentParagraph is null)
         {
             return;
         }
 
-        var index = ParagraphResults.IndexOf(SelectedParagraph);
-        if (index < 0)
+        try
         {
-            SelectedParagraph = ParagraphResults.FirstOrDefault();
-            return;
-        }
+            var adjacentParagraph = await LoadAdjacentParagraphAsync(currentParagraph, offset);
+            if (adjacentParagraph is null)
+            {
+                StatusText = offset > 0
+                    ? "Already at the last paragraph."
+                    : "Already at the first paragraph.";
+                return;
+            }
 
-        var nextIndex = Math.Clamp(index + offset, 0, ParagraphResults.Count - 1);
-        SelectedParagraph = ParagraphResults[nextIndex];
+            var sermonParagraphs = await LoadSermonParagraphsAsync(currentParagraph.SermonId);
+
+            ParagraphResults.Clear();
+            foreach (var paragraph in sermonParagraphs)
+            {
+                ParagraphResults.Add(paragraph);
+            }
+
+            SelectedParagraph = ParagraphResults.FirstOrDefault(
+                                    paragraph => paragraph.ParagraphId == adjacentParagraph.ParagraphId) ??
+                                adjacentParagraph;
+
+            StatusText = $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Could not move paragraph selection: {ex.Message}";
+        }
     }
 
     private void CopySelectedParagraph()
@@ -891,6 +1083,74 @@ public sealed class MainViewModel : ObservableObject
         return result;
     }
 
+    private async Task<ParagraphResultViewModel?> LoadAdjacentParagraphAsync(
+        ParagraphResultViewModel currentParagraph,
+        int offset)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var query = dbContext.SermonParagraphs
+            .AsNoTracking()
+            .Where(paragraph => paragraph.SermonId == currentParagraph.SermonId);
+
+        query = offset > 0
+            ? query
+                .Where(paragraph => paragraph.ParagraphNumber > currentParagraph.ParagraphNumber)
+                .OrderBy(paragraph => paragraph.ParagraphNumber)
+            : query
+                .Where(paragraph => paragraph.ParagraphNumber < currentParagraph.ParagraphNumber)
+                .OrderByDescending(paragraph => paragraph.ParagraphNumber);
+
+        var paragraphId = await query
+            .Select(paragraph => (int?)paragraph.Id)
+            .FirstOrDefaultAsync();
+
+        return paragraphId is null ? null : await LoadParagraphAsync(paragraphId.Value);
+    }
+
+    private async Task<List<ParagraphResultViewModel>> LoadSermonParagraphsAsync(int sermonId)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var rows = await dbContext.SermonParagraphs
+            .AsNoTracking()
+            .Where(paragraph => paragraph.SermonId == sermonId)
+            .OrderBy(paragraph => paragraph.ParagraphNumber)
+            .Select(paragraph => new
+            {
+                ParagraphId = paragraph.Id,
+                paragraph.SermonId,
+                paragraph.ParagraphNumber,
+                paragraph.Text,
+                paragraph.PageNumber,
+                SermonTitle = paragraph.Sermon!.Title,
+                paragraph.Sermon.SermonCode,
+                paragraph.Sermon.Year,
+                paragraph.Sermon.SourceFilePath,
+                IsFavorite = paragraph.Favorites.Any()
+            })
+            .ToListAsync();
+
+        return rows
+            .Select(row => new ParagraphResultViewModel(
+                row.SermonId,
+                row.ParagraphId,
+                row.SermonTitle,
+                row.SermonCode,
+                row.Year,
+                row.ParagraphNumber,
+                CreatePreview(row.Text),
+                row.Text,
+                row.SourceFilePath,
+                row.PageNumber)
+            {
+                IsFavorite = row.IsFavorite
+            })
+            .ToList();
+    }
+
     private async Task LoadFavoritesAsync()
     {
         await using var scope = scopeFactory.CreateAsyncScope();
@@ -935,6 +1195,7 @@ public sealed class MainViewModel : ObservableObject
         selectedParagraph = null;
         selectedFavoriteParagraph = null;
         selectedHistoryParagraph = null;
+        selectedContentSource = null;
         allParagraphResults = [];
 
         SermonResults.Clear();
@@ -948,6 +1209,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedParagraph));
         OnPropertyChanged(nameof(SelectedFavoriteParagraph));
         OnPropertyChanged(nameof(SelectedHistoryParagraph));
+        OnPropertyChanged(nameof(SelectedContentSource));
         OnPropertyChanged(nameof(SelectedParagraphHeader));
         OnPropertyChanged(nameof(SelectedParagraphMeta));
         OnPropertyChanged(nameof(ProjectionParagraphTitle));
@@ -966,7 +1228,10 @@ public sealed class MainViewModel : ObservableObject
         RaiseCommandStates();
     }
 
-    private async Task<FilterLoadResult> LoadFilterOptionsAsync(MessageFlowDbContext dbContext)
+    private async Task<FilterLoadResult> LoadFilterOptionsAsync(
+        MessageFlowDbContext dbContext,
+        int? preferredAuthorId = null,
+        int? preferredYear = null)
     {
         var linkedAuthorIds = await dbContext.Sermons
             .AsNoTracking()
@@ -1023,8 +1288,8 @@ public sealed class MainViewModel : ObservableObject
             YearFilters.Add(new FilterOption(year, year.ToString()));
         }
 
-        selectedAuthor = AuthorFilters[0];
-        selectedYear = YearFilters[0];
+        selectedAuthor = AuthorFilters.FirstOrDefault(author => author.Value == preferredAuthorId) ?? AuthorFilters[0];
+        selectedYear = YearFilters.FirstOrDefault(year => year.Value == preferredYear) ?? YearFilters[0];
         OnPropertyChanged(nameof(SelectedAuthor));
         OnPropertyChanged(nameof(SelectedYear));
 
@@ -1034,7 +1299,14 @@ public sealed class MainViewModel : ObservableObject
         return new FilterLoadResult(linkedAuthors.Count, years.Count);
     }
 
-    private async Task LoadContentSourcesAsync()
+    private async Task RefreshFilterOptionsPreservingSelectionAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        await LoadFilterOptionsAsync(dbContext, SelectedAuthor?.Value, SelectedYear?.Value);
+    }
+
+    private async Task LoadContentSourcesAsync(int? preferredSourceId = null)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
@@ -1045,6 +1317,7 @@ public sealed class MainViewModel : ObservableObject
             .ThenBy(source => source.Name)
             .Select(source => new ContentSourceViewModel(
                 source.Id,
+                source.Name,
                 source.DisplayName,
                 source.SourceType,
                 source.Description,
@@ -1056,6 +1329,12 @@ public sealed class MainViewModel : ObservableObject
         {
             ContentSources.Add(source);
         }
+
+        SelectedContentSource = preferredSourceId is null
+            ? ContentSources.FirstOrDefault(source => source.Id == SelectedContentSource?.Id) ??
+              ContentSources.FirstOrDefault()
+            : ContentSources.FirstOrDefault(source => source.Id == preferredSourceId.Value) ??
+              ContentSources.FirstOrDefault();
 
         if (sources.Count == 0)
         {
@@ -1151,6 +1430,48 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusText = $"Projection history update failed: {ex.Message}";
         }
+    }
+
+    private void UpdateImportProgress(ImportProgress progress)
+    {
+        var position = progress.TotalFiles > 0 && progress.CurrentFile > 0
+            ? $"File {progress.CurrentFile:N0} of {progress.TotalFiles:N0}: "
+            : string.Empty;
+
+        StatusText =
+            $"{position}{progress.Message} Imported paragraphs: {progress.ImportedParagraphs:N0}. Skipped: {progress.SkippedFiles:N0}. Errors: {progress.ErrorCount:N0}.";
+    }
+
+    private static string CreateSourceName(string displayName)
+    {
+        var builder = new StringBuilder(displayName.Length);
+        var previousWasSeparator = false;
+
+        foreach (var character in displayName.Trim().ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(character))
+            {
+                builder.Append(character);
+                previousWasSeparator = false;
+                continue;
+            }
+
+            if (previousWasSeparator)
+            {
+                continue;
+            }
+
+            builder.Append('_');
+            previousWasSeparator = true;
+        }
+
+        var name = builder.ToString().Trim('_');
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = "source";
+        }
+
+        return TrimTo(name, 120);
     }
 
     private static string CreatePreview(string text)
