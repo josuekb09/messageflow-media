@@ -1,10 +1,14 @@
 namespace MessageFlow.Core.Sermons;
 
+using MessageFlow.Core.ContentSources;
+
 public sealed class Sermon
 {
     public int Id { get; set; }
 
     public int AuthorId { get; set; }
+
+    public int? ContentSourceId { get; set; }
 
     public string Title { get; set; } = string.Empty;
 
@@ -23,6 +27,8 @@ public sealed class Sermon
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Author? Author { get; set; }
+
+    public ContentSource? ContentSource { get; set; }
 
     public ICollection<SermonParagraph> Paragraphs { get; set; } = new List<SermonParagraph>();
 }

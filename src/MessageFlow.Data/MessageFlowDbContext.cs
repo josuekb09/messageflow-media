@@ -1,3 +1,4 @@
+using MessageFlow.Core.ContentSources;
 using MessageFlow.Core.Sermons;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,8 @@ namespace MessageFlow.Data;
 public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> options) : DbContext(options)
 {
     public DbSet<Author> Authors => Set<Author>();
+
+    public DbSet<ContentSource> ContentSources => Set<ContentSource>();
 
     public DbSet<Sermon> Sermons => Set<Sermon>();
 
@@ -48,6 +51,49 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
             });
         });
 
+        modelBuilder.Entity<ContentSource>(entity =>
+        {
+            entity.ToTable("ContentSources");
+            entity.HasKey(source => source.Id);
+
+            entity.Property(source => source.Name)
+                .HasMaxLength(120)
+                .IsRequired();
+
+            entity.Property(source => source.DisplayName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(source => source.SourceType)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(source => source.Description)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(source => source.LocalFolderPath)
+                .HasMaxLength(1024);
+
+            entity.Property(source => source.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(source => source.Name)
+                .IsUnique();
+
+            entity.HasData(new ContentSource
+            {
+                Id = 1,
+                Name = "brother_branham",
+                DisplayName = "Brother Branham",
+                SourceType = "SermonPdfCollection",
+                Description = "Local Brother William Marrion Branham sermon PDF library.",
+                LocalFolderPath = @"D:\Br William Marrion Branham\PDF",
+                CreatedAt = new DateTime(2026, 6, 27, 0, 0, 0, DateTimeKind.Utc)
+            });
+        });
+
         modelBuilder.Entity<Sermon>(entity =>
         {
             entity.ToTable("Sermons");
@@ -80,6 +126,7 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
             entity.HasIndex(sermon => sermon.SourceFilePath)
                 .IsUnique();
 
+            entity.HasIndex(sermon => sermon.ContentSourceId);
             entity.HasIndex(sermon => sermon.Title);
             entity.HasIndex(sermon => sermon.SermonCode);
             entity.HasIndex(sermon => sermon.Year);
@@ -89,6 +136,11 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 .WithMany(author => author.Sermons)
                 .HasForeignKey(sermon => sermon.AuthorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(sermon => sermon.ContentSource)
+                .WithMany(source => source.Sermons)
+                .HasForeignKey(sermon => sermon.ContentSourceId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<SermonParagraph>(entity =>

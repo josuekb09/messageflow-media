@@ -79,6 +79,61 @@ namespace MessageFlow.Data.Migrations
                     b.ToTable("FavoriteParagraphs", (string)null);
                 });
 
+            modelBuilder.Entity("MessageFlow.Core.ContentSources.ContentSource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LocalFolderPath")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ContentSources", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2026, 6, 27, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Local Brother William Marrion Branham sermon PDF library.",
+                            DisplayName = "Brother Branham",
+                            LocalFolderPath = "D:\\Br William Marrion Branham\\PDF",
+                            Name = "brother_branham",
+                            SourceType = "SermonPdfCollection"
+                        });
+                });
+
             modelBuilder.Entity("MessageFlow.Core.Sermons.ImportLog", b =>
                 {
                     b.Property<int>("Id")
@@ -148,6 +203,9 @@ namespace MessageFlow.Data.Migrations
                     b.Property<int>("AuthorId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("ContentSourceId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
@@ -188,6 +246,8 @@ namespace MessageFlow.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("ContentSourceId");
 
                     b.HasIndex("SermonCode");
 
@@ -274,6 +334,13 @@ namespace MessageFlow.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Author");
+
+                    b.HasOne("MessageFlow.Core.ContentSources.ContentSource", "ContentSource")
+                        .WithMany("Sermons")
+                        .HasForeignKey("ContentSourceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ContentSource");
                 });
 
             modelBuilder.Entity("MessageFlow.Core.Sermons.SermonParagraph", b =>
@@ -295,6 +362,11 @@ namespace MessageFlow.Data.Migrations
             modelBuilder.Entity("MessageFlow.Core.Sermons.Sermon", b =>
                 {
                     b.Navigation("Paragraphs");
+                });
+
+            modelBuilder.Entity("MessageFlow.Core.ContentSources.ContentSource", b =>
+                {
+                    b.Navigation("Sermons");
                 });
 
             modelBuilder.Entity("MessageFlow.Core.Sermons.SermonParagraph", b =>

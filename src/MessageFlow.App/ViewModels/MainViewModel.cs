@@ -57,6 +57,8 @@ public sealed class MainViewModel : ObservableObject
         OpenBackupFolderCommand = new RelayCommand(
             OpenLatestBackupFolder,
             CanOpenLatestBackupFolder);
+        AddNewSourceCommand = new RelayCommand(ShowSourceManagerComingSoon);
+        ImportSourceCommand = new RelayCommand(ShowSourceManagerComingSoon);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -79,6 +81,8 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<SavedParagraphViewModel> ProjectionHistoryItems { get; } = [];
 
+    public ObservableCollection<ContentSourceViewModel> ContentSources { get; } = [];
+
     public ObservableCollection<ProjectionFontSizeOption> ProjectionFontSizes { get; } = [];
 
     public RelayCommand PreviousParagraphCommand { get; }
@@ -98,6 +102,10 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RestoreDatabaseCommand { get; }
 
     public RelayCommand OpenBackupFolderCommand { get; }
+
+    public RelayCommand AddNewSourceCommand { get; }
+
+    public RelayCommand ImportSourceCommand { get; }
 
     public string SearchText
     {
@@ -349,6 +357,16 @@ public sealed class MainViewModel : ObservableObject
             startupMessages.Add("Projection history could not load.");
         }
 
+        try
+        {
+            await LoadContentSourcesAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Content sources failed to load during startup.", ex);
+            startupMessages.Add("Content sources could not load.");
+        }
+
         StatusText = startupMessages.Count == 0
             ? "Type to search sermons and paragraphs."
             : string.Join(' ', startupMessages);
@@ -483,6 +501,16 @@ public sealed class MainViewModel : ObservableObject
             App.LogStartupError("Open backup folder failed.", ex);
             StatusText = $"Open backup folder failed: {ex.Message}";
         }
+    }
+
+    private void ShowSourceManagerComingSoon()
+    {
+        StatusText = "Source import manager is coming soon.";
+        MessageBox.Show(
+            "Source import manager is coming soon.",
+            "MessageFlow Sources",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     public async Task SearchNowAsync()
@@ -913,6 +941,7 @@ public sealed class MainViewModel : ObservableObject
         ParagraphResults.Clear();
         FavoriteParagraphs.Clear();
         ProjectionHistoryItems.Clear();
+        ContentSources.Clear();
         ResultCount = 0;
 
         OnPropertyChanged(nameof(SelectedSermon));
@@ -1003,6 +1032,35 @@ public sealed class MainViewModel : ObservableObject
             $"Loaded filter data. Authors: {linkedAuthors.Count}. Years: {years.Count}.");
 
         return new FilterLoadResult(linkedAuthors.Count, years.Count);
+    }
+
+    private async Task LoadContentSourcesAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var sources = await dbContext.ContentSources
+            .AsNoTracking()
+            .OrderBy(source => source.DisplayName)
+            .ThenBy(source => source.Name)
+            .Select(source => new ContentSourceViewModel(
+                source.Id,
+                source.DisplayName,
+                source.SourceType,
+                source.Description,
+                source.LocalFolderPath))
+            .ToListAsync();
+
+        ContentSources.Clear();
+        foreach (var source in sources)
+        {
+            ContentSources.Add(source);
+        }
+
+        if (sources.Count == 0)
+        {
+            StatusText = "No content sources configured yet.";
+        }
     }
 
     private async Task LoadProjectionHistoryAsync()
@@ -1244,6 +1302,8 @@ public sealed class MainViewModel : ObservableObject
         BackupDatabaseCommand.RaiseCanExecuteChanged();
         RestoreDatabaseCommand.RaiseCanExecuteChanged();
         OpenBackupFolderCommand.RaiseCanExecuteChanged();
+        AddNewSourceCommand.RaiseCanExecuteChanged();
+        ImportSourceCommand.RaiseCanExecuteChanged();
     }
 
     private readonly record struct FilterLoadResult(int LinkedAuthorCount, int YearCount);
