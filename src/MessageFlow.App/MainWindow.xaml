@@ -270,6 +270,20 @@
                                 </TextBlock>
                             </Grid>
                         </TabItem>
+
+                        <TabItem Header="Tools">
+                            <StackPanel Margin="0,10,0,0">
+                                <TextBlock Text="Database"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Margin="4,4,4,10" />
+                                <Button Content="Backup Database"
+                                        Command="{Binding BackupDatabaseCommand}" />
+                                <Button Content="Restore Database"
+                                        Margin="0,10,0,0"
+                                        Command="{Binding RestoreDatabaseCommand}" />
+                            </StackPanel>
+                        </TabItem>
                     </TabControl>
                 </Grid>
             </Border>

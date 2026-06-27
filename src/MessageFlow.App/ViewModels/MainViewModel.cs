@@ -1,11 +1,14 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using MessageFlow.App.Infrastructure;
 using MessageFlow.Core.Sermons;
 using MessageFlow.Data;
 using MessageFlow.Search;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 
 namespace MessageFlow.App.ViewModels;
 
@@ -24,6 +27,7 @@ public sealed class MainViewModel : ObservableObject
     private string statusText = "Ready";
     private bool isProjectionOpen;
     private bool isSearching;
+    private bool isDatabaseOperationRunning;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
 
@@ -42,6 +46,12 @@ public sealed class MainViewModel : ObservableObject
         ProjectCommand = new RelayCommand(ProjectSelectedParagraph);
         ToggleFavoriteCommand = new RelayCommand(ToggleFavorite, () => SelectedParagraph is not null);
         ClearSearchCommand = new RelayCommand(ClearSearch);
+        BackupDatabaseCommand = new RelayCommand(
+            () => _ = BackupDatabaseAsync(),
+            () => !IsDatabaseOperationRunning);
+        RestoreDatabaseCommand = new RelayCommand(
+            () => _ = RestoreDatabaseAsync(),
+            () => !IsDatabaseOperationRunning);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -77,6 +87,10 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ToggleFavoriteCommand { get; }
 
     public RelayCommand ClearSearchCommand { get; }
+
+    public RelayCommand BackupDatabaseCommand { get; }
+
+    public RelayCommand RestoreDatabaseCommand { get; }
 
     public string SearchText
     {
@@ -199,6 +213,19 @@ public sealed class MainViewModel : ObservableObject
         set => SetProperty(ref isSearching, value);
     }
 
+    public bool IsDatabaseOperationRunning
+    {
+        get => isDatabaseOperationRunning;
+        set
+        {
+            if (SetProperty(ref isDatabaseOperationRunning, value))
+            {
+                BackupDatabaseCommand.RaiseCanExecuteChanged();
+                RestoreDatabaseCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
     public bool IsProjectionOpen
     {
         get => isProjectionOpen;
@@ -304,6 +331,95 @@ public sealed class MainViewModel : ObservableObject
     public Task RefreshProjectionHistoryAsync()
     {
         return LoadProjectionHistoryAsync();
+    }
+
+    public async Task BackupDatabaseAsync()
+    {
+        var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+        var defaultBackupName = $"messageflow_backup_{DateTime.Now:yyyyMMdd_HHmmss}.db";
+        var dialog = new SaveFileDialog
+        {
+            Title = "Backup MessageFlow Database",
+            AddExtension = true,
+            DefaultExt = ".db",
+            Filter = "SQLite database (*.db)|*.db|All files (*.*)|*.*",
+            FileName = defaultBackupName,
+            OverwritePrompt = true
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Backing up database...";
+
+            await Task.Run(() => BackupDatabaseFile(databasePath, dialog.FileName));
+
+            StatusText = "Backup completed successfully.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Database backup failed.", ex);
+            StatusText = $"Backup failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    public async Task RestoreDatabaseAsync()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Restore MessageFlow Database",
+            CheckFileExists = true,
+            DefaultExt = ".db",
+            Filter = "SQLite database (*.db)|*.db|All files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            "Restoring will replace the current database. Continue?",
+            "Restore MessageFlow Database",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Restoring database...";
+
+            var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+            await Task.Run(() => RestoreDatabaseFile(databasePath, dialog.FileName));
+            await MessageFlowDatabaseRepair.RepairAsync(databasePath, App.LogStartupMessage);
+            await ReloadAfterDatabaseRestoreAsync();
+
+            StatusText = "Restore completed successfully.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Database restore failed.", ex);
+            StatusText = $"Restore failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
     }
 
     public async Task SearchNowAsync()
@@ -721,6 +837,43 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private async Task ReloadAfterDatabaseRestoreAsync()
+    {
+        searchDebounce?.Cancel();
+        selectedSermon = null;
+        selectedParagraph = null;
+        selectedFavoriteParagraph = null;
+        selectedHistoryParagraph = null;
+        allParagraphResults = [];
+
+        SermonResults.Clear();
+        ParagraphResults.Clear();
+        FavoriteParagraphs.Clear();
+        ProjectionHistoryItems.Clear();
+        ResultCount = 0;
+
+        OnPropertyChanged(nameof(SelectedSermon));
+        OnPropertyChanged(nameof(SelectedParagraph));
+        OnPropertyChanged(nameof(SelectedFavoriteParagraph));
+        OnPropertyChanged(nameof(SelectedHistoryParagraph));
+        OnPropertyChanged(nameof(SelectedParagraphHeader));
+        OnPropertyChanged(nameof(SelectedParagraphMeta));
+        OnPropertyChanged(nameof(ProjectionParagraphTitle));
+        OnPropertyChanged(nameof(ProjectionParagraphNumber));
+        OnPropertyChanged(nameof(SelectedParagraphText));
+        OnPropertyChanged(nameof(FavoriteButtonText));
+        OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
+
+        await InitializeAsync();
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            await ExecuteSearchAsync(CancellationToken.None);
+        }
+
+        RaiseCommandStates();
+    }
+
     private async Task<FilterLoadResult> LoadFilterOptionsAsync(MessageFlowDbContext dbContext)
     {
         var linkedAuthorIds = await dbContext.Sermons
@@ -897,6 +1050,91 @@ public sealed class MainViewModel : ObservableObject
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
+    private static void BackupDatabaseFile(string databasePath, string backupPath)
+    {
+        if (!File.Exists(databasePath))
+        {
+            throw new FileNotFoundException("The MessageFlow database could not be found.", databasePath);
+        }
+
+        var backupDirectory = Path.GetDirectoryName(backupPath);
+        if (!string.IsNullOrWhiteSpace(backupDirectory))
+        {
+            Directory.CreateDirectory(backupDirectory);
+        }
+
+        if (File.Exists(backupPath))
+        {
+            File.Delete(backupPath);
+        }
+
+        SqliteConnection.ClearAllPools();
+
+        var sourceConnectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadWriteCreate
+        }.ToString();
+
+        var destinationConnectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = backupPath,
+            Mode = SqliteOpenMode.ReadWriteCreate
+        }.ToString();
+
+        using var source = new SqliteConnection(sourceConnectionString);
+        using var destination = new SqliteConnection(destinationConnectionString);
+        source.Open();
+        destination.Open();
+        source.BackupDatabase(destination);
+    }
+
+    private static void RestoreDatabaseFile(string databasePath, string selectedBackupPath)
+    {
+        if (!File.Exists(selectedBackupPath))
+        {
+            throw new FileNotFoundException("The selected backup file could not be found.", selectedBackupPath);
+        }
+
+        MessageFlowDatabase.EnsureDatabaseDirectory(databasePath);
+        if (string.Equals(
+                Path.GetFullPath(databasePath),
+                Path.GetFullPath(selectedBackupPath),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Select a backup file other than the current MessageFlow database.");
+        }
+
+        var safetyBackupPath = CreateSafetyBackupPath(databasePath);
+        BackupDatabaseFile(databasePath, safetyBackupPath);
+
+        SqliteConnection.ClearAllPools();
+
+        File.Copy(selectedBackupPath, databasePath, overwrite: true);
+        DeleteIfExists($"{databasePath}-wal");
+        DeleteIfExists($"{databasePath}-shm");
+
+        SqliteConnection.ClearAllPools();
+    }
+
+    private static string CreateSafetyBackupPath(string databasePath)
+    {
+        var databaseDirectory = Path.GetDirectoryName(databasePath) ?? Directory.GetCurrentDirectory();
+        var backupDirectory = Path.Combine(databaseDirectory, "backups");
+        Directory.CreateDirectory(backupDirectory);
+        return Path.Combine(
+            backupDirectory,
+            $"messageflow_safety_before_restore_{DateTime.Now:yyyyMMdd_HHmmss}.db");
+    }
+
+    private static void DeleteIfExists(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
     private static string CreateAuthorLabel(string displayName, string fullName, int authorId)
     {
         if (!string.IsNullOrWhiteSpace(displayName))
@@ -929,6 +1167,8 @@ public sealed class MainViewModel : ObservableObject
         CopyCommand.RaiseCanExecuteChanged();
         ProjectCommand.RaiseCanExecuteChanged();
         ToggleFavoriteCommand.RaiseCanExecuteChanged();
+        BackupDatabaseCommand.RaiseCanExecuteChanged();
+        RestoreDatabaseCommand.RaiseCanExecuteChanged();
     }
 
     private readonly record struct FilterLoadResult(int LinkedAuthorCount, int YearCount);
