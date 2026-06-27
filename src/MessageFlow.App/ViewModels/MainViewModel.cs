@@ -252,6 +252,12 @@ public sealed class MainViewModel : ObservableObject
         await ExecuteSearchAsync(CancellationToken.None);
     }
 
+    public async Task QuickProjectAsync()
+    {
+        searchDebounce?.Cancel();
+        await ExecuteSearchAsync(CancellationToken.None, projectBestResult: true);
+    }
+
     private void QueueSearch()
     {
         searchDebounce?.Cancel();
@@ -274,7 +280,9 @@ public sealed class MainViewModel : ObservableObject
         }, cancellationToken);
     }
 
-    private async Task ExecuteSearchAsync(CancellationToken cancellationToken)
+    private async Task ExecuteSearchAsync(
+        CancellationToken cancellationToken,
+        bool projectBestResult = false)
     {
         var queryText = SearchText.Trim();
         var hasFilter = SelectedAuthor?.Value is not null || SelectedYear?.Value is not null;
@@ -282,7 +290,9 @@ public sealed class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(queryText) && !hasFilter)
         {
             SetResults([]);
-            StatusText = "Type to search sermons and paragraphs.";
+            StatusText = projectBestResult
+                ? "No matching paragraph found."
+                : "Type to search sermons and paragraphs.";
             return;
         }
 
@@ -305,7 +315,26 @@ public sealed class MainViewModel : ObservableObject
                     cancellationToken)
                 : await searchService.SearchAsync(queryText, 200, cancellationToken);
 
-            SetResults(results.Select(result => new ParagraphResultViewModel(result)).ToList());
+            var resultViewModels = results
+                .Select(result => new ParagraphResultViewModel(result))
+                .ToList();
+            var preferredParagraphId = resultViewModels.FirstOrDefault()?.ParagraphId;
+
+            SetResults(resultViewModels, preferredParagraphId);
+
+            if (projectBestResult)
+            {
+                if (SelectedParagraph is null)
+                {
+                    StatusText = "No matching paragraph found.";
+                    return;
+                }
+
+                StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
+                ProjectRequested?.Invoke();
+                return;
+            }
+
             StatusText = ResultCount == 0 ? "No results found." : $"{ResultCount} paragraph results.";
         }
         catch (OperationCanceledException)
@@ -322,37 +351,53 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void SetResults(List<ParagraphResultViewModel> results)
+    private void SetResults(
+        List<ParagraphResultViewModel> results,
+        int? preferredParagraphId = null)
     {
         allParagraphResults = results;
         ResultCount = allParagraphResults.Count;
+        var preferredParagraph = preferredParagraphId is null
+            ? allParagraphResults.FirstOrDefault()
+            : allParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value);
 
         SermonResults.Clear();
-        foreach (var sermon in allParagraphResults
-                     .GroupBy(result => result.SermonId)
-                     .Select(group => new SermonResultViewModel(
-                         group.Key,
-                         group.First().SermonTitle,
-                         group.First().SermonCode,
-                         group.First().Year,
-                         group.Count()))
-                     .OrderBy(sermon => sermon.Year)
-                     .ThenBy(sermon => sermon.Title))
+        foreach (var item in allParagraphResults
+                     .Select((result, index) => new { Result = result, Index = index })
+                     .GroupBy(item => item.Result.SermonId)
+                     .Select(group => new
+                     {
+                         Rank = group.Min(item => item.Index),
+                         Sermon = new SermonResultViewModel(
+                             group.Key,
+                             group.First().Result.SermonTitle,
+                             group.First().Result.SermonCode,
+                             group.First().Result.Year,
+                             group.Count())
+                     })
+                     .OrderBy(item => item.Rank))
         {
-            SermonResults.Add(sermon);
+            SermonResults.Add(item.Sermon);
         }
 
-        var firstSermon = SermonResults.FirstOrDefault();
-        if (SelectedSermon == firstSermon)
+        var nextSermon = preferredParagraph is null
+            ? SermonResults.FirstOrDefault()
+            : SermonResults.FirstOrDefault(sermon => sermon.SermonId == preferredParagraph.SermonId);
+
+        if (SelectedSermon == nextSermon)
         {
-            RefreshParagraphResultsForSelectedSermon();
+            RefreshParagraphResultsForSelectedSermon(preferredParagraphId);
             return;
         }
 
-        SelectedSermon = firstSermon;
+        SelectedSermon = nextSermon;
+        if (preferredParagraphId is not null)
+        {
+            RefreshParagraphResultsForSelectedSermon(preferredParagraphId);
+        }
     }
 
-    private void RefreshParagraphResultsForSelectedSermon()
+    private void RefreshParagraphResultsForSelectedSermon(int? preferredParagraphId = null)
     {
         ParagraphResults.Clear();
 
@@ -365,7 +410,10 @@ public sealed class MainViewModel : ObservableObject
             ParagraphResults.Add(paragraph);
         }
 
-        SelectedParagraph = ParagraphResults.FirstOrDefault();
+        SelectedParagraph = preferredParagraphId is null
+            ? ParagraphResults.FirstOrDefault()
+            : ParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value) ??
+              ParagraphResults.FirstOrDefault();
     }
 
     private void SelectPreviousParagraph()

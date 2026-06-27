@@ -47,8 +47,17 @@ public partial class MainWindow : Window
         projectWindow.Activate();
     }
 
-    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.None &&
+            (e.Key == Key.Enter || e.Key == Key.Return) &&
+            SearchBox.IsKeyboardFocusWithin)
+        {
+            e.Handled = true;
+            await viewModel.QuickProjectAsync();
+            return;
+        }
+
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F)
         {
             SearchBox.Focus();

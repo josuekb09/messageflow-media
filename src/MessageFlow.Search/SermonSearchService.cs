@@ -38,6 +38,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         {
             new("$like", like),
             new("$searchLike", searchLike),
+            new("$exact", normalized),
+            new("$prefix", BuildStartsWithLike(normalized)),
+            new("$searchExact", normalized.ToUpperInvariant()),
+            new("$searchPrefix", BuildStartsWithLike(normalized.ToUpperInvariant())),
             new("$limit", limit)
         };
 
@@ -90,6 +94,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         var generalText = query.SearchText?.Trim();
         var paragraphNumber = query.ParagraphNumber;
+        var hasGeneralText = false;
+        var hasTitle = false;
+        var hasSermonCode = false;
 
         if (!string.IsNullOrWhiteSpace(generalText) &&
             paragraphNumber is null &&
@@ -101,6 +108,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (!string.IsNullOrWhiteSpace(generalText))
         {
+            hasGeneralText = true;
+
             var generalClauses = new List<string>
             {
                 "s.Title LIKE $generalLike ESCAPE '\\'",
@@ -110,6 +119,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
             parameters.Add(new("$generalLike", BuildContainsLike(generalText)));
             parameters.Add(new("$generalSearchLike", BuildContainsLike(generalText.ToUpperInvariant())));
+            parameters.Add(new("$generalExact", generalText));
+            parameters.Add(new("$generalPrefix", BuildStartsWithLike(generalText)));
+            parameters.Add(new("$generalSearchExact", generalText.ToUpperInvariant()));
+            parameters.Add(new("$generalSearchPrefix", BuildStartsWithLike(generalText.ToUpperInvariant())));
 
             if (int.TryParse(generalText, out var generalNumber))
             {
@@ -123,14 +136,20 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (!string.IsNullOrWhiteSpace(query.Title))
         {
+            hasTitle = true;
             clauses.Add("s.Title LIKE $title ESCAPE '\\'");
             parameters.Add(new("$title", BuildContainsLike(query.Title)));
+            parameters.Add(new("$titleExact", query.Title.Trim()));
+            parameters.Add(new("$titlePrefix", BuildStartsWithLike(query.Title)));
         }
 
         if (!string.IsNullOrWhiteSpace(query.SermonCode))
         {
+            hasSermonCode = true;
             clauses.Add("s.SermonCode LIKE $sermonCode ESCAPE '\\'");
             parameters.Add(new("$sermonCode", BuildContainsLike(query.SermonCode)));
+            parameters.Add(new("$sermonCodeExact", query.SermonCode.Trim()));
+            parameters.Add(new("$sermonCodePrefix", BuildStartsWithLike(query.SermonCode)));
         }
 
         if (query.Year is not null)
@@ -155,7 +174,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             try
             {
                 return await ExecuteQueryAsync(
-                    BuildFilteredSearchSql(clauses, useFts: true),
+                    BuildFilteredSearchSql(
+                        clauses,
+                        useFts: true,
+                        BuildFilteredRankingOrder(hasGeneralText, hasTitle, hasSermonCode)),
                     parameters,
                     cancellationToken);
             }
@@ -178,7 +200,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         }
 
         return await ExecuteQueryAsync(
-            BuildFilteredSearchSql(clauses, useFts: false),
+            BuildFilteredSearchSql(
+                clauses,
+                useFts: false,
+                BuildFilteredRankingOrder(hasGeneralText, hasTitle, hasSermonCode)),
             parameters,
             cancellationToken);
     }
@@ -213,10 +238,14 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         return BuildBaseSelect(
             "SermonParagraphs p",
             string.Join($"{Environment.NewLine}        OR ", clauses),
-            orderByFtsRank: false);
+            orderByFtsRank: false,
+            rankingOrder: SimpleRankingOrder);
     }
 
-    private static string BuildFilteredSearchSql(IReadOnlyCollection<string> clauses, bool useFts)
+    private static string BuildFilteredSearchSql(
+        IReadOnlyCollection<string> clauses,
+        bool useFts,
+        string rankingOrder)
     {
         var from = useFts
             ? "SermonParagraphSearch JOIN SermonParagraphs p ON p.Id = SermonParagraphSearch.rowid"
@@ -235,12 +264,32 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         return BuildBaseSelect(
             from,
             string.Join($"{Environment.NewLine}        AND ", allClauses),
-            orderByFtsRank: useFts);
+            orderByFtsRank: useFts,
+            rankingOrder: rankingOrder);
     }
 
-    private static string BuildBaseSelect(string from, string whereClause, bool orderByFtsRank)
+    private static string BuildBaseSelect(
+        string from,
+        string whereClause,
+        bool orderByFtsRank,
+        string rankingOrder = "")
     {
-        var rankOrder = orderByFtsRank ? "bm25(SermonParagraphSearch)," : string.Empty;
+        var orderParts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(rankingOrder))
+        {
+            orderParts.Add(rankingOrder);
+        }
+
+        if (orderByFtsRank)
+        {
+            orderParts.Add("bm25(SermonParagraphSearch)");
+        }
+
+        orderParts.Add("s.Year");
+        orderParts.Add("s.Date");
+        orderParts.Add("p.ParagraphNumber");
+        var orderBy = string.Join(", ", orderParts);
 
         return $$"""
             SELECT
@@ -260,7 +309,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             FROM {{from}}
             JOIN Sermons s ON s.Id = p.SermonId
             WHERE {{whereClause}}
-            ORDER BY {{rankOrder}} s.Year, s.Date, p.ParagraphNumber
+            ORDER BY {{orderBy}}
             LIMIT $limit;
             """;
     }
@@ -337,6 +386,11 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         return $"%{EscapeLike(value.Trim())}%";
     }
 
+    private static string BuildStartsWithLike(string value)
+    {
+        return $"{EscapeLike(value.Trim())}%";
+    }
+
     private static string EscapeLike(string value)
     {
         return value
@@ -367,6 +421,68 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     [GeneratedRegex(@"[\p{L}\p{Nd}]+")]
     private static partial Regex FtsTokenRegex();
+
+    private const string SimpleRankingOrder =
+        """
+        CASE
+            WHEN s.SermonCode COLLATE NOCASE = $exact THEN 0
+            WHEN s.Title COLLATE NOCASE = $exact THEN 1
+            WHEN s.SermonCode LIKE $prefix ESCAPE '\' THEN 2
+            WHEN s.Title LIKE $prefix ESCAPE '\' THEN 3
+            WHEN s.SermonCode LIKE $like ESCAPE '\' THEN 4
+            WHEN s.Title LIKE $like ESCAPE '\' THEN 5
+            WHEN p.SearchText = $searchExact THEN 6
+            WHEN p.SearchText LIKE $searchPrefix ESCAPE '\' THEN 7
+            ELSE 8
+        END
+        """;
+
+    private static string BuildFilteredRankingOrder(
+        bool hasGeneralText,
+        bool hasTitle,
+        bool hasSermonCode)
+    {
+        var cases = new List<string>();
+        var rank = 0;
+
+        if (hasSermonCode)
+        {
+            cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $sermonCodeExact THEN {rank++}");
+            cases.Add($"WHEN s.SermonCode LIKE $sermonCodePrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN s.SermonCode LIKE $sermonCode ESCAPE '\\' THEN {rank++}");
+        }
+
+        if (hasTitle)
+        {
+            cases.Add($"WHEN s.Title COLLATE NOCASE = $titleExact THEN {rank++}");
+            cases.Add($"WHEN s.Title LIKE $titlePrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN s.Title LIKE $title ESCAPE '\\' THEN {rank++}");
+        }
+
+        if (hasGeneralText)
+        {
+            cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $generalExact THEN {rank++}");
+            cases.Add($"WHEN s.Title COLLATE NOCASE = $generalExact THEN {rank++}");
+            cases.Add($"WHEN s.SermonCode LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN s.Title LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN s.SermonCode LIKE $generalLike ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN s.Title LIKE $generalLike ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN p.SearchText = $generalSearchExact THEN {rank++}");
+            cases.Add($"WHEN p.SearchText LIKE $generalSearchPrefix ESCAPE '\\' THEN {rank++}");
+        }
+
+        if (cases.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return $"""
+            CASE
+                {string.Join($"{Environment.NewLine}                ", cases)}
+                ELSE {rank}
+            END
+            """;
+    }
 
     private static bool TryParseParagraphLookup(string value, out ParagraphLookup lookup)
     {
