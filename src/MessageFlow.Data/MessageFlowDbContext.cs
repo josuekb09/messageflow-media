@@ -13,6 +13,10 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
 
     public DbSet<ImportLog> ImportLogs => Set<ImportLog>();
 
+    public DbSet<FavoriteParagraph> FavoriteParagraphs => Set<FavoriteParagraph>();
+
+    public DbSet<ProjectionHistory> ProjectionHistories => Set<ProjectionHistory>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Author>(entity =>
@@ -137,6 +141,46 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
 
             entity.HasIndex(log => log.FilePath);
             entity.HasIndex(log => log.Status);
+        });
+
+        modelBuilder.Entity<FavoriteParagraph>(entity =>
+        {
+            entity.ToTable("FavoriteParagraphs");
+            entity.HasKey(favorite => favorite.Id);
+
+            entity.Property(favorite => favorite.CreatedAt)
+                .IsRequired();
+
+            entity.Property(favorite => favorite.Notes)
+                .HasMaxLength(1000);
+
+            entity.HasIndex(favorite => favorite.SermonParagraphId)
+                .IsUnique();
+
+            entity.HasOne(favorite => favorite.SermonParagraph)
+                .WithMany(paragraph => paragraph.Favorites)
+                .HasForeignKey(favorite => favorite.SermonParagraphId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProjectionHistory>(entity =>
+        {
+            entity.ToTable("ProjectionHistories");
+            entity.HasKey(history => history.Id);
+
+            entity.Property(history => history.ProjectedAt)
+                .IsRequired();
+
+            entity.Property(history => history.SearchQuery)
+                .HasMaxLength(500);
+
+            entity.HasIndex(history => history.SermonParagraphId);
+            entity.HasIndex(history => history.ProjectedAt);
+
+            entity.HasOne(history => history.SermonParagraph)
+                .WithMany(paragraph => paragraph.ProjectionHistories)
+                .HasForeignKey(history => history.SermonParagraphId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

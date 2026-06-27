@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using MessageFlow.App.Infrastructure;
+using MessageFlow.Core.Sermons;
 using MessageFlow.Data;
 using MessageFlow.Search;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,8 @@ public sealed class MainViewModel : ObservableObject
     private FilterOption? selectedYear;
     private SermonResultViewModel? selectedSermon;
     private ParagraphResultViewModel? selectedParagraph;
+    private SavedParagraphViewModel? selectedFavoriteParagraph;
+    private SavedParagraphViewModel? selectedHistoryParagraph;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private string statusText = "Ready";
     private bool isProjectionOpen;
@@ -27,6 +30,11 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(IServiceScopeFactory scopeFactory)
     {
         this.scopeFactory = scopeFactory;
+
+        AuthorFilters.Add(new FilterOption(null, "All authors"));
+        YearFilters.Add(new FilterOption(null, "All years"));
+        selectedAuthor = AuthorFilters[0];
+        selectedYear = YearFilters[0];
 
         PreviousParagraphCommand = new RelayCommand(SelectPreviousParagraph, () => SelectedParagraph is not null);
         NextParagraphCommand = new RelayCommand(SelectNextParagraph, () => SelectedParagraph is not null);
@@ -39,7 +47,7 @@ public sealed class MainViewModel : ObservableObject
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 60, 78));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 76, 98));
-        selectedProjectionFontSize = ProjectionFontSizes[1];
+        selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
     }
 
     public event Action? ProjectRequested;
@@ -51,6 +59,10 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<SermonResultViewModel> SermonResults { get; } = [];
 
     public ObservableCollection<ParagraphResultViewModel> ParagraphResults { get; } = [];
+
+    public ObservableCollection<SavedParagraphViewModel> FavoriteParagraphs { get; } = [];
+
+    public ObservableCollection<SavedParagraphViewModel> ProjectionHistoryItems { get; } = [];
 
     public ObservableCollection<ProjectionFontSizeOption> ProjectionFontSizes { get; } = [];
 
@@ -127,7 +139,37 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(ProjectionParagraphNumber));
                 OnPropertyChanged(nameof(SelectedParagraphText));
                 OnPropertyChanged(nameof(FavoriteButtonText));
+                _ = RefreshSelectedFavoriteStateAsync(value?.ParagraphId);
+                if (IsProjectionOpen && value is not null)
+                {
+                    _ = RecordProjectionHistoryAsync(value, SearchText);
+                }
+
                 RaiseCommandStates();
+            }
+        }
+    }
+
+    public SavedParagraphViewModel? SelectedFavoriteParagraph
+    {
+        get => selectedFavoriteParagraph;
+        set
+        {
+            if (SetProperty(ref selectedFavoriteParagraph, value) && value is not null)
+            {
+                _ = SelectSavedParagraphAsync(value.ParagraphId);
+            }
+        }
+    }
+
+    public SavedParagraphViewModel? SelectedHistoryParagraph
+    {
+        get => selectedHistoryParagraph;
+        set
+        {
+            if (SetProperty(ref selectedHistoryParagraph, value) && value is not null)
+            {
+                _ = SelectSavedParagraphAsync(value.ParagraphId);
             }
         }
     }
@@ -204,46 +246,64 @@ public sealed class MainViewModel : ObservableObject
         SelectedProjectionFontSize?.LineHeight ?? 64;
 
     public string FavoriteButtonText =>
-        SelectedParagraph?.IsFavorite == true ? "Favorited" : "Add to Favorites";
+        SelectedParagraph?.IsFavorite == true ? "Remove Favorite" : "Add Favorite";
+
+    public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
 
     public async Task InitializeAsync()
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
-        await dbContext.Database.MigrateAsync();
 
-        AuthorFilters.Clear();
-        AuthorFilters.Add(new FilterOption(null, "All authors"));
+        var startupMessages = new List<string>();
 
-        var authors = await dbContext.Authors
-            .AsNoTracking()
-            .OrderBy(author => author.DisplayName)
-            .Select(author => new FilterOption(author.Id, author.DisplayName))
-            .ToListAsync();
-
-        foreach (var author in authors)
+        try
         {
-            AuthorFilters.Add(author);
+            var filterLoadResult = await LoadFilterOptionsAsync(dbContext);
+            if (filterLoadResult.LinkedAuthorCount == 0)
+            {
+                startupMessages.Add("No sermon authors found.");
+            }
+
+            if (filterLoadResult.YearCount == 0)
+            {
+                startupMessages.Add("No sermon years found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Author and year filters failed to load.", ex);
+            startupMessages.Add($"Author/year filters could not load: {ex.Message}");
         }
 
-        YearFilters.Clear();
-        YearFilters.Add(new FilterOption(null, "All years"));
-
-        var years = await dbContext.Sermons
-            .AsNoTracking()
-            .Select(sermon => sermon.Year)
-            .Distinct()
-            .OrderByDescending(year => year)
-            .ToListAsync();
-
-        foreach (var year in years)
+        try
         {
-            YearFilters.Add(new FilterOption(year, year.ToString()));
+            await LoadFavoritesAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Favorites failed to load during startup.", ex);
+            startupMessages.Add("Favorites could not load.");
         }
 
-        SelectedAuthor = AuthorFilters.FirstOrDefault();
-        SelectedYear = YearFilters.FirstOrDefault();
-        StatusText = "Type to search sermons and paragraphs.";
+        try
+        {
+            await LoadProjectionHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Projection history failed to load during startup.", ex);
+            startupMessages.Add("Projection history could not load.");
+        }
+
+        StatusText = startupMessages.Count == 0
+            ? "Type to search sermons and paragraphs."
+            : string.Join(' ', startupMessages);
+    }
+
+    public Task RefreshProjectionHistoryAsync()
+    {
+        return LoadProjectionHistoryAsync();
     }
 
     public async Task SearchNowAsync()
@@ -330,8 +390,7 @@ public sealed class MainViewModel : ObservableObject
                     return;
                 }
 
-                StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
-                ProjectRequested?.Invoke();
+                await ProjectCurrentSelectionAsync(recordHistory: !IsProjectionOpen);
                 return;
             }
 
@@ -455,7 +514,7 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Paragraph copied.";
     }
 
-    private void ProjectSelectedParagraph()
+    private async void ProjectSelectedParagraph()
     {
         if (SelectedParagraph is null)
         {
@@ -463,7 +522,7 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        ProjectRequested?.Invoke();
+        await ProjectCurrentSelectionAsync(recordHistory: true);
     }
 
     public void SetProjectionOpen(bool isOpen)
@@ -471,16 +530,391 @@ public sealed class MainViewModel : ObservableObject
         IsProjectionOpen = isOpen;
     }
 
-    private void ToggleFavorite()
+    public async Task ProjectSelectedSavedParagraphAsync()
+    {
+        if (SelectedParagraph is null)
+        {
+            StatusText = "Please select a paragraph before projecting.";
+            return;
+        }
+
+        await ProjectCurrentSelectionAsync(recordHistory: true);
+    }
+
+    public async Task ProjectSavedParagraphAsync(SavedParagraphViewModel? savedParagraph)
+    {
+        if (savedParagraph is null)
+        {
+            StatusText = "Please select a saved paragraph before projecting.";
+            return;
+        }
+
+        await SelectSavedParagraphAsync(savedParagraph.ParagraphId);
+        await ProjectCurrentSelectionAsync(recordHistory: true);
+    }
+
+    private async Task ProjectCurrentSelectionAsync(bool recordHistory)
+    {
+        if (SelectedParagraph is null)
+        {
+            StatusText = "Please select a paragraph before projecting.";
+            return;
+        }
+
+        if (recordHistory)
+        {
+            await RecordProjectionHistoryAsync(SelectedParagraph, SearchText);
+        }
+
+        if (!recordHistory)
+        {
+            StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
+        }
+
+        ProjectRequested?.Invoke();
+    }
+
+    private async void ToggleFavorite()
     {
         if (SelectedParagraph is null)
         {
             return;
         }
 
-        SelectedParagraph.IsFavorite = !SelectedParagraph.IsFavorite;
-        OnPropertyChanged(nameof(FavoriteButtonText));
-        StatusText = SelectedParagraph.IsFavorite ? "Paragraph added to favorites." : "Paragraph removed from favorites.";
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var existingFavorite = await dbContext.FavoriteParagraphs
+                .FirstOrDefaultAsync(
+                    favorite => favorite.SermonParagraphId == SelectedParagraph.ParagraphId);
+
+            if (existingFavorite is null)
+            {
+                dbContext.FavoriteParagraphs.Add(new FavoriteParagraph
+                {
+                    SermonParagraphId = SelectedParagraph.ParagraphId,
+                    CreatedAt = DateTime.UtcNow,
+                    Notes = string.Empty
+                });
+
+                SelectedParagraph.IsFavorite = true;
+                StatusText = "Paragraph added to favorites.";
+            }
+            else
+            {
+                dbContext.FavoriteParagraphs.Remove(existingFavorite);
+                SelectedParagraph.IsFavorite = false;
+                StatusText = "Paragraph removed from favorites.";
+            }
+
+            await dbContext.SaveChangesAsync();
+            await LoadFavoritesAsync();
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Favorite update failed: {ex.Message}";
+        }
+    }
+
+    private async Task SelectSavedParagraphAsync(int paragraphId)
+    {
+        try
+        {
+            var paragraph = await LoadParagraphAsync(paragraphId);
+            if (paragraph is null)
+            {
+                StatusText = "Saved paragraph could not be found.";
+                return;
+            }
+
+            SetResults([paragraph], paragraph.ParagraphId);
+            StatusText = $"Selected Paragraph {paragraph.ParagraphNumber}.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Could not select saved paragraph: {ex.Message}";
+        }
+    }
+
+    private async Task<ParagraphResultViewModel?> LoadParagraphAsync(int paragraphId)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var row = await dbContext.SermonParagraphs
+            .AsNoTracking()
+            .Where(paragraph => paragraph.Id == paragraphId)
+            .Select(paragraph => new
+            {
+                ParagraphId = paragraph.Id,
+                paragraph.SermonId,
+                paragraph.ParagraphNumber,
+                paragraph.Text,
+                paragraph.PageNumber,
+                SermonTitle = paragraph.Sermon!.Title,
+                paragraph.Sermon.SermonCode,
+                paragraph.Sermon.Year,
+                paragraph.Sermon.SourceFilePath,
+                IsFavorite = paragraph.Favorites.Any()
+            })
+            .FirstOrDefaultAsync();
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        var result = new ParagraphResultViewModel(
+            row.SermonId,
+            row.ParagraphId,
+            row.SermonTitle,
+            row.SermonCode,
+            row.Year,
+            row.ParagraphNumber,
+            CreatePreview(row.Text),
+            row.Text,
+            row.SourceFilePath,
+            row.PageNumber)
+        {
+            IsFavorite = row.IsFavorite
+        };
+
+        return result;
+    }
+
+    private async Task LoadFavoritesAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var favorites = await dbContext.FavoriteParagraphs
+            .AsNoTracking()
+            .OrderByDescending(favorite => favorite.CreatedAt)
+            .Select(favorite => new
+            {
+                favorite.Id,
+                favorite.CreatedAt,
+                ParagraphId = favorite.SermonParagraphId,
+                favorite.SermonParagraph!.ParagraphNumber,
+                Text = favorite.SermonParagraph.Text,
+                SermonTitle = favorite.SermonParagraph.Sermon!.Title,
+                favorite.SermonParagraph.Sermon.SermonCode,
+                favorite.SermonParagraph.Sermon.Year
+            })
+            .ToListAsync();
+
+        FavoriteParagraphs.Clear();
+        foreach (var favorite in favorites)
+        {
+            FavoriteParagraphs.Add(new SavedParagraphViewModel(
+                favorite.Id,
+                favorite.ParagraphId,
+                favorite.SermonTitle,
+                favorite.SermonCode,
+                favorite.Year,
+                favorite.ParagraphNumber,
+                CreatePreview(favorite.Text),
+                favorite.CreatedAt,
+                "Favorite"));
+        }
+    }
+
+    private async Task<FilterLoadResult> LoadFilterOptionsAsync(MessageFlowDbContext dbContext)
+    {
+        var linkedAuthorIds = await dbContext.Sermons
+            .AsNoTracking()
+            .Select(sermon => sermon.AuthorId)
+            .Distinct()
+            .OrderBy(authorId => authorId)
+            .ToListAsync();
+
+        var authorRows = linkedAuthorIds.Count == 0
+            ? []
+            : await dbContext.Authors
+                .AsNoTracking()
+                .Where(author => linkedAuthorIds.Contains(author.Id))
+                .Select(author => new
+                {
+                    author.Id,
+                    author.FullName,
+                    author.DisplayName
+                })
+                .ToListAsync();
+
+        var authorLabels = authorRows
+            .Select(author => new FilterOption(
+                author.Id,
+                CreateAuthorLabel(author.DisplayName, author.FullName, author.Id)))
+            .ToDictionary(author => author.Value!.Value);
+
+        var linkedAuthors = linkedAuthorIds
+            .Select(authorId => authorLabels.TryGetValue(authorId, out var author)
+                ? author
+                : new FilterOption(authorId, CreateMissingAuthorLabel(authorId)))
+            .OrderBy(author => author.Label)
+            .ToList();
+
+        var years = await dbContext.Sermons
+            .AsNoTracking()
+            .Where(sermon => sermon.Year > 0)
+            .Select(sermon => sermon.Year)
+            .Distinct()
+            .OrderByDescending(year => year)
+            .ToListAsync();
+
+        AuthorFilters.Clear();
+        AuthorFilters.Add(new FilterOption(null, "All authors"));
+        foreach (var author in linkedAuthors)
+        {
+            AuthorFilters.Add(author);
+        }
+
+        YearFilters.Clear();
+        YearFilters.Add(new FilterOption(null, "All years"));
+        foreach (var year in years)
+        {
+            YearFilters.Add(new FilterOption(year, year.ToString()));
+        }
+
+        selectedAuthor = AuthorFilters[0];
+        selectedYear = YearFilters[0];
+        OnPropertyChanged(nameof(SelectedAuthor));
+        OnPropertyChanged(nameof(SelectedYear));
+
+        App.LogStartupMessage(
+            $"Loaded filter data. Authors: {linkedAuthors.Count}. Years: {years.Count}.");
+
+        return new FilterLoadResult(linkedAuthors.Count, years.Count);
+    }
+
+    private async Task LoadProjectionHistoryAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var historyItems = await dbContext.ProjectionHistories
+            .AsNoTracking()
+            .OrderByDescending(history => history.ProjectedAt)
+            .ThenByDescending(history => history.Id)
+            .Take(75)
+            .Select(history => new
+            {
+                history.Id,
+                history.ProjectedAt,
+                ParagraphId = history.SermonParagraphId,
+                history.SermonParagraph!.ParagraphNumber,
+                Text = history.SermonParagraph.Text,
+                SermonTitle = history.SermonParagraph.Sermon!.Title,
+                history.SermonParagraph.Sermon.SermonCode,
+                history.SermonParagraph.Sermon.Year
+            })
+            .ToListAsync();
+
+        ProjectionHistoryItems.Clear();
+        foreach (var history in historyItems)
+        {
+            ProjectionHistoryItems.Add(new SavedParagraphViewModel(
+                history.Id,
+                history.ParagraphId,
+                history.SermonTitle,
+                history.SermonCode,
+                history.Year,
+                history.ParagraphNumber,
+                CreatePreview(history.Text),
+                history.ProjectedAt,
+                "History"));
+        }
+
+        OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
+    }
+
+    private async Task RefreshSelectedFavoriteStateAsync(int? paragraphId)
+    {
+        if (paragraphId is null || SelectedParagraph is null || SelectedParagraph.ParagraphId != paragraphId.Value)
+        {
+            OnPropertyChanged(nameof(FavoriteButtonText));
+            return;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            SelectedParagraph.IsFavorite = await dbContext.FavoriteParagraphs
+                .AsNoTracking()
+                .AnyAsync(favorite => favorite.SermonParagraphId == paragraphId.Value);
+
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+        catch
+        {
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+    }
+
+    private async Task RecordProjectionHistoryAsync(
+        ParagraphResultViewModel paragraph,
+        string searchQuery)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            dbContext.ProjectionHistories.Add(new ProjectionHistory
+            {
+                SermonParagraphId = paragraph.ParagraphId,
+                ProjectedAt = DateTime.UtcNow,
+                SearchQuery = TrimTo(searchQuery.Trim(), 500)
+            });
+
+            await dbContext.SaveChangesAsync();
+            await LoadProjectionHistoryAsync();
+            StatusText = "Saved to projection history.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Projection history update failed: {ex.Message}";
+        }
+    }
+
+    private static string CreatePreview(string text)
+    {
+        const int maxLength = 160;
+
+        var preview = string.Join(' ', text.Split(
+            [' ', '\t', '\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        return preview.Length <= maxLength
+            ? preview
+            : $"{preview[..maxLength].TrimEnd()}...";
+    }
+
+    private static string TrimTo(string value, int maxLength)
+    {
+        return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
+    private static string CreateAuthorLabel(string displayName, string fullName, int authorId)
+    {
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            return fullName;
+        }
+
+        return CreateMissingAuthorLabel(authorId);
+    }
+
+    private static string CreateMissingAuthorLabel(int authorId)
+    {
+        return authorId == 1 ? "Brother Branham" : $"Author {authorId}";
     }
 
     private void ClearSearch()
@@ -496,4 +930,6 @@ public sealed class MainViewModel : ObservableObject
         ProjectCommand.RaiseCanExecuteChanged();
         ToggleFavoriteCommand.RaiseCanExecuteChanged();
     }
+
+    private readonly record struct FilterLoadResult(int LinkedAuthorCount, int YearCount);
 }

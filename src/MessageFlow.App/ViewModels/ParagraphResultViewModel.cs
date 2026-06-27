@@ -8,17 +8,42 @@ public sealed class ParagraphResultViewModel : ObservableObject
     private bool isFavorite;
 
     public ParagraphResultViewModel(SearchResult result)
+        : this(
+            result.SermonId,
+            result.ParagraphId,
+            result.SermonTitle,
+            result.SermonCode,
+            result.Year,
+            result.ParagraphNumber,
+            result.ParagraphTextPreview,
+            result.FullParagraphText,
+            result.SourceFilePath,
+            result.PageNumber)
     {
-        SermonId = result.SermonId;
-        ParagraphId = result.ParagraphId;
-        SermonTitle = result.SermonTitle;
-        SermonCode = result.SermonCode;
-        Year = result.Year;
-        ParagraphNumber = result.ParagraphNumber;
-        ParagraphTextPreview = result.ParagraphTextPreview;
-        FullParagraphText = result.FullParagraphText;
-        SourceFilePath = result.SourceFilePath;
-        PageNumber = result.PageNumber;
+    }
+
+    public ParagraphResultViewModel(
+        int sermonId,
+        int paragraphId,
+        string sermonTitle,
+        string sermonCode,
+        int year,
+        int paragraphNumber,
+        string paragraphTextPreview,
+        string fullParagraphText,
+        string sourceFilePath,
+        int? pageNumber)
+    {
+        SermonId = sermonId;
+        ParagraphId = paragraphId;
+        SermonTitle = sermonTitle;
+        SermonCode = sermonCode;
+        Year = year;
+        ParagraphNumber = paragraphNumber;
+        ParagraphTextPreview = paragraphTextPreview;
+        FullParagraphText = fullParagraphText;
+        SourceFilePath = sourceFilePath;
+        PageNumber = pageNumber;
     }
 
     public int SermonId { get; }

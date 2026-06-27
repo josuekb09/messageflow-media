@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using MessageFlow.App.ViewModels;
 
@@ -21,8 +22,22 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        SearchBox.Focus();
-        await viewModel.InitializeAsync();
+        try
+        {
+            SearchBox.Focus();
+            await viewModel.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("MainWindow initialization failed.", ex);
+            viewModel.StatusText = "Startup initialization failed. See logs\\app-startup.log.";
+
+            MessageBox.Show(
+                $"MessageFlow opened, but startup initialization failed.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}Details were written to logs\\app-startup.log.",
+                "MessageFlow Startup Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private void ShowProjectionWindow()
@@ -71,5 +86,32 @@ public partial class MainWindow : Window
             projectWindow.Close();
             e.Handled = true;
         }
+    }
+
+    private async void FavoritesList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (FavoritesList.SelectedItem is SavedParagraphViewModel savedParagraph)
+        {
+            await viewModel.ProjectSavedParagraphAsync(savedParagraph);
+        }
+    }
+
+    private async void HistoryList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (HistoryList.SelectedItem is SavedParagraphViewModel savedParagraph)
+        {
+            await viewModel.ProjectSavedParagraphAsync(savedParagraph);
+        }
+    }
+
+    private async void LibraryTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource, LibraryTabs) ||
+            !ReferenceEquals(LibraryTabs.SelectedItem, HistoryTab))
+        {
+            return;
+        }
+
+        await viewModel.RefreshProjectionHistoryAsync();
     }
 }

@@ -17,4 +17,8 @@ public sealed class SermonParagraph
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Sermon? Sermon { get; set; }
+
+    public ICollection<FavoriteParagraph> Favorites { get; set; } = new List<FavoriteParagraph>();
+
+    public ICollection<ProjectionHistory> ProjectionHistories { get; set; } = new List<ProjectionHistory>();
 }

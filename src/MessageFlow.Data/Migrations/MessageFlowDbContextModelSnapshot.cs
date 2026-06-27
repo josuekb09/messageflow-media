@@ -55,6 +55,30 @@ namespace MessageFlow.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("MessageFlow.Core.Sermons.FavoriteParagraph", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SermonParagraphId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SermonParagraphId")
+                        .IsUnique();
+
+                    b.ToTable("FavoriteParagraphs", (string)null);
+                });
+
             modelBuilder.Entity("MessageFlow.Core.Sermons.ImportLog", b =>
                 {
                     b.Property<int>("Id")
@@ -88,6 +112,31 @@ namespace MessageFlow.Data.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("ImportLogs", (string)null);
+                });
+
+            modelBuilder.Entity("MessageFlow.Core.Sermons.ProjectionHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ProjectedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SearchQuery")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SermonParagraphId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectedAt");
+
+                    b.HasIndex("SermonParagraphId");
+
+                    b.ToTable("ProjectionHistories", (string)null);
                 });
 
             modelBuilder.Entity("MessageFlow.Core.Sermons.Sermon", b =>
@@ -194,6 +243,28 @@ namespace MessageFlow.Data.Migrations
                     b.ToTable("SermonParagraphs", (string)null);
                 });
 
+            modelBuilder.Entity("MessageFlow.Core.Sermons.FavoriteParagraph", b =>
+                {
+                    b.HasOne("MessageFlow.Core.Sermons.SermonParagraph", "SermonParagraph")
+                        .WithMany("Favorites")
+                        .HasForeignKey("SermonParagraphId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SermonParagraph");
+                });
+
+            modelBuilder.Entity("MessageFlow.Core.Sermons.ProjectionHistory", b =>
+                {
+                    b.HasOne("MessageFlow.Core.Sermons.SermonParagraph", "SermonParagraph")
+                        .WithMany("ProjectionHistories")
+                        .HasForeignKey("SermonParagraphId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SermonParagraph");
+                });
+
             modelBuilder.Entity("MessageFlow.Core.Sermons.Sermon", b =>
                 {
                     b.HasOne("MessageFlow.Core.Sermons.Author", "Author")
@@ -224,6 +295,13 @@ namespace MessageFlow.Data.Migrations
             modelBuilder.Entity("MessageFlow.Core.Sermons.Sermon", b =>
                 {
                     b.Navigation("Paragraphs");
+                });
+
+            modelBuilder.Entity("MessageFlow.Core.Sermons.SermonParagraph", b =>
+                {
+                    b.Navigation("Favorites");
+
+                    b.Navigation("ProjectionHistories");
                 });
 #pragma warning restore 612, 618
         }
