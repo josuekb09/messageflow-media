@@ -7,7 +7,6 @@ namespace MessageFlow.Importer;
 public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 {
     private const int AuthorId = 1;
-    private const string BrotherBranhamSourceName = "brother_branham";
     private readonly PdfTextExtractor textExtractor = new();
 
     public async Task<ImportSummary> ImportAsync(ImportOptions options, CancellationToken cancellationToken = default)
@@ -27,7 +26,8 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         Console.WriteLine();
         Report(options, $"Found {summary.TotalFiles:N0} PDF files.", 0, summary.TotalFiles, 0, 0, 0);
 
-        var authorId = await EnsureAuthorExistsAsync(options, cancellationToken);
+        var sourceContext = await LoadSourceMetadataContextAsync(options, cancellationToken);
+        var authorId = await EnsureAuthorExistsAsync(sourceContext, cancellationToken);
         if (options.Reset)
         {
             await ResetImportedSermonsAsync(options.SourceRoot, cancellationToken);
@@ -48,7 +48,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
             try
             {
-                var result = await ImportFileAsync(filePath, options, authorId, cancellationToken);
+                var result = await ImportFileAsync(filePath, options, authorId, sourceContext, cancellationToken);
 
                 if (result.Skipped)
                 {
@@ -110,6 +110,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         string filePath,
         ImportOptions options,
         int authorId,
+        SourceMetadataContext? sourceContext,
         CancellationToken cancellationToken)
     {
         var existingSermon = await dbContext.Sermons
@@ -126,7 +127,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
         var pages = textExtractor.ExtractPages(filePath);
         var paragraphs = ParagraphSplitter.Split(pages);
-        var metadata = SermonMetadataParser.Parse(filePath, options.SourceRoot);
+        var metadata = SermonMetadataParser.Parse(filePath, options.SourceRoot, sourceContext);
         var extractedCharacterCount = pages.Sum(page => page.Text.Length);
         var detectedParagraphNumbers = paragraphs.Count(paragraph => paragraph.HasDetectedParagraphNumber);
         var fallbackParagraphNumbers = paragraphs.Count - detectedParagraphNumbers;
@@ -209,28 +210,13 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         Console.WriteLine();
     }
 
-    private async Task<int> EnsureAuthorExistsAsync(
+    private async Task<SourceMetadataContext?> LoadSourceMetadataContextAsync(
         ImportOptions options,
         CancellationToken cancellationToken)
     {
         if (options.ContentSourceId is null)
         {
-            var exists = await dbContext.Authors.AnyAsync(author => author.Id == AuthorId, cancellationToken);
-            if (exists)
-            {
-                return AuthorId;
-            }
-
-            dbContext.Authors.Add(new Author
-            {
-                Id = AuthorId,
-                FullName = "William Marrion Branham",
-                DisplayName = "Brother Branham",
-                Description = "Primary sermon author for the local MessageFlow sermon library."
-            });
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return AuthorId;
+            return null;
         }
 
         var source = await dbContext.ContentSources
@@ -238,8 +224,10 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
             .Where(contentSource => contentSource.Id == options.ContentSourceId.Value)
             .Select(contentSource => new
             {
+                contentSource.Id,
                 contentSource.Name,
-                contentSource.DisplayName
+                contentSource.DisplayName,
+                contentSource.SourceType
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -248,28 +236,63 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
             throw new InvalidOperationException($"Content source {options.ContentSourceId.Value} could not be found.");
         }
 
-        if (string.Equals(source.Name, BrotherBranhamSourceName, StringComparison.OrdinalIgnoreCase))
+        return new SourceMetadataContext(
+            source.Id,
+            source.Name,
+            source.DisplayName,
+            source.SourceType);
+    }
+
+    private async Task<int> EnsureAuthorExistsAsync(
+        SourceMetadataContext? sourceContext,
+        CancellationToken cancellationToken)
+    {
+        if (SermonMetadataParser.IsBrotherBranhamSource(sourceContext))
         {
             return await EnsureBrotherBranhamAuthorExistsAsync(cancellationToken);
         }
 
-        var displayName = TrimTo(source.DisplayName.Trim(), 120);
-        var fullName = TrimTo(source.DisplayName.Trim(), 200);
+        var authorMetadata = SermonMetadataParser.GetAuthorMetadata(sourceContext);
         var existingAuthor = await dbContext.Authors
-            .Where(author => author.FullName == fullName || author.DisplayName == displayName)
-            .Select(author => new { author.Id })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(author => author.FullName == authorMetadata.FullName, cancellationToken) ??
+                             await dbContext.Authors.FirstOrDefaultAsync(
+                                 author => author.DisplayName == authorMetadata.DisplayName,
+                                 cancellationToken);
 
         if (existingAuthor is not null)
         {
+            var changed = false;
+            if (!string.Equals(existingAuthor.FullName, authorMetadata.FullName, StringComparison.Ordinal))
+            {
+                existingAuthor.FullName = TrimTo(authorMetadata.FullName, 200);
+                changed = true;
+            }
+
+            if (!string.Equals(existingAuthor.DisplayName, authorMetadata.DisplayName, StringComparison.Ordinal))
+            {
+                existingAuthor.DisplayName = TrimTo(authorMetadata.DisplayName, 120);
+                changed = true;
+            }
+
+            if (!string.Equals(existingAuthor.Description, authorMetadata.Description, StringComparison.Ordinal))
+            {
+                existingAuthor.Description = TrimTo(authorMetadata.Description, 1000);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
             return existingAuthor.Id;
         }
 
         var author = new Author
         {
-            FullName = fullName,
-            DisplayName = displayName,
-            Description = $"Imported from the {source.DisplayName} local PDF source."
+            FullName = TrimTo(authorMetadata.FullName, 200),
+            DisplayName = TrimTo(authorMetadata.DisplayName, 120),
+            Description = TrimTo(authorMetadata.Description, 1000)
         };
 
         dbContext.Authors.Add(author);

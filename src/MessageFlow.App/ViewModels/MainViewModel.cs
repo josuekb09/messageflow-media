@@ -24,6 +24,7 @@ public sealed class MainViewModel : ObservableObject
     private int searchRequestVersion;
     private string searchText = string.Empty;
     private FilterOption? selectedAuthor;
+    private FilterOption? selectedSourceFilter;
     private FilterOption? selectedYear;
     private SermonResultViewModel? selectedSermon;
     private ParagraphResultViewModel? selectedParagraph;
@@ -44,8 +45,10 @@ public sealed class MainViewModel : ObservableObject
         this.scopeFactory = scopeFactory;
 
         AuthorFilters.Add(new FilterOption(null, "All authors"));
+        SourceFilters.Add(new FilterOption(null, "All sources"));
         YearFilters.Add(new FilterOption(null, "All years"));
         selectedAuthor = AuthorFilters[0];
+        selectedSourceFilter = SourceFilters[0];
         selectedYear = YearFilters[0];
 
         PreviousParagraphCommand = new RelayCommand(SelectPreviousParagraph, () => SelectedParagraph is not null);
@@ -69,6 +72,9 @@ public sealed class MainViewModel : ObservableObject
         ImportSourceCommand = new RelayCommand(
             () => _ = ImportSelectedSourceAsync(),
             () => SelectedContentSource is not null && !IsDatabaseOperationRunning);
+        RepairSourceMetadataCommand = new RelayCommand(
+            () => _ = RepairSelectedSourceMetadataAsync(),
+            () => SelectedContentSource is not null && !IsDatabaseOperationRunning);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -82,6 +88,8 @@ public sealed class MainViewModel : ObservableObject
     public event Action? ProjectRequested;
 
     public ObservableCollection<FilterOption> AuthorFilters { get; } = [];
+
+    public ObservableCollection<FilterOption> SourceFilters { get; } = [];
 
     public ObservableCollection<FilterOption> YearFilters { get; } = [];
 
@@ -119,6 +127,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand ImportSourceCommand { get; }
 
+    public RelayCommand RepairSourceMetadataCommand { get; }
+
     public string SearchText
     {
         get => searchText;
@@ -137,6 +147,18 @@ public sealed class MainViewModel : ObservableObject
         set
         {
             if (SetProperty(ref selectedAuthor, value))
+            {
+                QueueSearch();
+            }
+        }
+    }
+
+    public FilterOption? SelectedSourceFilter
+    {
+        get => selectedSourceFilter;
+        set
+        {
+            if (SetProperty(ref selectedSourceFilter, value))
             {
                 QueueSearch();
             }
@@ -223,6 +245,7 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref selectedContentSource, value))
             {
                 ImportSourceCommand.RaiseCanExecuteChanged();
+                RepairSourceMetadataCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -282,6 +305,7 @@ public sealed class MainViewModel : ObservableObject
                 OpenBackupFolderCommand.RaiseCanExecuteChanged();
                 AddNewSourceCommand.RaiseCanExecuteChanged();
                 ImportSourceCommand.RaiseCanExecuteChanged();
+                RepairSourceMetadataCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -315,7 +339,7 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedParagraphMeta =>
         SelectedParagraph is null
             ? "Search and select a paragraph to preview it here."
-            : $"{SelectedParagraph.SermonCode} | {SelectedParagraph.Year} | Paragraph {SelectedParagraph.ParagraphNumber}";
+            : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string ProjectionParagraphTitle =>
         SelectedParagraph?.SermonTitle ?? "MessageFlow";
@@ -614,7 +638,7 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        if (!string.Equals(source.SourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase))
+        if (!CanImportPdfSourceType(source.SourceType))
         {
             StatusText = "Import for this source type is coming soon.";
             MessageBox.Show(
@@ -636,22 +660,45 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var confirmation = MessageBox.Show(
-            $"Import local PDF files from:{Environment.NewLine}{source.LocalFolderPath}{Environment.NewLine}{Environment.NewLine}Existing imported files will be skipped.",
-            $"Import {source.DisplayName}",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question,
-            MessageBoxResult.No);
-
-        if (confirmation != MessageBoxResult.Yes)
+        ImportPreviewSummary preview;
+        try
         {
+            IsDatabaseOperationRunning = true;
+            StatusText = $"Scanning {source.DisplayName} for import preview...";
+            preview = await BuildImportPreviewAsync(source);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Source import preview failed.", ex);
+            StatusText = $"Import preview failed: {ex.Message}";
+            return;
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+
+        var previewWindow = new ImportPreviewWindow(preview)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        if (previewWindow.ShowDialog() != true)
+        {
+            StatusText = "Import canceled. No database changes were made.";
+            return;
+        }
+
+        if (!preview.CanStartImport)
+        {
+            StatusText = "No new PDF files are ready to import.";
             return;
         }
 
         try
         {
             IsDatabaseOperationRunning = true;
-            StatusText = $"Scanning PDFs for {source.DisplayName}...";
+            StatusText = $"Starting import for {source.DisplayName}...";
 
             var progress = new Progress<ImportProgress>(UpdateImportProgress);
             var summary = await Task.Run(async () =>
@@ -670,6 +717,7 @@ public sealed class MainViewModel : ObservableObject
 
             await RefreshFilterOptionsPreservingSelectionAsync();
             await LoadContentSourcesAsync(source.Id);
+            await MessageFlowDatabaseRepair.RebuildSearchIndexAsync(MessageFlowDatabase.DefaultDatabasePath, App.LogStartupMessage);
 
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
@@ -688,6 +736,292 @@ public sealed class MainViewModel : ObservableObject
         {
             IsDatabaseOperationRunning = false;
         }
+    }
+
+    private async Task RepairSelectedSourceMetadataAsync()
+    {
+        var source = SelectedContentSource;
+        if (source is null)
+        {
+            StatusText = "Select a source before repairing metadata.";
+            return;
+        }
+
+        var sourceContext = CreateSourceMetadataContext(source);
+        if (SermonMetadataParser.IsBrotherBranhamSource(sourceContext))
+        {
+            StatusText = "Brother Branham metadata is protected and was not changed.";
+            MessageBox.Show(
+                "Brother Branham metadata uses the established sermon parser and will not be repaired by this tool.",
+                "MessageFlow Sources",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (!SermonMetadataParser.IsEwaldFrankSource(sourceContext))
+        {
+            StatusText = "This repair is currently limited to Ewald Frank circular letter sources.";
+            MessageBox.Show(
+                "This repair action is currently limited to Ewald Frank circular letter sources.",
+                "MessageFlow Sources",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            $"Repair metadata for \"{source.DisplayName}\"?{Environment.NewLine}{Environment.NewLine}" +
+            "This updates title, code, year, author, and source type from local PDF file names. Paragraph text is not changed.",
+            "Repair Source Metadata",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            StatusText = "Source metadata repair canceled.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = $"Repairing metadata for {source.DisplayName}...";
+
+            var repairedCount = await Task.Run(async () =>
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+                var sourceEntity = await dbContext.ContentSources
+                    .FirstOrDefaultAsync(contentSource => contentSource.Id == source.Id);
+
+                if (sourceEntity is null)
+                {
+                    throw new InvalidOperationException("The selected content source could not be found.");
+                }
+
+                var sermons = await dbContext.Sermons
+                    .Where(sermon => sermon.ContentSourceId == source.Id)
+                    .ToListAsync();
+
+                if (sermons.Count == 0)
+                {
+                    return 0;
+                }
+
+                var authorId = await EnsureSourceRepairAuthorAsync(dbContext, sourceContext);
+                var sourceRoot = string.IsNullOrWhiteSpace(source.LocalFolderPath)
+                    ? null
+                    : Path.GetFullPath(source.LocalFolderPath);
+                var repaired = 0;
+                var hasCircularLetters = false;
+
+                foreach (var sermon in sermons)
+                {
+                    var metadataRoot = sourceRoot ??
+                                       Path.GetDirectoryName(sermon.SourceFilePath) ??
+                                       Directory.GetCurrentDirectory();
+                    var metadata = SermonMetadataParser.Parse(
+                        sermon.SourceFilePath,
+                        metadataRoot,
+                        sourceContext);
+                    var changed = false;
+                    hasCircularLetters = hasCircularLetters ||
+                                         metadata.Title.StartsWith("Circular Letter", StringComparison.OrdinalIgnoreCase) ||
+                                         metadata.SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase);
+
+                    if (!string.Equals(sermon.Title, metadata.Title, StringComparison.Ordinal))
+                    {
+                        sermon.Title = metadata.Title;
+                        changed = true;
+                    }
+
+                    if (!string.Equals(sermon.SermonCode, metadata.SermonCode, StringComparison.Ordinal))
+                    {
+                        sermon.SermonCode = metadata.SermonCode;
+                        changed = true;
+                    }
+
+                    if (sermon.Year != metadata.Year)
+                    {
+                        sermon.Year = metadata.Year;
+                        changed = true;
+                    }
+
+                    if (sermon.Date != metadata.Date)
+                    {
+                        sermon.Date = metadata.Date;
+                        changed = true;
+                    }
+
+                    if (!string.Equals(sermon.Location, metadata.Location, StringComparison.Ordinal))
+                    {
+                        sermon.Location = metadata.Location;
+                        changed = true;
+                    }
+
+                    if (!string.Equals(sermon.Language, metadata.Language, StringComparison.Ordinal))
+                    {
+                        sermon.Language = metadata.Language;
+                        changed = true;
+                    }
+
+                    if (sermon.AuthorId != authorId)
+                    {
+                        sermon.AuthorId = authorId;
+                        changed = true;
+                    }
+
+                    if (changed)
+                    {
+                        repaired++;
+                    }
+                }
+
+                if (hasCircularLetters &&
+                    !string.Equals(sourceEntity.SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase))
+                {
+                    sourceEntity.SourceType = "CircularLetter";
+                }
+
+                if (dbContext.ChangeTracker.HasChanges())
+                {
+                    await dbContext.SaveChangesAsync();
+                }
+
+                return repaired;
+            });
+
+            await RefreshFilterOptionsPreservingSelectionAsync();
+            await LoadContentSourcesAsync(source.Id);
+            await MessageFlowDatabaseRepair.RebuildSearchIndexAsync(MessageFlowDatabase.DefaultDatabasePath, App.LogStartupMessage);
+
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                await SearchNowAsync();
+            }
+
+            StatusText = repairedCount == 0
+                ? $"No metadata changes were needed for {source.DisplayName}."
+                : $"Repaired metadata for {repairedCount:N0} document(s) in {source.DisplayName}.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Source metadata repair failed.", ex);
+            StatusText = $"Source metadata repair failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task<ImportPreviewSummary> BuildImportPreviewAsync(ContentSourceViewModel source)
+    {
+        if (string.IsNullOrWhiteSpace(source.LocalFolderPath))
+        {
+            throw new InvalidOperationException("The selected source does not have a local folder path.");
+        }
+
+        var localFolderPath = Path.GetFullPath(source.LocalFolderPath);
+        return await Task.Run(async () =>
+        {
+            var scan = ScanPdfFiles(localFolderPath);
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var importedPaths = await dbContext.Sermons
+                .AsNoTracking()
+                .Select(sermon => sermon.SourceFilePath)
+                .ToListAsync();
+
+            var importedSet = importedPaths
+                .Select(NormalizeFilePathForComparison)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var readyFiles = scan.PdfFilePaths
+                .Where(path => !importedSet.Contains(NormalizeFilePathForComparison(path)))
+                .ToList();
+
+            return new ImportPreviewSummary(
+                source.DisplayName,
+                source.SourceTypeDisplay,
+                localFolderPath,
+                scan.PdfFilePaths.Count,
+                scan.PdfFilePaths.Count - readyFiles.Count,
+                readyFiles.Count,
+                scan.InvalidOrMissingFiles,
+                SermonMetadataParser.GetAuthorMetadata(CreateSourceMetadataContext(source)).DisplayName,
+                readyFiles);
+        });
+    }
+
+    private static PdfSourceScanResult ScanPdfFiles(string localFolderPath)
+    {
+        var pdfFilePaths = new List<string>();
+        var invalidOrMissingFiles = new List<string>();
+
+        if (!Directory.Exists(localFolderPath))
+        {
+            invalidOrMissingFiles.Add($"Missing folder: {localFolderPath}");
+            return new PdfSourceScanResult(pdfFilePaths, invalidOrMissingFiles);
+        }
+
+        var pendingDirectories = new Stack<string>();
+        pendingDirectories.Push(localFolderPath);
+
+        while (pendingDirectories.Count > 0)
+        {
+            var directory = pendingDirectories.Pop();
+
+            try
+            {
+                foreach (var filePath in Directory.EnumerateFiles(directory, "*.pdf", SearchOption.TopDirectoryOnly))
+                {
+                    try
+                    {
+                        pdfFilePaths.Add(Path.GetFullPath(filePath));
+                    }
+                    catch (Exception ex)
+                    {
+                        invalidOrMissingFiles.Add($"{filePath}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                invalidOrMissingFiles.Add($"{directory}: {ex.Message}");
+            }
+
+            try
+            {
+                foreach (var childDirectory in Directory.EnumerateDirectories(directory, "*", SearchOption.TopDirectoryOnly))
+                {
+                    try
+                    {
+                        if ((File.GetAttributes(childDirectory) & FileAttributes.ReparsePoint) != 0)
+                        {
+                            continue;
+                        }
+
+                        pendingDirectories.Push(childDirectory);
+                    }
+                    catch (Exception ex)
+                    {
+                        invalidOrMissingFiles.Add($"{childDirectory}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                invalidOrMissingFiles.Add($"{directory}: {ex.Message}");
+            }
+        }
+
+        pdfFilePaths.Sort(StringComparer.OrdinalIgnoreCase);
+        return new PdfSourceScanResult(pdfFilePaths, invalidOrMissingFiles);
     }
 
     public async Task SearchNowAsync()
@@ -730,6 +1064,7 @@ public sealed class MainViewModel : ObservableObject
         return new SearchSnapshot(
             SearchText.Trim(),
             SelectedAuthor?.Value,
+            SelectedSourceFilter?.Value,
             SelectedYear?.Value,
             Interlocked.Increment(ref searchRequestVersion),
             projectBestResult);
@@ -824,11 +1159,14 @@ public sealed class MainViewModel : ObservableObject
             await using var scope = scopeFactory.CreateAsyncScope();
             var searchService = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
 
-            var hasSelectedFilter = snapshot.AuthorId is not null || snapshot.Year is not null;
+            var hasSelectedFilter = snapshot.AuthorId is not null ||
+                                    snapshot.ContentSourceId is not null ||
+                                    snapshot.Year is not null;
             var results = hasSelectedFilter
                 ? await searchService.SearchAsync(
                     new SermonSearchQuery(
                         AuthorId: snapshot.AuthorId,
+                        ContentSourceId: snapshot.ContentSourceId,
                         SearchText: string.IsNullOrWhiteSpace(snapshot.QueryText) ? null : snapshot.QueryText,
                         Year: snapshot.Year,
                         MaxResults: 200),
@@ -859,13 +1197,16 @@ public sealed class MainViewModel : ObservableObject
                      .Select(group => new
                      {
                          Rank = group.Min(item => item.Index),
-                         Sermon = new SermonResultViewModel(
-                             group.Key,
-                             group.First().Result.SermonTitle,
-                             group.First().Result.SermonCode,
-                             group.First().Result.Year,
-                             group.Count())
-                     })
+                          Sermon = new SermonResultViewModel(
+                              group.Key,
+                              group.First().Result.SermonTitle,
+                              group.First().Result.SermonCode,
+                              group.First().Result.Year,
+                              group.Count(),
+                              group.First().Result.AuthorDisplayName,
+                              group.First().Result.SourceDisplayName,
+                              group.First().Result.SourceType)
+                      })
                      .OrderBy(item => item.Rank))
         {
             SermonResults.Add(item.Sermon);
@@ -1110,6 +1451,15 @@ public sealed class MainViewModel : ObservableObject
                 paragraph.Sermon.SermonCode,
                 paragraph.Sermon.Year,
                 paragraph.Sermon.SourceFilePath,
+                AuthorDisplayName = paragraph.Sermon.Author == null
+                    ? string.Empty
+                    : paragraph.Sermon.Author.DisplayName,
+                SourceDisplayName = paragraph.Sermon.ContentSource == null
+                    ? string.Empty
+                    : paragraph.Sermon.ContentSource.DisplayName,
+                SourceType = paragraph.Sermon.ContentSource == null
+                    ? string.Empty
+                    : paragraph.Sermon.ContentSource.SourceType,
                 IsFavorite = paragraph.Favorites.Any()
             })
             .FirstOrDefaultAsync();
@@ -1129,7 +1479,10 @@ public sealed class MainViewModel : ObservableObject
             CreatePreview(row.Text),
             row.Text,
             row.SourceFilePath,
-            row.PageNumber)
+            row.PageNumber,
+            row.AuthorDisplayName,
+            row.SourceDisplayName,
+            row.SourceType)
         {
             IsFavorite = row.IsFavorite
         };
@@ -1183,6 +1536,15 @@ public sealed class MainViewModel : ObservableObject
                 paragraph.Sermon.SermonCode,
                 paragraph.Sermon.Year,
                 paragraph.Sermon.SourceFilePath,
+                AuthorDisplayName = paragraph.Sermon.Author == null
+                    ? string.Empty
+                    : paragraph.Sermon.Author.DisplayName,
+                SourceDisplayName = paragraph.Sermon.ContentSource == null
+                    ? string.Empty
+                    : paragraph.Sermon.ContentSource.DisplayName,
+                SourceType = paragraph.Sermon.ContentSource == null
+                    ? string.Empty
+                    : paragraph.Sermon.ContentSource.SourceType,
                 IsFavorite = paragraph.Favorites.Any()
             })
             .ToListAsync();
@@ -1198,7 +1560,10 @@ public sealed class MainViewModel : ObservableObject
                 CreatePreview(row.Text),
                 row.Text,
                 row.SourceFilePath,
-                row.PageNumber)
+                row.PageNumber,
+                row.AuthorDisplayName,
+                row.SourceDisplayName,
+                row.SourceType)
             {
                 IsFavorite = row.IsFavorite
             })
@@ -1250,6 +1615,7 @@ public sealed class MainViewModel : ObservableObject
         selectedFavoriteParagraph = null;
         selectedHistoryParagraph = null;
         selectedContentSource = null;
+        selectedSourceFilter = null;
         allParagraphResults = [];
 
         SermonResults.Clear();
@@ -1257,6 +1623,7 @@ public sealed class MainViewModel : ObservableObject
         FavoriteParagraphs.Clear();
         ProjectionHistoryItems.Clear();
         ContentSources.Clear();
+        SourceFilters.Clear();
         ResultCount = 0;
 
         OnPropertyChanged(nameof(SelectedSermon));
@@ -1264,6 +1631,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedFavoriteParagraph));
         OnPropertyChanged(nameof(SelectedHistoryParagraph));
         OnPropertyChanged(nameof(SelectedContentSource));
+        OnPropertyChanged(nameof(SelectedSourceFilter));
         OnPropertyChanged(nameof(SelectedParagraphHeader));
         OnPropertyChanged(nameof(SelectedParagraphMeta));
         OnPropertyChanged(nameof(ProjectionParagraphTitle));
@@ -1285,6 +1653,7 @@ public sealed class MainViewModel : ObservableObject
     private async Task<FilterLoadResult> LoadFilterOptionsAsync(
         MessageFlowDbContext dbContext,
         int? preferredAuthorId = null,
+        int? preferredSourceId = null,
         int? preferredYear = null)
     {
         var linkedAuthorIds = await dbContext.Sermons
@@ -1328,6 +1697,21 @@ public sealed class MainViewModel : ObservableObject
             .OrderByDescending(year => year)
             .ToListAsync();
 
+        var linkedSources = await dbContext.Sermons
+            .AsNoTracking()
+            .Where(sermon => sermon.ContentSourceId != null)
+            .Select(sermon => new
+            {
+                sermon.ContentSource!.Id,
+                sermon.ContentSource.DisplayName,
+                sermon.ContentSource.Name
+            })
+            .Distinct()
+            .OrderBy(source => source.DisplayName)
+            .ThenBy(source => source.Name)
+            .Select(source => new FilterOption(source.Id, source.DisplayName))
+            .ToListAsync();
+
         AuthorFilters.Clear();
         AuthorFilters.Add(new FilterOption(null, "All authors"));
         foreach (var author in linkedAuthors)
@@ -1342,22 +1726,31 @@ public sealed class MainViewModel : ObservableObject
             YearFilters.Add(new FilterOption(year, year.ToString()));
         }
 
+        SourceFilters.Clear();
+        SourceFilters.Add(new FilterOption(null, "All sources"));
+        foreach (var source in linkedSources)
+        {
+            SourceFilters.Add(source);
+        }
+
         selectedAuthor = AuthorFilters.FirstOrDefault(author => author.Value == preferredAuthorId) ?? AuthorFilters[0];
+        selectedSourceFilter = SourceFilters.FirstOrDefault(source => source.Value == preferredSourceId) ?? SourceFilters[0];
         selectedYear = YearFilters.FirstOrDefault(year => year.Value == preferredYear) ?? YearFilters[0];
         OnPropertyChanged(nameof(SelectedAuthor));
+        OnPropertyChanged(nameof(SelectedSourceFilter));
         OnPropertyChanged(nameof(SelectedYear));
 
         App.LogStartupMessage(
-            $"Loaded filter data. Authors: {linkedAuthors.Count}. Years: {years.Count}.");
+            $"Loaded filter data. Authors: {linkedAuthors.Count}. Sources: {linkedSources.Count}. Years: {years.Count}.");
 
-        return new FilterLoadResult(linkedAuthors.Count, years.Count);
+        return new FilterLoadResult(linkedAuthors.Count, linkedSources.Count, years.Count);
     }
 
     private async Task RefreshFilterOptionsPreservingSelectionAsync()
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
-        await LoadFilterOptionsAsync(dbContext, SelectedAuthor?.Value, SelectedYear?.Value);
+        await LoadFilterOptionsAsync(dbContext, SelectedAuthor?.Value, SelectedSourceFilter?.Value, SelectedYear?.Value);
     }
 
     private async Task LoadContentSourcesAsync(int? preferredSourceId = null)
@@ -1538,6 +1931,80 @@ public sealed class MainViewModel : ObservableObject
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
+    private static string NormalizeFilePathForComparison(string filePath)
+    {
+        return Path.GetFullPath(filePath).TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar);
+    }
+
+    private static bool CanImportPdfSourceType(string sourceType)
+    {
+        return string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(sourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static SourceMetadataContext CreateSourceMetadataContext(ContentSourceViewModel source)
+    {
+        return new SourceMetadataContext(
+            source.Id,
+            source.Name,
+            source.DisplayName,
+            source.SourceType);
+    }
+
+    private static async Task<int> EnsureSourceRepairAuthorAsync(
+        MessageFlowDbContext dbContext,
+        SourceMetadataContext sourceContext)
+    {
+        var authorMetadata = SermonMetadataParser.GetAuthorMetadata(sourceContext);
+        var existingAuthor = await dbContext.Authors
+            .FirstOrDefaultAsync(author => author.FullName == authorMetadata.FullName) ??
+                             await dbContext.Authors.FirstOrDefaultAsync(
+                                 author => author.DisplayName == authorMetadata.DisplayName);
+
+        if (existingAuthor is not null)
+        {
+            var changed = false;
+            if (!string.Equals(existingAuthor.FullName, authorMetadata.FullName, StringComparison.Ordinal))
+            {
+                existingAuthor.FullName = TrimTo(authorMetadata.FullName, 200);
+                changed = true;
+            }
+
+            if (!string.Equals(existingAuthor.DisplayName, authorMetadata.DisplayName, StringComparison.Ordinal))
+            {
+                existingAuthor.DisplayName = TrimTo(authorMetadata.DisplayName, 120);
+                changed = true;
+            }
+
+            if (!string.Equals(existingAuthor.Description, authorMetadata.Description, StringComparison.Ordinal))
+            {
+                existingAuthor.Description = TrimTo(authorMetadata.Description, 1000);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await dbContext.SaveChangesAsync();
+            }
+
+            return existingAuthor.Id;
+        }
+
+        var author = new Author
+        {
+            FullName = TrimTo(authorMetadata.FullName, 200),
+            DisplayName = TrimTo(authorMetadata.DisplayName, 120),
+            Description = TrimTo(authorMetadata.Description, 1000)
+        };
+
+        dbContext.Authors.Add(author);
+        await dbContext.SaveChangesAsync();
+
+        return author.Id;
+    }
+
     private static void BackupDatabaseFile(string databasePath, string backupPath)
     {
         if (!File.Exists(databasePath))
@@ -1671,14 +2138,20 @@ public sealed class MainViewModel : ObservableObject
         OpenBackupFolderCommand.RaiseCanExecuteChanged();
         AddNewSourceCommand.RaiseCanExecuteChanged();
         ImportSourceCommand.RaiseCanExecuteChanged();
+        RepairSourceMetadataCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(
         string QueryText,
         int? AuthorId,
+        int? ContentSourceId,
         int? Year,
         int Version,
         bool ProjectBestResult);
 
-    private readonly record struct FilterLoadResult(int LinkedAuthorCount, int YearCount);
+    private sealed record PdfSourceScanResult(
+        List<string> PdfFilePaths,
+        List<string> InvalidOrMissingFiles);
+
+    private readonly record struct FilterLoadResult(int LinkedAuthorCount, int LinkedSourceCount, int YearCount);
 }

@@ -1,0 +1,586 @@
+MessageFlow Project Status Report
+Report date: 2026-06-28
+
+Scope of this report
+This report was created by inspecting the MessageFlow repository and by running a read-only SQLite diagnostic against database/messageflow.db.
+No app logic was changed.
+No existing features were modified.
+No features were added.
+Nothing was deleted.
+The database was not reset.
+PDFs were not reimported.
+
+1. Project structure
+
+Solution: MessageFlow.sln
+
+Projects in the solution:
+
+- src/MessageFlow.App/MessageFlow.App.csproj
+  Role: The WPF desktop application. This is the main user interface for searching content, selecting paragraphs, projecting text, managing favorites and history, managing content sources, and backing up/restoring the local database.
+  Target: net10.0-windows
+  Notes: Uses WPF and references Core, Data, Importer, and Search.
+
+- src/MessageFlow.Core/MessageFlow.Core.csproj
+  Role: Domain model and abstraction layer. It defines the main entities such as Author, Sermon, SermonParagraph, ImportLog, FavoriteParagraph, ProjectionHistory, and ContentSource. It also defines repository/search abstractions.
+  Target: net10.0
+
+- src/MessageFlow.Data/MessageFlow.Data.csproj
+  Role: SQLite and Entity Framework Core infrastructure. It contains MessageFlowDbContext, migrations, default database path logic, database repair/index rebuilding logic, and repository registration.
+  Target: net10.0
+  Packages: Microsoft.EntityFrameworkCore.Sqlite, Microsoft.EntityFrameworkCore.Design, SQLitePCLRaw.bundle_e_sqlite3.
+
+- src/MessageFlow.Importer/MessageFlow.Importer.csproj
+  Role: Console importer and shared import logic for local PDF files. It extracts PDF text with PdfPig, parses metadata, splits paragraphs, writes sermons/paragraphs/import logs, and also exposes a console search command.
+  Target: net10.0
+  Packages: UglyToad.PdfPig, Microsoft.Extensions.Hosting.
+
+- src/MessageFlow.Search/MessageFlow.Search.csproj
+  Role: Search service. It queries sermons and sermon paragraphs through SQLite SQL, uses FTS5 when available, falls back to LIKE matching, and supports filters such as author, source, year, title/code, keyword, and paragraph number.
+  Target: net10.0
+
+No other projects are currently listed in the solution.
+
+2. Current database structure
+
+Database path:
+database/messageflow.db
+
+EF Core entities exposed by MessageFlowDbContext:
+
+- Authors
+  Stores content authors. Current model fields include Id, FullName, DisplayName, Description, and related Sermons.
+  Seeded author: William Marrion Branham / Brother Branham.
+
+- ContentSources
+  Stores registered local source folders and source types. Fields include Name, DisplayName, SourceType, Description, LocalFolderPath, and CreatedAt.
+  Seeded source: Brother Branham sermon PDF collection at D:\Br William Marrion Branham\PDF.
+
+- Sermons
+  Stores one imported document per local PDF. Despite the name "Sermons", this table is currently also used for circular letters or other imported PDF documents.
+  Fields include AuthorId, optional ContentSourceId, Title, SermonCode, Year, Date, Location, Language, SourceFilePath, and CreatedAt.
+
+- SermonParagraphs
+  Stores searchable/projectable paragraph records for each imported sermon/document.
+  Fields include SermonId, ParagraphNumber, Text, SearchText, optional PageNumber, and CreatedAt.
+
+- ImportLogs
+  Stores import activity for local PDF files, including FilePath, Status, Message, and ImportedAt.
+
+- FavoriteParagraphs
+  Stores saved/favorite paragraph references. Each favorite points to one SermonParagraph and can hold optional Notes.
+
+- ProjectionHistories
+  Stores projected paragraph history. Each record points to one SermonParagraph and stores ProjectedAt plus the SearchQuery used when projected.
+
+Bible-related tables:
+
+- No Bible entity classes exist.
+- No DbSet for Bible books, chapters, verses, translations, or Bible search exists.
+- No Bible migration/table was found.
+
+Other database tables found in the live SQLite file:
+
+- __EFMigrationsHistory
+  EF Core migration history.
+
+- __EFMigrationsLock
+  EF Core migration lock table.
+
+- sqlite_sequence
+  SQLite autoincrement bookkeeping.
+
+- SermonParagraphSearch and its internal FTS tables
+  Older FTS5 search table created by the AddSermonSearch migration.
+
+- SermonParagraphsFts and its internal FTS tables
+  Newer/current FTS5 search table created by AddSearchPerformanceIndexesAndFts. The current search service uses SermonParagraphsFts.
+
+3. Current imported content
+
+Safe diagnostic method:
+A read-only SQLite connection was opened against database/messageflow.db. No writes were made.
+
+Current counts:
+
+- Authors: 3
+- Content sources: 3
+- Sermons/documents: 1,207
+- Sermon paragraphs: 193,772
+- Import logs: 6,021
+- Favorites: 2
+- Projection history records: 29
+- SermonParagraphsFts rows: 193,772
+
+Import log status counts:
+
+- Imported: 3,613
+- Skipped: 2,406
+- Reset: 2
+
+Current authors:
+
+- Id 1: William Marrion Branham / Brother Branham
+- Id 2: Ewald Frank Test / Ewald Frank Test
+- Id 3: Ewald Frank / Brother Frank
+
+Current content sources:
+
+- Id 1: Brother Branham
+  Name: brother_branham
+  Type: SermonPdfCollection
+  Folder: D:\Br William Marrion Branham\PDF
+
+- Id 2: Ewald Frank Test
+  Name: ewald_frank_test
+  Type: SermonPdfCollection
+  Folder: D:\Ewald Frank Test
+
+- Id 3: Ewald Frank Test 2
+  Name: ewald_frank_test_2
+  Type: SermonPdfCollection
+  Folder: D:\Ewald Frank Test
+
+Documents by source:
+
+- Brother Branham: 1,203 documents, 193,246 paragraphs, years 1947 through 1965.
+- Ewald Frank Test: 2 documents, 263 paragraphs.
+- Ewald Frank Test 2: 2 documents, 263 paragraphs.
+
+4. Brother Branham status
+
+Brother Branham source exists:
+Yes. The database model seeds a ContentSources row named brother_branham, and the live database contains the Brother Branham content source.
+
+Brother Branham sermons are imported:
+Yes. The live database has 1,203 Brother Branham documents and 193,246 Brother Branham paragraphs.
+
+Expected local PDF folder:
+D:\Br William Marrion Branham\PDF
+
+Metadata parsing:
+Yes. SermonMetadataParser has a Brother Branham parser path. It detects sermon codes from filenames, parses dates from sermon codes, uses year folders when needed, builds sermon titles, and protects Brother Branham metadata from the Ewald Frank repair tool.
+
+Search status:
+Supported by code. The search service searches title, sermon code, author, source, source type, paragraph text, year, and paragraph number. It uses FTS5 when available and falls back to LIKE matching.
+
+Projection status:
+Supported by code. Selected Brother Branham paragraphs can be projected through ProjectWindow. Projection history is recorded when a paragraph is projected.
+
+5. Ewald Frank status
+
+Ewald Frank is not fully production-ready yet.
+
+Current database status:
+
+- There are two Ewald test content sources.
+- Both are named as test sources.
+- Each test source has only 2 documents.
+- One older test source still has rough metadata:
+  Example: Title "en RB", SermonCode "2020-04", Year 2026.
+- The newer test source has repaired circular-letter metadata:
+  Example: "Circular Letter - April 2020", code "CL-2020-04", year 2020, date 2020-04-01.
+
+Ewald Frank source exists:
+Partially. Test sources exist, but no clear production Ewald Frank source has been established.
+
+Circular letter metadata parsing exists:
+Yes. SermonMetadataParser includes generic/non-Branham parsing and Ewald Frank detection. It can treat Ewald Frank month/year filenames as circular letters, generate titles like "Circular Letter - April 2020", and generate codes like "CL-2020-04".
+
+Repair tool exists:
+Yes. Tools > Repair Source Metadata is currently limited to Ewald Frank circular letter sources. It can update title, code, year, date, author, location, language, and source type for the selected Ewald source. It does not modify paragraph text.
+
+Production readiness:
+Not production-ready. Current evidence shows only test imports. The production import flow, source naming, full folder structure, metadata rules, duplicate handling, and QA for the full Ewald Frank collection still need to be completed before importing all Ewald Frank content.
+
+6. Bible status
+
+Bible support is not implemented yet.
+
+What exists:
+
+- The Add New Source dialog has a Source Type option named "Bible".
+- ContentSourceTypeOption includes "Bible".
+
+What does not exist:
+
+- No Bible tab exists in MainWindow.xaml.
+- No Bible entity classes exist.
+- No Bible DbSet exists in MessageFlowDbContext.
+- No Bible database tables exist.
+- No Bible translation is imported.
+- No Bible importer exists.
+- No Bible verse/chapter/book search service exists.
+- No Bible-specific project workflow exists.
+
+Important distinction:
+The app can register a content source with SourceType "Bible", but Import Source currently supports only SermonPdfCollection and CircularLetter source types. If a Bible source is selected, the app says import for that source type is coming soon.
+
+Next work needed for Bible support:
+
+- Add Bible domain entities: BibleTranslation, BibleBook, BibleChapter, BibleVerse, or an equivalent normalized design.
+- Add EF Core DbSets and migrations.
+- Choose supported Bible file/import formats.
+- Build a safe local-only Bible importer.
+- Add a Bible tab or Bible search mode.
+- Implement verse lookup, keyword search, and book/chapter navigation.
+- Add projection support for Bible verses.
+- Add QA data and tests before production use.
+
+7. Working features
+
+The following features are supported by the current code:
+
+- Main WPF app shell
+  MainWindow loads with a search bar, author/source/year filters, projection font-size selector, library tabs, paragraph results, selected paragraph preview, status bar, and projection status.
+
+- Search
+  Search text is debounced and searches automatically. It supports author, source, and year filters. It returns grouped sermon/document results and paragraph results.
+
+- Quick Project Mode
+  Pressing Enter while the search box has focus runs QuickProjectAsync. It searches and projects the best matching paragraph if one is found.
+
+- Projection window
+  Project opens one ProjectWindow and reuses/activates the existing projection window if already open. The window is borderless, black-background, centered text, and supports dynamic font fitting.
+
+- Projection text paging
+  Long text can be split into projection pages. The projection window shows a page indicator when needed.
+
+- Next/Previous navigation
+  Main window Previous/Next buttons move between paragraphs. The projection window Left/Right keys move through projection pages first, then adjacent paragraphs.
+
+- Copy
+  Copy copies the selected paragraph's full text to the clipboard.
+
+- Favorites
+  Add Favorite / Remove Favorite toggles the selected paragraph in FavoriteParagraphs. The Favorites tab loads saved paragraphs and can project a favorite by double-clicking.
+
+- History
+  Projection history records projected paragraphs. The History tab shows the newest items first and can project a history item by double-clicking.
+
+- Backup Database
+  Tools > Backup Database opens a save dialog and uses SQLite BackupDatabase to create a .db backup.
+
+- Restore Database
+  Tools > Restore Database asks for confirmation, creates a safety backup, copies the selected backup over the current database, deletes WAL/SHM files, runs database repair, and reloads app data.
+
+- Open Backup Folder
+  Opens the folder of the most recent backup made during the current app session.
+
+- Source manager
+  Tools > Sources lists content sources. Add New Source opens a dialog to register a local source with display name, source type, description, and folder path.
+
+- Import preview / dry run
+  Import Source scans local PDFs, compares them to already imported SourceFilePath values, and shows an Import Preview dialog before any database write happens.
+
+- Source import for sermon PDF collections and circular letters
+  Import Source is enabled for SermonPdfCollection and CircularLetter source types. It imports only new local PDFs and skips already imported file paths.
+
+- Ewald Frank metadata repair
+  Repair Source Metadata is limited to Ewald Frank sources and can repair circular-letter metadata.
+
+- Search indexing/performance improvements
+  The database has indexes and FTS5 support. The current search service uses SermonParagraphsFts and falls back to LIKE if FTS fails.
+
+- Startup repair/logging
+  App startup runs MessageFlowDatabaseRepair before showing MainWindow. Startup and unexpected errors are logged to logs/app-startup.log.
+
+8. Partial or unstable features
+
+- Ewald Frank full import
+  Partial. Parser and repair support exist, but only test sources are present. The full production collection has not been proven imported or validated.
+
+- Bible module
+  Not implemented. Only the source type label exists.
+
+- Source import for non-PDF/non-sermon content
+  Partial. ContentSource supports several labels, but the import implementation currently handles only SermonPdfCollection and CircularLetter PDFs.
+
+- OCR
+  Not implemented. PdfPig extracts PDF text, but there is no OCR path for scanned/image-only PDFs.
+
+- Preview/Live mode like OpenLP
+  Not implemented as a two-stage operator workflow. Current projection sends the selected paragraph directly to the projection window.
+
+- Themes
+  Partial at most. The app has WPF styling resources, but there is no user-facing theme selector or production theme management workflow.
+
+- Citation library
+  Not implemented as a separate module. Existing imported documents can be searched and projected, but there is no standalone citation library feature.
+
+- Bible source import
+  Not implemented. Selecting a Bible source type does not enable Bible import.
+
+- Metadata consistency for old Ewald test data
+  Needs cleanup. One Ewald test source still contains older rough metadata and a test author.
+
+- Legacy search table cleanup
+  The live database contains both SermonParagraphSearch and SermonParagraphsFts. The current code uses SermonParagraphsFts. The older table may be historical baggage and should not be changed without a careful migration plan.
+
+9. Buttons and UI sections
+
+Main top bar:
+
+- Search text box
+  Typing updates SearchText and queues a debounced search. Pressing Enter while the search box is focused runs Quick Project Mode.
+
+- Author filter
+  Filters search results by selected author.
+
+- Source filter
+  Filters search results by selected content source.
+
+- Year filter
+  Filters search results by selected sermon/document year.
+
+- Projection font-size selector
+  Selects Small, Medium, Large, or Extra Large projection sizing for ProjectWindow.
+
+Library section:
+
+- Search tab
+  Shows grouped sermon/document results for the current search. Selecting a sermon filters the paragraph list to that sermon.
+
+- Favorites tab
+  Shows saved favorite paragraphs. Selecting a favorite loads that paragraph. Double-clicking projects it.
+
+- History tab
+  Shows recent projection history. Selecting a history item loads that paragraph. Double-clicking projects it.
+
+- Tools tab
+  Contains Sources and Database tools.
+
+Tools > Sources buttons:
+
+- Add New Source
+  Opens AddContentSourceWindow. The user enters display name, source type, description, and local folder path. Saving creates a ContentSources row.
+
+- Import Source
+  For SermonPdfCollection and CircularLetter sources, scans the selected local folder, shows Import Preview, and imports new PDFs if confirmed. For other source types, shows "coming soon."
+
+- Repair Source Metadata
+  If the selected source is Brother Branham, it refuses to change protected metadata. If the selected source is not Ewald Frank, it refuses because repair is currently limited to Ewald Frank. For Ewald Frank, it asks for confirmation and repairs metadata for documents in the selected source.
+
+Tools > Database buttons:
+
+- Backup Database
+  Opens a save dialog and writes a SQLite .db backup.
+
+- Restore Database
+  Opens a file dialog, asks for confirmation, creates a safety backup, replaces the current database with the selected backup, repairs schema/indexes, and reloads app data.
+
+- Open Backup Folder
+  Opens the folder containing the latest backup made in the current session. Disabled/unavailable until a backup path exists.
+
+Paragraphs section:
+
+- Paragraph list
+  Shows paragraph search results for the selected sermon/document. Selecting a paragraph updates the preview panel.
+
+Selected paragraph panel:
+
+- Project
+  Projects the selected paragraph. It records history and opens/updates the projection window.
+
+- Copy
+  Copies the selected paragraph full text to the clipboard.
+
+- Previous
+  Selects the previous paragraph in the same sermon/document when available.
+
+- Next
+  Selects the next paragraph in the same sermon/document when available.
+
+- Add Favorite / Remove Favorite
+  Toggles the selected paragraph as a favorite. The button text changes based on current favorite state.
+
+Keyboard shortcuts and interactions:
+
+- Enter in the search box
+  Runs Quick Project Mode.
+
+- Ctrl+F
+  Focuses and selects the search box.
+
+- Ctrl+P
+  Projects the selected paragraph.
+
+- Ctrl+C
+  Copies the selected paragraph.
+
+- Left/Right in the main window
+  Previous/Next paragraph.
+
+- Escape
+  Closes the projection window if it is open.
+
+Projection window controls:
+
+- Escape
+  Closes the projection window.
+
+- F11
+  Toggles fullscreen/maximized projection.
+
+- Left/Right
+  Moves through projection pages when text is split; otherwise moves to previous/next paragraph.
+
+- Mouse drag
+  Allows moving the projection window when it is not fullscreen.
+
+Buttons in Add New Source dialog:
+
+- Browse
+  Opens a folder picker for a local source folder.
+
+- Save Source
+  Validates required fields and closes the dialog successfully.
+
+- Cancel
+  Closes the dialog without saving.
+
+Buttons in Import Preview dialog:
+
+- Start Import
+  Confirms the preview and starts import. Enabled only when there are new files ready to import.
+
+- Cancel
+  Cancels import before database writes.
+
+No Bible UI section or Bible button is currently present in MainWindow.xaml.
+
+10. Current risks
+
+- Database migration and repair risk
+  Startup runs database repair before showing the UI. Careless changes to migrations, repair SQL, FTS triggers, or table names could affect startup and existing local data.
+
+- Large database risk
+  The live database is large and contains 193,772 paragraphs. Search, import, backup, and restore changes need to be tested with the real data volume.
+
+- Search index risk
+  The live database contains both old and current FTS tables. Changing search SQL or rebuilding indexes carelessly could break search or create stale index rows.
+
+- Source import risk
+  Import Source writes new sermons, paragraphs, import logs, authors, and search index data. Changes could duplicate documents, misassign authors, or damage metadata if SourceFilePath matching changes.
+
+- Reset import risk
+  The console importer supports --reset, which deletes imported sermons and paragraphs. Do not use it casually against the production database.
+
+- Restore risk
+  Restore replaces the current database. It does create a safety backup, but this remains a high-impact operation.
+
+- Ewald Frank metadata risk
+  The repair flow mutates document metadata and author assignment for selected Ewald sources. It should be tested on a copy before being used on a full production collection.
+
+- Bible design risk
+  Adding Bible support needs new tables, import rules, UI, and search behavior. Bolting Bible content into Sermons/SermonParagraphs without a clear design could create long-term confusion.
+
+- UI complexity risk
+  MainWindow already contains search, library tabs, paragraph results, selected paragraph actions, tools, status, and projection state. Adding Bible and Preview/Live mode will need careful layout planning.
+
+- Projection workflow risk
+  Projection currently sends content directly live. Adding Preview/Live mode later must avoid breaking Quick Project and direct projection behavior used by operators.
+
+11. Recommended next development order
+
+Phase 1: Stabilize existing MVP
+
+- Keep Brother Branham search/projection stable.
+- Add focused tests around search parsing, paragraph lookup, source filtering, and metadata parsing.
+- Add a simple smoke QA script or manual checklist runner for build/start/search/projection.
+- Confirm backup and restore with a copied database.
+- Document the meaning of both FTS tables and decide whether the older SermonParagraphSearch table should remain.
+- Clean up or clearly label Ewald test data so it does not look production-ready.
+- Avoid schema changes unless needed for a specific MVP bug.
+
+Phase 2: Complete Ewald Frank support properly
+
+- Define the production Ewald Frank source name, folder path, and source type.
+- Finalize circular-letter filename patterns and metadata expectations.
+- Add tests for Ewald Frank metadata parsing.
+- Add an import preview that shows sample parsed metadata before import.
+- Decide how to migrate or remove old Ewald test source data.
+- Test importing a small production-like subset.
+- Rebuild and validate FTS after import.
+- Only then import the full Ewald Frank collection.
+
+Phase 3: Add Bible support
+
+- Design Bible tables for translations, books, chapters, and verses.
+- Add EF Core entities, DbSets, and migrations.
+- Choose supported local Bible input format.
+- Build a local-only Bible importer.
+- Add a Bible tab or Bible search mode.
+- Implement verse reference lookup, keyword search, and book/chapter navigation.
+- Add Bible projection formatting.
+- Add tests and sample QA data.
+
+Phase 4: Add Preview/Live mode like OpenLP
+
+- Add separate Preview and Live selection state.
+- Let operators prepare content in Preview without changing Live.
+- Add "Send to Live" behavior.
+- Preserve Quick Project behavior intentionally, either direct-to-live or preview-first based on a setting.
+- Add clear UI state showing what is currently live.
+- Add keyboard shortcuts for live operation.
+
+Phase 5: Polish for church production use
+
+- Add operator-friendly error messages and recovery paths.
+- Add production startup checks for missing database/source folders.
+- Improve source management, including editing existing sources.
+- Add export/backup guidance and restore verification.
+- Add theme/display settings if needed for projector readability.
+- Add deployment/update notes for the church media room computer.
+- Run full manual QA before each production use.
+
+12. Manual QA checklist
+
+Use this after every Codex change:
+
+- Build succeeds.
+- App opens.
+- Search works.
+- Author filter works.
+- Source filter works.
+- Year filter works.
+- Quick Project works.
+- Projection opens.
+- Projection updates the existing projection window instead of opening many windows.
+- Next works.
+- Previous works.
+- Copy works.
+- Add Favorite works.
+- Remove Favorite works.
+- Favorites tab loads.
+- Favorite double-click projection works.
+- History records projection.
+- History tab loads.
+- History double-click projection works.
+- Backup works.
+- Restore works on a test/copy database.
+- Open Backup Folder works after a backup.
+- Sources tab loads.
+- Add New Source validation works.
+- Import Source preview works.
+- Import Source does not reimport already imported PDFs.
+- Repair Source Metadata refuses Brother Branham.
+- Ewald Frank test still works if present.
+- Bible tab works if present.
+- No existing feature is broken.
+- No database reset was run unintentionally.
+- No PDF reimport was run unintentionally.
+
+13. Final summary
+
+Current project stage:
+MessageFlow is a working MVP for local PDF sermon search and projection, centered around the imported Brother Branham sermon library.
+
+What is stable:
+The code clearly supports Brother Branham import/search/projection, paragraph navigation, favorites, projection history, source registration, import preview, backup/restore, and FTS-backed search.
+
+What is not finished:
+Ewald Frank support is partial and test-only. Bible support is not implemented. Preview/Live mode, OCR, production source editing, and a citation library are not implemented.
+
+Best next step:
+Stabilize the existing Brother Branham MVP first, then complete Ewald Frank support with tests and a production-ready source plan before adding Bible support.

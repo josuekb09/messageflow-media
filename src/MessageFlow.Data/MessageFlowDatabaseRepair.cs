@@ -19,6 +19,21 @@ public static class MessageFlowDatabaseRepair
     private const string AddContentSourcesMigrationId = "20260627094500_AddContentSources";
     private const string AddSearchPerformanceMigrationId = "20260627224500_AddSearchPerformanceIndexesAndFts";
     private const string ProductVersion = "10.0.9";
+    private static readonly string[] ExpectedFtsColumns =
+    [
+        "ParagraphId",
+        "SermonId",
+        "Title",
+        "SermonCode",
+        "Year",
+        "AuthorName",
+        "AuthorDisplayName",
+        "SourceName",
+        "SourceDisplayName",
+        "SourceType",
+        "ParagraphNumber",
+        "SearchText"
+    ];
 
     public static async Task<MessageFlowDatabaseRepairResult> RepairAsync(
         string databasePath,
@@ -273,6 +288,44 @@ public static class MessageFlowDatabaseRepair
         }
     }
 
+    public static async Task RebuildSearchIndexAsync(
+        string databasePath,
+        Action<string>? log = null,
+        CancellationToken cancellationToken = default)
+    {
+        MessageFlowDatabase.EnsureDatabaseDirectory(databasePath);
+        Batteries_V2.Init();
+
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath
+        }.ToString();
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        var sermonsTableExists = await TableExistsAsync(connection, "Sermons", cancellationToken);
+        var sermonParagraphsTableExists = await TableExistsAsync(connection, "SermonParagraphs", cancellationToken);
+        if (!sermonsTableExists || !sermonParagraphsTableExists)
+        {
+            log?.Invoke("Search index rebuild skipped because sermon tables do not exist yet.");
+            return;
+        }
+
+        await EnsureSearchPerformanceIndexesAsync(
+            connection,
+            await ColumnExistsAsync(connection, "Sermons", "ContentSourceId", cancellationToken),
+            sermonParagraphsTableExists,
+            log,
+            cancellationToken);
+
+        await TryEnsureSermonParagraphsFtsAsync(
+            connection,
+            log,
+            cancellationToken,
+            forceRebuild: true);
+    }
+
     private static async Task<bool> TableExistsAsync(
         SqliteConnection connection,
         string tableName,
@@ -366,10 +419,19 @@ public static class MessageFlowDatabaseRepair
     private static async Task TryEnsureSermonParagraphsFtsAsync(
         SqliteConnection connection,
         Action<string>? log,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool forceRebuild = false)
     {
         try
         {
+            if (await TableExistsAsync(connection, "SermonParagraphsFts", cancellationToken) &&
+                !await SermonParagraphsFtsSchemaIsCurrentAsync(connection, cancellationToken))
+            {
+                log?.Invoke("Recreating SermonParagraphsFts with author and source metadata columns.");
+                await DropSermonParagraphsFtsInfrastructureAsync(connection, cancellationToken);
+                forceRebuild = true;
+            }
+
             await ExecuteAsync(
                 connection,
                 """
@@ -379,7 +441,13 @@ public static class MessageFlowDatabaseRepair
                     SermonId UNINDEXED,
                     Title,
                     SermonCode,
-                    ParagraphNumber UNINDEXED,
+                    Year,
+                    AuthorName,
+                    AuthorDisplayName,
+                    SourceName,
+                    SourceDisplayName,
+                    SourceType,
+                    ParagraphNumber,
                     SearchText,
                     tokenize='unicode61'
                 );
@@ -397,7 +465,7 @@ public static class MessageFlowDatabaseRepair
                 """SELECT COUNT(1) FROM "SermonParagraphsFts";""",
                 cancellationToken);
 
-            if (paragraphCount != ftsCount)
+            if (forceRebuild || paragraphCount != ftsCount)
             {
                 log?.Invoke($"Rebuilding SermonParagraphsFts. Paragraphs: {paragraphCount}. FTS rows: {ftsCount}.");
                 await RebuildSermonParagraphsFtsAsync(connection, cancellationToken);
@@ -413,10 +481,49 @@ public static class MessageFlowDatabaseRepair
         }
     }
 
+    private static async Task<bool> SermonParagraphsFtsSchemaIsCurrentAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """PRAGMA table_info("SermonParagraphsFts");""";
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            columns.Add(reader.GetString(1));
+        }
+
+        return ExpectedFtsColumns.All(columns.Contains);
+    }
+
+    private static async Task DropSermonParagraphsFtsInfrastructureAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await DropSermonParagraphsFtsTriggersAsync(connection, cancellationToken);
+        await ExecuteAsync(connection, """DROP TABLE IF EXISTS "SermonParagraphsFts";""", cancellationToken);
+    }
+
+    private static async Task DropSermonParagraphsFtsTriggersAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await ExecuteAsync(connection, """DROP TRIGGER IF EXISTS "SermonParagraphsFts_author_au";""", cancellationToken);
+        await ExecuteAsync(connection, """DROP TRIGGER IF EXISTS "SermonParagraphsFts_source_au";""", cancellationToken);
+        await ExecuteAsync(connection, """DROP TRIGGER IF EXISTS "SermonParagraphsFts_sermon_au";""", cancellationToken);
+        await ExecuteAsync(connection, """DROP TRIGGER IF EXISTS "SermonParagraphsFts_au";""", cancellationToken);
+        await ExecuteAsync(connection, """DROP TRIGGER IF EXISTS "SermonParagraphsFts_ad";""", cancellationToken);
+        await ExecuteAsync(connection, """DROP TRIGGER IF EXISTS "SermonParagraphsFts_ai";""", cancellationToken);
+    }
+
     private static async Task EnsureSermonParagraphsFtsTriggersAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
     {
+        await DropSermonParagraphsFtsTriggersAsync(connection, cancellationToken);
+
         await ExecuteAsync(
             connection,
             """
@@ -429,6 +536,12 @@ public static class MessageFlowDatabaseRepair
                     SermonId,
                     Title,
                     SermonCode,
+                    Year,
+                    AuthorName,
+                    AuthorDisplayName,
+                    SourceName,
+                    SourceDisplayName,
+                    SourceType,
                     ParagraphNumber,
                     SearchText
                 )
@@ -438,9 +551,17 @@ public static class MessageFlowDatabaseRepair
                     new."SermonId",
                     s."Title",
                     s."SermonCode",
+                    s."Year",
+                    COALESCE(a."FullName", ''),
+                    COALESCE(a."DisplayName", ''),
+                    COALESCE(cs."Name", ''),
+                    COALESCE(cs."DisplayName", ''),
+                    COALESCE(cs."SourceType", ''),
                     new."ParagraphNumber",
                     new."SearchText"
                 FROM "Sermons" s
+                LEFT JOIN "Authors" a ON a."Id" = s."AuthorId"
+                LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
                 WHERE s."Id" = new."SermonId";
             END;
             """,
@@ -473,6 +594,12 @@ public static class MessageFlowDatabaseRepair
                     SermonId,
                     Title,
                     SermonCode,
+                    Year,
+                    AuthorName,
+                    AuthorDisplayName,
+                    SourceName,
+                    SourceDisplayName,
+                    SourceType,
                     ParagraphNumber,
                     SearchText
                 )
@@ -482,10 +609,164 @@ public static class MessageFlowDatabaseRepair
                     new."SermonId",
                     s."Title",
                     s."SermonCode",
+                    s."Year",
+                    COALESCE(a."FullName", ''),
+                    COALESCE(a."DisplayName", ''),
+                    COALESCE(cs."Name", ''),
+                    COALESCE(cs."DisplayName", ''),
+                    COALESCE(cs."SourceType", ''),
                     new."ParagraphNumber",
                     new."SearchText"
                 FROM "Sermons" s
+                LEFT JOIN "Authors" a ON a."Id" = s."AuthorId"
+                LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
                 WHERE s."Id" = new."SermonId";
+            END;
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TRIGGER IF NOT EXISTS "SermonParagraphsFts_sermon_au"
+            AFTER UPDATE OF "Title", "SermonCode", "Year", "AuthorId", "ContentSourceId" ON "Sermons"
+            BEGIN
+                DELETE FROM "SermonParagraphsFts"
+                WHERE "SermonId" = new."Id";
+
+                INSERT INTO "SermonParagraphsFts" (
+                    rowid,
+                    ParagraphId,
+                    SermonId,
+                    Title,
+                    SermonCode,
+                    Year,
+                    AuthorName,
+                    AuthorDisplayName,
+                    SourceName,
+                    SourceDisplayName,
+                    SourceType,
+                    ParagraphNumber,
+                    SearchText
+                )
+                SELECT
+                    p."Id",
+                    p."Id",
+                    p."SermonId",
+                    new."Title",
+                    new."SermonCode",
+                    new."Year",
+                    COALESCE(a."FullName", ''),
+                    COALESCE(a."DisplayName", ''),
+                    COALESCE(cs."Name", ''),
+                    COALESCE(cs."DisplayName", ''),
+                    COALESCE(cs."SourceType", ''),
+                    p."ParagraphNumber",
+                    p."SearchText"
+                FROM "SermonParagraphs" p
+                LEFT JOIN "Authors" a ON a."Id" = new."AuthorId"
+                LEFT JOIN "ContentSources" cs ON cs."Id" = new."ContentSourceId"
+                WHERE p."SermonId" = new."Id";
+            END;
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TRIGGER IF NOT EXISTS "SermonParagraphsFts_author_au"
+            AFTER UPDATE OF "FullName", "DisplayName" ON "Authors"
+            BEGIN
+                DELETE FROM "SermonParagraphsFts"
+                WHERE "SermonId" IN (
+                    SELECT "Id"
+                    FROM "Sermons"
+                    WHERE "AuthorId" = new."Id"
+                );
+
+                INSERT INTO "SermonParagraphsFts" (
+                    rowid,
+                    ParagraphId,
+                    SermonId,
+                    Title,
+                    SermonCode,
+                    Year,
+                    AuthorName,
+                    AuthorDisplayName,
+                    SourceName,
+                    SourceDisplayName,
+                    SourceType,
+                    ParagraphNumber,
+                    SearchText
+                )
+                SELECT
+                    p."Id",
+                    p."Id",
+                    p."SermonId",
+                    s."Title",
+                    s."SermonCode",
+                    s."Year",
+                    COALESCE(new."FullName", ''),
+                    COALESCE(new."DisplayName", ''),
+                    COALESCE(cs."Name", ''),
+                    COALESCE(cs."DisplayName", ''),
+                    COALESCE(cs."SourceType", ''),
+                    p."ParagraphNumber",
+                    p."SearchText"
+                FROM "SermonParagraphs" p
+                JOIN "Sermons" s ON s."Id" = p."SermonId"
+                LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
+                WHERE s."AuthorId" = new."Id";
+            END;
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TRIGGER IF NOT EXISTS "SermonParagraphsFts_source_au"
+            AFTER UPDATE OF "Name", "DisplayName", "SourceType" ON "ContentSources"
+            BEGIN
+                DELETE FROM "SermonParagraphsFts"
+                WHERE "SermonId" IN (
+                    SELECT "Id"
+                    FROM "Sermons"
+                    WHERE "ContentSourceId" = new."Id"
+                );
+
+                INSERT INTO "SermonParagraphsFts" (
+                    rowid,
+                    ParagraphId,
+                    SermonId,
+                    Title,
+                    SermonCode,
+                    Year,
+                    AuthorName,
+                    AuthorDisplayName,
+                    SourceName,
+                    SourceDisplayName,
+                    SourceType,
+                    ParagraphNumber,
+                    SearchText
+                )
+                SELECT
+                    p."Id",
+                    p."Id",
+                    p."SermonId",
+                    s."Title",
+                    s."SermonCode",
+                    s."Year",
+                    COALESCE(a."FullName", ''),
+                    COALESCE(a."DisplayName", ''),
+                    COALESCE(new."Name", ''),
+                    COALESCE(new."DisplayName", ''),
+                    COALESCE(new."SourceType", ''),
+                    p."ParagraphNumber",
+                    p."SearchText"
+                FROM "SermonParagraphs" p
+                JOIN "Sermons" s ON s."Id" = p."SermonId"
+                LEFT JOIN "Authors" a ON a."Id" = s."AuthorId"
+                WHERE s."ContentSourceId" = new."Id";
             END;
             """,
             cancellationToken);
@@ -505,6 +786,12 @@ public static class MessageFlowDatabaseRepair
                 SermonId,
                 Title,
                 SermonCode,
+                Year,
+                AuthorName,
+                AuthorDisplayName,
+                SourceName,
+                SourceDisplayName,
+                SourceType,
                 ParagraphNumber,
                 SearchText
             )
@@ -514,10 +801,18 @@ public static class MessageFlowDatabaseRepair
                 p."SermonId",
                 s."Title",
                 s."SermonCode",
+                s."Year",
+                COALESCE(a."FullName", ''),
+                COALESCE(a."DisplayName", ''),
+                COALESCE(cs."Name", ''),
+                COALESCE(cs."DisplayName", ''),
+                COALESCE(cs."SourceType", ''),
                 p."ParagraphNumber",
                 p."SearchText"
             FROM "SermonParagraphs" p
-            JOIN "Sermons" s ON s."Id" = p."SermonId";
+            JOIN "Sermons" s ON s."Id" = p."SermonId"
+            LEFT JOIN "Authors" a ON a."Id" = s."AuthorId"
+            LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId";
             """,
             cancellationToken);
     }

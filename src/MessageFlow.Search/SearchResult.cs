@@ -10,4 +10,7 @@ public sealed record SearchResult(
     string ParagraphTextPreview,
     string FullParagraphText,
     string SourceFilePath,
-    int? PageNumber);
+    int? PageNumber,
+    string AuthorDisplayName = "",
+    string SourceDisplayName = "",
+    string SourceType = "");

@@ -2,6 +2,7 @@ namespace MessageFlow.Search;
 
 public sealed record SermonSearchQuery(
     int? AuthorId = null,
+    int? ContentSourceId = null,
     string? SearchText = null,
     string? Title = null,
     string? SermonCode = null,

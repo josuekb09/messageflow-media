@@ -94,6 +94,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             parameters.Add(new("$authorId", query.AuthorId.Value));
         }
 
+        if (query.ContentSourceId is not null)
+        {
+            clauses.Add("s.ContentSourceId = $contentSourceId");
+            parameters.Add(new("$contentSourceId", query.ContentSourceId.Value));
+        }
+
         var generalText = query.SearchText?.Trim();
         var paragraphNumber = query.ParagraphNumber;
         var hasGeneralText = false;
@@ -108,17 +114,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             paragraphNumber = paragraphLookup.ParagraphNumber;
         }
 
+        List<string> generalClauses = [];
         if (!string.IsNullOrWhiteSpace(generalText))
         {
             hasGeneralText = true;
 
-            var generalClauses = new List<string>
-            {
-                "s.Title LIKE $generalLike ESCAPE '\\'",
-                "s.SermonCode LIKE $generalLike ESCAPE '\\'",
-                "p.SearchText LIKE $generalSearchLike ESCAPE '\\'"
-            };
-
+            generalClauses = BuildGeneralLikeClauses();
             parameters.Add(new("$generalLike", BuildContainsLike(generalText)));
             parameters.Add(new("$generalSearchLike", BuildContainsLike(generalText.ToUpperInvariant())));
             parameters.Add(new("$generalExact", generalText));
@@ -132,8 +133,6 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 generalClauses.Add("p.ParagraphNumber = $generalNumber");
                 parameters.Add(new("$generalNumber", generalNumber));
             }
-
-            clauses.Add($"({string.Join(" OR ", generalClauses)})");
         }
 
         if (!string.IsNullOrWhiteSpace(query.Title))
@@ -168,7 +167,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         var keyword = query.Keyword?.Trim();
         var hasKeyword = !string.IsNullOrWhiteSpace(keyword);
-        var ftsQuery = string.IsNullOrWhiteSpace(keyword) ? null : BuildFtsPrefixQuery(keyword);
+        var ftsTextParts = new[] { generalText, keyword }
+            .Where(value => !string.IsNullOrWhiteSpace(value));
+        var ftsQuery = BuildFtsPrefixQuery(string.Join(' ', ftsTextParts));
 
         if (hasKeyword)
         {
@@ -197,15 +198,29 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             }
             catch (Exception ex) when (IsFtsFailure(ex))
             {
-                clauses.Add("p.SearchText LIKE $keywordLike ESCAPE '\\'");
+                if (hasGeneralText)
+                {
+                    clauses.Add($"({string.Join(" OR ", generalClauses)})");
+                }
+
                 parameters.RemoveAll(parameter => parameter.Name == "$fts");
-                parameters.Add(new("$keywordLike", BuildContainsLike(keyword!.ToUpperInvariant())));
+                if (hasKeyword)
+                {
+                    clauses.Add("p.SearchText LIKE $keywordLike ESCAPE '\\'");
+                    parameters.Add(new("$keywordLike", BuildContainsLike(keyword!.ToUpperInvariant())));
+                }
             }
         }
-        else if (!string.IsNullOrWhiteSpace(keyword))
+
+        if (string.IsNullOrWhiteSpace(ftsQuery) && hasGeneralText)
+        {
+            clauses.Add($"({string.Join(" OR ", generalClauses)})");
+        }
+
+        if (string.IsNullOrWhiteSpace(ftsQuery) && hasKeyword)
         {
             clauses.Add("p.SearchText LIKE $keywordLike ESCAPE '\\'");
-            parameters.Add(new("$keywordLike", BuildContainsLike(keyword.ToUpperInvariant())));
+            parameters.Add(new("$keywordLike", BuildContainsLike(keyword!.ToUpperInvariant())));
         }
 
         if (clauses.Count == 0)
@@ -229,38 +244,35 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     private static string BuildSimpleSearchSql(bool useFts, bool hasNumber)
     {
-        var clauses = new List<string>
-        {
-            "s.Title LIKE $like ESCAPE '\\'",
-            "s.SermonCode LIKE $like ESCAPE '\\'"
-        };
-
-        if (hasNumber)
-        {
-            clauses.Add("s.Year = $number");
-            clauses.Add("p.ParagraphNumber = $number");
-        }
+        var clauses = new List<string>();
 
         if (useFts)
         {
-            clauses.Add(
-                $$"""
-                p.Id IN (
-                    SELECT rowid
-                    FROM {{FtsTableName}}
-                    WHERE {{FtsTableName}} MATCH $fts
-                )
-                """);
+            clauses.Add($"{FtsTableName} MATCH $fts");
         }
         else
         {
+            clauses.Add("s.Title LIKE $like ESCAPE '\\'");
+            clauses.Add("s.SermonCode LIKE $like ESCAPE '\\'");
+            clauses.Add("a.FullName LIKE $like ESCAPE '\\'");
+            clauses.Add("a.DisplayName LIKE $like ESCAPE '\\'");
+            clauses.Add("cs.DisplayName LIKE $like ESCAPE '\\'");
+            clauses.Add("cs.SourceType LIKE $like ESCAPE '\\'");
             clauses.Add("p.SearchText LIKE $searchLike ESCAPE '\\'");
+
+            if (hasNumber)
+            {
+                clauses.Add("s.Year = $number");
+                clauses.Add("p.ParagraphNumber = $number");
+            }
         }
 
         return BuildBaseSelect(
-            "SermonParagraphs p",
+            useFts
+                ? $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid"
+                : "SermonParagraphs p",
             string.Join($"{Environment.NewLine}        OR ", clauses),
-            orderByFtsRank: false,
+            orderByFtsRank: useFts,
             rankingOrder: SimpleRankingOrder);
     }
 
@@ -320,6 +332,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 s.Title AS SermonTitle,
                 s.SermonCode,
                 s.Year,
+                COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
+                COALESCE(cs.DisplayName, '') AS SourceDisplayName,
+                COALESCE(cs.SourceType, '') AS SourceType,
                 p.ParagraphNumber,
                 CASE
                     WHEN length(p.Text) <= 240 THEN p.Text
@@ -330,6 +345,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 p.PageNumber
             FROM {{from}}
             JOIN Sermons s ON s.Id = p.SermonId
+            LEFT JOIN Authors a ON a.Id = s.AuthorId
+            LEFT JOIN ContentSources cs ON cs.Id = s.ContentSourceId
             WHERE {{whereClause}}
             ORDER BY {{orderBy}}
             LIMIT $limit;
@@ -376,7 +393,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     reader.GetString(reader.GetOrdinal("SourceFilePath")),
                     reader.IsDBNull(reader.GetOrdinal("PageNumber"))
                         ? null
-                        : reader.GetInt32(reader.GetOrdinal("PageNumber"))));
+                        : reader.GetInt32(reader.GetOrdinal("PageNumber")),
+                    reader.GetString(reader.GetOrdinal("AuthorDisplayName")),
+                    reader.GetString(reader.GetOrdinal("SourceDisplayName")),
+                    reader.GetString(reader.GetOrdinal("SourceType"))));
             }
 
             return results;
@@ -421,6 +441,20 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             .Replace("_", @"\_", StringComparison.Ordinal);
     }
 
+    private static List<string> BuildGeneralLikeClauses()
+    {
+        return
+        [
+            "s.Title LIKE $generalLike ESCAPE '\\'",
+            "s.SermonCode LIKE $generalLike ESCAPE '\\'",
+            "a.FullName LIKE $generalLike ESCAPE '\\'",
+            "a.DisplayName LIKE $generalLike ESCAPE '\\'",
+            "cs.DisplayName LIKE $generalLike ESCAPE '\\'",
+            "cs.SourceType LIKE $generalLike ESCAPE '\\'",
+            "p.SearchText LIKE $generalSearchLike ESCAPE '\\'"
+        ];
+    }
+
     private static string? BuildFtsPrefixQuery(string value)
     {
         var tokens = FtsTokenRegex()
@@ -454,9 +488,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             WHEN s.Title LIKE $prefix ESCAPE '\' THEN 3
             WHEN s.SermonCode LIKE $like ESCAPE '\' THEN 4
             WHEN s.Title LIKE $like ESCAPE '\' THEN 5
-            WHEN p.SearchText = $searchExact THEN 6
-            WHEN p.SearchText LIKE $searchPrefix ESCAPE '\' THEN 7
-            ELSE 8
+            WHEN a.DisplayName LIKE $prefix ESCAPE '\' THEN 6
+            WHEN a.FullName LIKE $prefix ESCAPE '\' THEN 7
+            WHEN cs.DisplayName LIKE $prefix ESCAPE '\' THEN 8
+            WHEN p.SearchText = $searchExact THEN 9
+            WHEN p.SearchText LIKE $searchPrefix ESCAPE '\' THEN 10
+            ELSE 11
         END
         """;
 
@@ -519,6 +556,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             cases.Add($"WHEN s.Title COLLATE NOCASE = $generalExact THEN {rank++}");
             cases.Add($"WHEN s.Title LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN s.Title LIKE $generalLike ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN a.DisplayName LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN a.FullName LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
+            cases.Add($"WHEN cs.DisplayName LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN p.SearchText = $generalSearchExact THEN {rank++}");
             cases.Add($"WHEN p.SearchText LIKE $generalSearchPrefix ESCAPE '\\' THEN {rank++}");
         }

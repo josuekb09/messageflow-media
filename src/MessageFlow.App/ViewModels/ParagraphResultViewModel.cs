@@ -18,7 +18,10 @@ public sealed class ParagraphResultViewModel : ObservableObject
             result.ParagraphTextPreview,
             result.FullParagraphText,
             result.SourceFilePath,
-            result.PageNumber)
+            result.PageNumber,
+            result.AuthorDisplayName,
+            result.SourceDisplayName,
+            result.SourceType)
     {
     }
 
@@ -32,7 +35,10 @@ public sealed class ParagraphResultViewModel : ObservableObject
         string paragraphTextPreview,
         string fullParagraphText,
         string sourceFilePath,
-        int? pageNumber)
+        int? pageNumber,
+        string authorDisplayName = "",
+        string sourceDisplayName = "",
+        string sourceType = "")
     {
         SermonId = sermonId;
         ParagraphId = paragraphId;
@@ -45,6 +51,9 @@ public sealed class ParagraphResultViewModel : ObservableObject
             string.IsNullOrWhiteSpace(FullParagraphText) ? paragraphTextPreview : FullParagraphText);
         SourceFilePath = sourceFilePath;
         PageNumber = pageNumber;
+        AuthorDisplayName = authorDisplayName;
+        SourceDisplayName = sourceDisplayName;
+        SourceType = sourceType;
     }
 
     public int SermonId { get; }
@@ -66,6 +75,46 @@ public sealed class ParagraphResultViewModel : ObservableObject
     public string SourceFilePath { get; }
 
     public int? PageNumber { get; }
+
+    public string AuthorDisplayName { get; }
+
+    public string SourceDisplayName { get; }
+
+    public string SourceType { get; }
+
+    public string ContentSourceDisplay =>
+        string.IsNullOrWhiteSpace(SourceDisplayName) ? "Local library" : SourceDisplayName;
+
+    public string ContentTypeDisplay => ContentSourceTypeOption.GetLabel(SourceType);
+
+    public string MetadataLine
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(SermonCode))
+            {
+                parts.Add(SermonCode);
+            }
+
+            if (Year > 0)
+            {
+                parts.Add(Year.ToString());
+            }
+
+            if (!string.IsNullOrWhiteSpace(AuthorDisplayName))
+            {
+                parts.Add($"Author: {AuthorDisplayName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(SourceDisplayName))
+            {
+                parts.Add($"Source: {SourceDisplayName}");
+            }
+
+            return string.Join(" | ", parts);
+        }
+    }
 
     public bool IsFavorite
     {

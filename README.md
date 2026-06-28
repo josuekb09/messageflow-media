@@ -251,6 +251,49 @@ Keyboard shortcuts:
 - In the projection window, `Esc` closes projection
 - In the projection window, `F11` toggles fullscreen
 
+## Importing a New Local PDF Source Safely
+
+Use Tools > Sources to register and import future local PDF collections such as Ewald Frank sermons.
+
+Safe import workflow:
+
+1. Click `Add New Source`.
+2. Enter a display name, choose `Sermon PDF Collection`, and select the local folder.
+3. Click `Import Source`.
+4. Review the Import Preview dialog before any database write happens.
+5. Confirm the source name, folder, PDFs found, already imported files, ready-to-import files, and invalid/missing file count.
+6. Click `Cancel` to stop with no database changes, or `Start Import` to import new local PDFs.
+
+MessageFlow does not scrape websites or download content. Import Source scans the selected local folder only. Existing sermons are skipped and are not deleted.
+
+## Non-Branham Source Metadata
+
+Brother Branham PDFs continue to use the established Branham sermon metadata parser.
+
+For other local PDF sources, MessageFlow uses safer filename-based metadata:
+
+- The PDF filename becomes the main document title after removing `.pdf`, underscores, and extra spacing.
+- Circular letter filenames with year/month patterns become titles such as `Circular Letter - December 2020`.
+- Circular letter codes use `CL-yyyy-MM` when a month is detected, or `CL-yyyy` when only a year is detected.
+- The document year comes from the filename when possible. MessageFlow does not use the current year as a fallback for non-Branham circular letters.
+- If the source display name contains `Ewald Frank`, imported documents are linked to `Ewald Frank` with display name `Brother Frank`.
+
+Ewald Frank circular letters can be registered as either `Sermon PDF Collection` for initial testing or `Circular Letter`. Both source types use the local PDF importer. When the selected Ewald Frank source is repaired, MessageFlow safely changes that source type to `Circular Letter` if circular letter filenames are detected.
+
+If an Ewald Frank test source was imported before these rules existed, select that source in Tools > Sources and click `Repair Source Metadata`. The repair updates only the selected Ewald Frank source's title, code, year, date, author, and source type. It does not change paragraph text, favorites, projection history, or Brother Branham sermons.
+
+Useful circular letter search examples:
+
+```text
+Circular Letter
+Circular Letter April 2020
+CL-2020-04
+Ewald Frank
+Brother Frank
+```
+
+MessageFlow keeps circular letter search fast by maintaining SQLite indexes and an optional `SermonParagraphsFts` full-text search table. The FTS table includes paragraph text plus title, code, year, author, source name, and source type. Startup repair and source import/metadata repair safely rebuild the FTS data when needed.
+
 ## Manual QA Checklist
 
 Before using MessageFlow in a live service, run this quick manual checklist:

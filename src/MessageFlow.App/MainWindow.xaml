@@ -8,7 +8,7 @@
         Height="820"
         Width="1380"
         MinHeight="680"
-        MinWidth="1120"
+        MinWidth="1240"
         Background="{StaticResource WindowBackgroundBrush}"
         Loaded="Window_Loaded"
         PreviewKeyDown="Window_PreviewKeyDown">
@@ -34,11 +34,12 @@
                 BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="210" />
+                    <ColumnDefinition Width="190" />
                     <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="260" />
-                    <ColumnDefinition Width="150" />
-                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="210" />
+                    <ColumnDefinition Width="210" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="160" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0"
@@ -61,18 +62,27 @@
                           SelectedItem="{Binding SelectedAuthor}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="220"
+                          MinWidth="190"
                           VerticalContentAlignment="Center" />
 
                 <ComboBox Grid.Column="3"
+                          Margin="0,0,14,0"
+                          ItemsSource="{Binding SourceFilters}"
+                          SelectedItem="{Binding SelectedSourceFilter}"
+                          DisplayMemberPath="Label"
+                          TextSearch.TextPath="Label"
+                          MinWidth="190"
+                          VerticalContentAlignment="Center" />
+
+                <ComboBox Grid.Column="4"
                           ItemsSource="{Binding YearFilters}"
                           SelectedItem="{Binding SelectedYear}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="130"
+                          MinWidth="110"
                           VerticalContentAlignment="Center" />
 
-                <ComboBox Grid.Column="4"
+                <ComboBox Grid.Column="5"
                           Margin="14,0,0,0"
                           ItemsSource="{Binding ProjectionFontSizes}"
                           SelectedItem="{Binding SelectedProjectionFontSize}"
@@ -130,29 +140,32 @@
                                                 BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                 BorderThickness="1"
                                                 CornerRadius="5">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <TextBlock Text="{Binding Title}"
-                                                           FontSize="15"
-                                                           FontWeight="SemiBold"
-                                                           TextWrapping="Wrap" />
-                                                <DockPanel Grid.Row="1" Margin="0,8,0,0">
-                                                    <TextBlock Text="{Binding SermonCode}"
-                                                               Foreground="{StaticResource SecondaryTextBrush}"
-                                                               FontSize="13"
-                                                               DockPanel.Dock="Left" />
-                                                    <TextBlock Text="{Binding Year}"
-                                                               Foreground="{StaticResource AccentBrush}"
-                                                               FontSize="13"
-                                                               HorizontalAlignment="Right" />
-                                                </DockPanel>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
+                                                 <Grid>
+                                                     <Grid.RowDefinitions>
+                                                         <RowDefinition Height="Auto" />
+                                                         <RowDefinition Height="Auto" />
+                                                         <RowDefinition Height="Auto" />
+                                                     </Grid.RowDefinitions>
+                                                     <TextBlock Text="{Binding Title}"
+                                                                FontSize="15"
+                                                                FontWeight="SemiBold"
+                                                                TextWrapping="Wrap" />
+                                                     <TextBlock Grid.Row="1"
+                                                                Margin="0,7,0,0"
+                                                                Text="{Binding ContentTypeDisplay}"
+                                                                Foreground="{StaticResource AccentBrush}"
+                                                                FontSize="13"
+                                                                FontWeight="SemiBold" />
+                                                     <TextBlock Grid.Row="2"
+                                                                Margin="0,6,0,0"
+                                                                Text="{Binding MetaLine}"
+                                                                Foreground="{StaticResource SecondaryTextBrush}"
+                                                                FontSize="13"
+                                                                TextWrapping="Wrap" />
+                                                 </Grid>
+                                             </Border>
+                                         </DataTemplate>
+                                     </ListBox.ItemTemplate>
                             </ListBox>
                         </TabItem>
 
@@ -335,6 +348,10 @@
                                             Margin="0,10,0,0"
                                             Command="{Binding ImportSourceCommand}"
                                             ToolTip="Import local PDFs from the selected source" />
+                                    <Button Content="Repair Source Metadata"
+                                            Margin="0,10,0,0"
+                                            Command="{Binding RepairSourceMetadataCommand}"
+                                            ToolTip="Repair title, year, code, and author for the selected non-Branham source" />
 
                                     <Separator Margin="0,18,0,14"
                                                Background="{StaticResource BorderBrush}" />
@@ -417,10 +434,11 @@
 
                                         <Grid Grid.Column="1"
                                               Margin="14">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
+                                             <Grid.RowDefinitions>
+                                                 <RowDefinition Height="Auto" />
+                                                 <RowDefinition Height="Auto" />
+                                                 <RowDefinition Height="Auto" />
+                                             </Grid.RowDefinitions>
                                             <DockPanel>
                                                 <TextBlock Text="{Binding ParagraphNumber, StringFormat=Paragraph {0}}"
                                                            Foreground="{StaticResource AccentBrush}"
@@ -432,8 +450,14 @@
                                                            FontSize="13"
                                                            HorizontalAlignment="Right" />
                                             </DockPanel>
-                                            <TextBlock Grid.Row="1"
-                                                       Margin="0,8,0,0"
+                                             <TextBlock Grid.Row="1"
+                                                        Margin="0,8,0,0"
+                                                        Text="{Binding MetadataLine}"
+                                                        Foreground="{StaticResource MutedTextBrush}"
+                                                        FontSize="13"
+                                                        TextWrapping="Wrap" />
+                                            <TextBlock Grid.Row="2"
+                                                       Margin="0,7,0,0"
                                                        Text="{Binding ParagraphTextPreview}"
                                                        FontSize="16"
                                                        Foreground="{StaticResource SecondaryTextBrush}"
