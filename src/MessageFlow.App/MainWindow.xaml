@@ -353,6 +353,162 @@
                                             Command="{Binding RepairSourceMetadataCommand}"
                                             ToolTip="Repair title, year, code, and author for the selected non-Branham source" />
 
+                                    <TextBlock Text="Source Details"
+                                               FontSize="15"
+                                               FontWeight="SemiBold"
+                                               Margin="4,18,4,10" />
+                                    <Border Padding="12"
+                                            Background="{StaticResource PanelBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="5">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="112" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Text="Status"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.SourceStatus}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="1"
+                                                       Text="Display name"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="1"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.DisplayName}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="2"
+                                                       Text="Source type"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="2"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.SourceTypeDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="3"
+                                                       Text="Folder"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="3"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.LocalFolderPathDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="4"
+                                                       Text="Documents"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="4"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.ImportedDocumentCountDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13" />
+
+                                            <TextBlock Grid.Row="5"
+                                                       Text="Paragraphs"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="5"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.ImportedParagraphCountDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13" />
+
+                                            <TextBlock Grid.Row="6"
+                                                       Text="Local PDFs"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="6"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.PdfFilesFoundDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13" />
+
+                                            <TextBlock Grid.Row="7"
+                                                       Text="Author"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="7"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.LinkedAuthorDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="8"
+                                                       Text="Test source"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="8"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.LooksLikeTestSourceDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13" />
+
+                                            <TextBlock Grid.Row="9"
+                                                       Text="Suspicious"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="12" />
+                                            <TextBlock Grid.Row="9"
+                                                       Grid.Column="1"
+                                                       Text="{Binding SelectedSourceDetails.SuspiciousMetadataDisplay}"
+                                                       Margin="0,8,0,0"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Text="{Binding SelectedSourceDetails.SuspiciousMetadataSamplesDisplay}"
+                                               Margin="4,8,4,0"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               LineHeight="17"
+                                               TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Brother Frank content should be added as two separate sources:&#x0a;- Ewald Frank Sermons: spoken sermons, services, broadcasts, sermon transcripts.&#x0a;- Ewald Frank Circular Letters: written circular letters such as December 2020 or April 2020.&#x0a;&#x0a;Recommended folders:&#x0a;D:\Ewald Frank\Sermons\PDF&#x0a;D:\Ewald Frank\Circular Letters\PDF&#x0a;&#x0a;Download files manually and place them in local folders before importing. MessageFlow does not scrape websites."
+                                               Margin="4,18,4,0"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               FontSize="12"
+                                               LineHeight="17"
+                                               TextWrapping="Wrap" />
+
                                     <Separator Margin="0,18,0,14"
                                                Background="{StaticResource BorderBrush}" />
 

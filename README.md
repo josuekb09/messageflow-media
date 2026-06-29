@@ -278,9 +278,31 @@ For other local PDF sources, MessageFlow uses safer filename-based metadata:
 - The document year comes from the filename when possible. MessageFlow does not use the current year as a fallback for non-Branham circular letters.
 - If the source display name contains `Ewald Frank`, imported documents are linked to `Ewald Frank` with display name `Brother Frank`.
 
-Ewald Frank circular letters can be registered as either `Sermon PDF Collection` for initial testing or `Circular Letter`. Both source types use the local PDF importer. When the selected Ewald Frank source is repaired, MessageFlow safely changes that source type to `Circular Letter` if circular letter filenames are detected.
+Ewald Frank sermons and circular letters should be registered as separate sources. Ewald Frank sermons use `Sermon PDF Collection`; Ewald Frank circular letters use `Circular Letter`. Both source types use the local PDF importer. When the selected Ewald Frank source is repaired, MessageFlow safely changes that source type to `Circular Letter` if circular letter filenames are detected.
 
 If an Ewald Frank test source was imported before these rules existed, select that source in Tools > Sources and click `Repair Source Metadata`. The repair updates only the selected Ewald Frank source's title, code, year, date, author, and source type. It does not change paragraph text, favorites, projection history, or Brother Branham sermons.
+
+## Ewald Frank Content Plan
+
+Ewald Frank sermons and Ewald Frank circular letters are different content categories and should be imported as separate sources.
+
+Use local PDF folders only. MessageFlow must not scrape websites or download content.
+
+Recommended production sources:
+
+```text
+Display Name: Ewald Frank Sermons
+Source Type: Sermon PDF Collection
+D:\Ewald Frank\Sermons\PDF
+
+Display Name: Ewald Frank Circular Letters
+Source Type: Circular Letter
+D:\Ewald Frank\Circular Letters\PDF
+```
+
+Circular Letters should be imported as Source Type: Circular Letter. Sermons, preachings, services, broadcasts, and sermon transcripts should be imported as Source Type: Sermon PDF Collection.
+
+Always test with 2 or 3 PDFs before importing many files. Always use Import Preview before clicking Start Import, and check the sample parsed metadata for title, code, year, author, source type, and status.
 
 Useful circular letter search examples:
 

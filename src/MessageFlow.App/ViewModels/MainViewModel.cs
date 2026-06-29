@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IServiceScopeFactory scopeFactory;
     private CancellationTokenSource? searchDebounce;
     private int searchRequestVersion;
+    private int sourceDetailsRequestVersion;
     private string searchText = string.Empty;
     private FilterOption? selectedAuthor;
     private FilterOption? selectedSourceFilter;
@@ -31,6 +32,7 @@ public sealed class MainViewModel : ObservableObject
     private SavedParagraphViewModel? selectedFavoriteParagraph;
     private SavedParagraphViewModel? selectedHistoryParagraph;
     private ContentSourceViewModel? selectedContentSource;
+    private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private string statusText = "Ready";
     private string? latestBackupPath;
@@ -246,8 +248,15 @@ public sealed class MainViewModel : ObservableObject
             {
                 ImportSourceCommand.RaiseCanExecuteChanged();
                 RepairSourceMetadataCommand.RaiseCanExecuteChanged();
+                _ = LoadSelectedSourceDiagnosticsAsync(value);
             }
         }
+    }
+
+    public SourceDiagnosticsViewModel SelectedSourceDetails
+    {
+        get => selectedSourceDetails;
+        private set => SetProperty(ref selectedSourceDetails, value);
     }
 
     public ProjectionFontSizeOption? SelectedProjectionFontSize
@@ -651,9 +660,11 @@ public sealed class MainViewModel : ObservableObject
 
         if (string.IsNullOrWhiteSpace(source.LocalFolderPath) || !Directory.Exists(source.LocalFolderPath))
         {
-            StatusText = "The selected source folder could not be found.";
+            StatusText = "Source folder does not exist.";
+            App.LogStartupMessage(
+                $"Import preview failed before scan. Source: {source.DisplayName}. Folder: {source.LocalFolderPath ?? "(none)"}. Reason: folder does not exist.");
             MessageBox.Show(
-                "The selected source folder could not be found. Edit or recreate the source with a valid local folder.",
+                "Source folder does not exist.",
                 "MessageFlow Sources",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -661,16 +672,28 @@ public sealed class MainViewModel : ObservableObject
         }
 
         ImportPreviewSummary preview;
+        var previewStopwatch = Stopwatch.StartNew();
         try
         {
             IsDatabaseOperationRunning = true;
             StatusText = $"Scanning {source.DisplayName} for import preview...";
+            App.LogStartupMessage(
+                $"Import preview scan starting. Source: {source.DisplayName}. Folder: {source.LocalFolderPath}.");
             preview = await BuildImportPreviewAsync(source);
+            previewStopwatch.Stop();
+            LogImportPreviewDiagnostics(source, preview, previewStopwatch.ElapsedMilliseconds);
+            StatusText = CreateImportPreviewReadyStatus(preview);
         }
         catch (Exception ex)
         {
+            previewStopwatch.Stop();
             App.LogStartupError("Source import preview failed.", ex);
             StatusText = $"Import preview failed: {ex.Message}";
+            MessageBox.Show(
+                $"Import preview failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "MessageFlow Import Preview",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
             return;
         }
         finally
@@ -678,12 +701,39 @@ public sealed class MainViewModel : ObservableObject
             IsDatabaseOperationRunning = false;
         }
 
-        var previewWindow = new ImportPreviewWindow(preview)
+        bool? previewResult;
+        try
         {
-            Owner = Application.Current.MainWindow
-        };
+            var previewWindow = new ImportPreviewWindow(preview)
+            {
+                Owner = Application.Current.MainWindow,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                ShowInTaskbar = false,
+                ShowActivated = true
+            };
 
-        if (previewWindow.ShowDialog() != true)
+            previewWindow.Loaded += (_, _) =>
+            {
+                previewWindow.Topmost = true;
+                previewWindow.Topmost = false;
+                previewWindow.Activate();
+            };
+
+            previewResult = previewWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Source import preview dialog failed to open.", ex);
+            StatusText = $"Import preview failed: {ex.Message}";
+            MessageBox.Show(
+                $"Import Preview could not open:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "MessageFlow Import Preview",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
+        }
+
+        if (previewResult != true)
         {
             StatusText = "Import canceled. No database changes were made.";
             return;
@@ -738,6 +788,34 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private static string CreateImportPreviewReadyStatus(ImportPreviewSummary preview)
+    {
+        if (preview.PdfFilesFound == 0)
+        {
+            return "No PDF files found in this source folder.";
+        }
+
+        return preview.ReadyToImportFiles == 0
+            ? "No new files ready to import."
+            : "Import preview ready.";
+    }
+
+    private static void LogImportPreviewDiagnostics(
+        ContentSourceViewModel source,
+        ImportPreviewSummary preview,
+        long elapsedMilliseconds)
+    {
+        App.LogStartupMessage(
+            "Import preview ready." +
+            $"{Environment.NewLine}Source: {source.DisplayName}" +
+            $"{Environment.NewLine}Folder: {preview.LocalFolderPath}" +
+            $"{Environment.NewLine}PDFs found: {preview.PdfFilesFound:N0}" +
+            $"{Environment.NewLine}Already imported: {preview.AlreadyImportedFiles:N0}" +
+            $"{Environment.NewLine}Ready to import: {preview.ReadyToImportFiles:N0}" +
+            $"{Environment.NewLine}Invalid or missing: {preview.InvalidOrMissingFilesCount:N0}" +
+            $"{Environment.NewLine}Scan elapsed ms: {elapsedMilliseconds:N0}");
+    }
+
     private async Task RepairSelectedSourceMetadataAsync()
     {
         var source = SelectedContentSource;
@@ -770,9 +848,41 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        SourceMetadataRepairPreview repairPreview;
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = $"Checking repair preview for {source.DisplayName}...";
+            repairPreview = await BuildSourceMetadataRepairPreviewAsync(source, sourceContext);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Source metadata repair preview failed.", ex);
+            StatusText = $"Source metadata repair preview failed: {ex.Message}";
+            return;
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+
+        if (repairPreview.DocumentCount == 0)
+        {
+            StatusText = $"No documents were found for {source.DisplayName}.";
+            MessageBox.Show(
+                "No imported documents were found for the selected source.",
+                "Repair Source Metadata",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
         var confirmation = MessageBox.Show(
             $"Repair metadata for \"{source.DisplayName}\"?{Environment.NewLine}{Environment.NewLine}" +
-            "This updates title, code, year, author, and source type from local PDF file names. Paragraph text is not changed.",
+            $"Documents checked: {repairPreview.DocumentCount:N0}{Environment.NewLine}" +
+            $"Documents that would be repaired: {repairPreview.DocumentsToRepairCount:N0}{Environment.NewLine}" +
+            $"Source type would change: {(repairPreview.WouldChangeSourceType ? "Yes" : "No")}{Environment.NewLine}{Environment.NewLine}" +
+            "This updates title, code, year, author, and source type from local PDF file names. Paragraph text, favorites, and projection history are not changed.",
             "Repair Source Metadata",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
@@ -918,6 +1028,75 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private async Task<SourceMetadataRepairPreview> BuildSourceMetadataRepairPreviewAsync(
+        ContentSourceViewModel source,
+        SourceMetadataContext sourceContext)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var sermons = await dbContext.Sermons
+            .AsNoTracking()
+            .Where(sermon => sermon.ContentSourceId == source.Id)
+            .Select(sermon => new SourceDocumentDiagnosticsRow(
+                sermon.Title,
+                sermon.SermonCode,
+                sermon.Year,
+                sermon.Date,
+                sermon.Location,
+                sermon.Language,
+                sermon.AuthorId,
+                sermon.Author == null
+                    ? string.Empty
+                    : string.IsNullOrWhiteSpace(sermon.Author.DisplayName)
+                        ? sermon.Author.FullName
+                        : sermon.Author.DisplayName,
+                sermon.SourceFilePath))
+            .ToListAsync();
+
+        if (sermons.Count == 0)
+        {
+            return new SourceMetadataRepairPreview(0, 0, false);
+        }
+
+        var authorMetadata = SermonMetadataParser.GetAuthorMetadata(sourceContext);
+        var existingAuthorId = await dbContext.Authors
+            .AsNoTracking()
+            .Where(author => author.FullName == authorMetadata.FullName ||
+                             author.DisplayName == authorMetadata.DisplayName)
+            .Select(author => (int?)author.Id)
+            .FirstOrDefaultAsync();
+
+        var sourceRoot = string.IsNullOrWhiteSpace(source.LocalFolderPath)
+            ? null
+            : Path.GetFullPath(source.LocalFolderPath);
+        var repairCount = 0;
+        var hasCircularLetters = false;
+
+        foreach (var sermon in sermons)
+        {
+            var metadataRoot = sourceRoot ??
+                               Path.GetDirectoryName(sermon.SourceFilePath) ??
+                               Directory.GetCurrentDirectory();
+            var metadata = SermonMetadataParser.Parse(
+                sermon.SourceFilePath,
+                metadataRoot,
+                sourceContext);
+
+            hasCircularLetters = hasCircularLetters || IsCircularLetterMetadata(metadata);
+
+            if (WouldRepairSourceMetadata(sermon, metadata, existingAuthorId))
+            {
+                repairCount++;
+            }
+        }
+
+        var wouldChangeSourceType = hasCircularLetters &&
+                                    !string.Equals(source.SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase);
+
+        return new SourceMetadataRepairPreview(sermons.Count, repairCount, wouldChangeSourceType);
+    }
+
     private async Task<ImportPreviewSummary> BuildImportPreviewAsync(ContentSourceViewModel source)
     {
         if (string.IsNullOrWhiteSpace(source.LocalFolderPath))
@@ -944,6 +1123,18 @@ public sealed class MainViewModel : ObservableObject
             var readyFiles = scan.PdfFilePaths
                 .Where(path => !importedSet.Contains(NormalizeFilePathForComparison(path)))
                 .ToList();
+            var sourceContext = CreateSourceMetadataContext(source);
+            var authorName = SermonMetadataParser.GetAuthorMetadata(sourceContext).DisplayName;
+            var metadataSamples = scan.PdfFilePaths
+                .Take(10)
+                .Select(path => CreateImportPreviewMetadataSample(
+                    path,
+                    localFolderPath,
+                    source,
+                    sourceContext,
+                    authorName,
+                    importedSet))
+                .ToList();
 
             return new ImportPreviewSummary(
                 source.DisplayName,
@@ -953,9 +1144,92 @@ public sealed class MainViewModel : ObservableObject
                 scan.PdfFilePaths.Count - readyFiles.Count,
                 readyFiles.Count,
                 scan.InvalidOrMissingFiles,
-                SermonMetadataParser.GetAuthorMetadata(CreateSourceMetadataContext(source)).DisplayName,
-                readyFiles);
+                authorName,
+                readyFiles,
+                metadataSamples);
         });
+    }
+
+    private static ImportPreviewMetadataSample CreateImportPreviewMetadataSample(
+        string filePath,
+        string sourceRoot,
+        ContentSourceViewModel source,
+        SourceMetadataContext sourceContext,
+        string authorName,
+        HashSet<string> importedSet)
+    {
+        var fileName = Path.GetFileName(filePath);
+        try
+        {
+            var metadata = SermonMetadataParser.Parse(filePath, sourceRoot, sourceContext);
+            var detectedSourceType = DetectPreviewSourceTypeDisplay(source, metadata);
+            var warning = BuildMetadataPreviewWarning(source, metadata, detectedSourceType);
+            var status = !string.IsNullOrWhiteSpace(warning)
+                ? "Warning"
+                : importedSet.Contains(NormalizeFilePathForComparison(filePath))
+                    ? "Already Imported"
+                    : "Ready";
+
+            return new ImportPreviewMetadataSample(
+                fileName,
+                metadata.Title,
+                metadata.SermonCode,
+                metadata.Year,
+                authorName,
+                detectedSourceType,
+                status,
+                warning);
+        }
+        catch (Exception ex)
+        {
+            return new ImportPreviewMetadataSample(
+                fileName,
+                "Could not parse metadata",
+                "Unknown",
+                0,
+                authorName,
+                source.SourceTypeDisplay,
+                "Warning",
+                ex.Message);
+        }
+    }
+
+    private static string DetectPreviewSourceTypeDisplay(
+        ContentSourceViewModel source,
+        SermonMetadata metadata)
+    {
+        return IsCircularLetterMetadata(metadata)
+            ? ContentSourceTypeOption.GetLabel("CircularLetter")
+            : source.SourceTypeDisplay;
+    }
+
+    private static string BuildMetadataPreviewWarning(
+        ContentSourceViewModel source,
+        SermonMetadata metadata,
+        string detectedSourceType)
+    {
+        if (string.IsNullOrWhiteSpace(metadata.Title))
+        {
+            return "Detected title is empty.";
+        }
+
+        if (metadata.Title.Trim().Length < 4)
+        {
+            return "Detected title is very short.";
+        }
+
+        if (metadata.Year <= 0)
+        {
+            return "Detected year is unknown.";
+        }
+
+        if (string.Equals(detectedSourceType, ContentSourceTypeOption.GetLabel("CircularLetter"), StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(source.SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Detected circular letter metadata. Use Source Type: Circular Letter for production import.";
+        }
+
+        return string.Empty;
     }
 
     private static PdfSourceScanResult ScanPdfFiles(string localFolderPath)
@@ -1625,6 +1899,7 @@ public sealed class MainViewModel : ObservableObject
         ContentSources.Clear();
         SourceFilters.Clear();
         ResultCount = 0;
+        SelectedSourceDetails = SourceDiagnosticsViewModel.None;
 
         OnPropertyChanged(nameof(SelectedSermon));
         OnPropertyChanged(nameof(SelectedParagraph));
@@ -1785,8 +2060,242 @@ public sealed class MainViewModel : ObservableObject
 
         if (sources.Count == 0)
         {
+            SelectedSourceDetails = SourceDiagnosticsViewModel.None;
             StatusText = "No content sources configured yet.";
+            return;
         }
+
+        _ = LoadSelectedSourceDiagnosticsAsync(SelectedContentSource);
+    }
+
+    private async Task LoadSelectedSourceDiagnosticsAsync(ContentSourceViewModel? source)
+    {
+        var version = Interlocked.Increment(ref sourceDetailsRequestVersion);
+        if (source is null)
+        {
+            SelectedSourceDetails = SourceDiagnosticsViewModel.None;
+            return;
+        }
+
+        SelectedSourceDetails = SourceDiagnosticsViewModel.Loading(source);
+
+        try
+        {
+            var details = await BuildSourceDiagnosticsAsync(source);
+            if (version == Volatile.Read(ref sourceDetailsRequestVersion))
+            {
+                SelectedSourceDetails = details;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (version == Volatile.Read(ref sourceDetailsRequestVersion))
+            {
+                SelectedSourceDetails = new SourceDiagnosticsViewModel(
+                    source.DisplayName,
+                    source.SourceTypeDisplay,
+                    string.IsNullOrWhiteSpace(source.LocalFolderPath) ? "No local folder configured." : source.LocalFolderPath,
+                    "Diagnostics Failed",
+                    0,
+                    0,
+                    0,
+                    "Could not load author details.",
+                    LooksLikeTestSource(source),
+                    1,
+                    [$"Diagnostics failed: {ex.Message}"]);
+            }
+        }
+    }
+
+    private async Task<SourceDiagnosticsViewModel> BuildSourceDiagnosticsAsync(ContentSourceViewModel source)
+    {
+        var sourceContext = CreateSourceMetadataContext(source);
+        var looksLikeTestSource = LooksLikeTestSource(source);
+        var localFolderPath = string.IsNullOrWhiteSpace(source.LocalFolderPath)
+            ? null
+            : Path.GetFullPath(source.LocalFolderPath);
+        var folderMissing = string.IsNullOrWhiteSpace(localFolderPath) || !Directory.Exists(localFolderPath);
+        var scan = folderMissing
+            ? new PdfSourceScanResult(
+                new List<string>(),
+                string.IsNullOrWhiteSpace(localFolderPath)
+                    ? new List<string> { "No local folder configured." }
+                    : new List<string> { $"Missing folder: {localFolderPath}" })
+            : await Task.Run(() => ScanPdfFiles(localFolderPath!));
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var documentRows = await dbContext.Sermons
+            .AsNoTracking()
+            .Where(sermon => sermon.ContentSourceId == source.Id)
+            .Select(sermon => new SourceDocumentDiagnosticsRow(
+                sermon.Title,
+                sermon.SermonCode,
+                sermon.Year,
+                sermon.Date,
+                sermon.Location,
+                sermon.Language,
+                sermon.AuthorId,
+                sermon.Author == null
+                    ? string.Empty
+                    : string.IsNullOrWhiteSpace(sermon.Author.DisplayName)
+                        ? sermon.Author.FullName
+                        : sermon.Author.DisplayName,
+                sermon.SourceFilePath))
+            .ToListAsync();
+
+        var paragraphCount = await dbContext.SermonParagraphs
+            .AsNoTracking()
+            .Where(paragraph => paragraph.Sermon!.ContentSourceId == source.Id)
+            .CountAsync();
+
+        var linkedAuthors = documentRows
+            .Select(row => row.AuthorDisplayName)
+            .Where(author => !string.IsNullOrWhiteSpace(author))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(author => author)
+            .ToList();
+        var linkedAuthorDisplay = linkedAuthors.Count == 0
+            ? "No imported author available."
+            : string.Join(", ", linkedAuthors);
+
+        var suspiciousMetadata = FindSuspiciousMetadata(source, sourceContext, documentRows);
+        var status = DetermineSourceStatus(
+            source,
+            sourceContext,
+            folderMissing,
+            scan.PdfFilePaths.Count,
+            looksLikeTestSource,
+            suspiciousMetadata.Count);
+
+        return new SourceDiagnosticsViewModel(
+            source.DisplayName,
+            source.SourceTypeDisplay,
+            string.IsNullOrWhiteSpace(localFolderPath) ? "No local folder configured." : localFolderPath,
+            status,
+            documentRows.Count,
+            paragraphCount,
+            scan.PdfFilePaths.Count,
+            linkedAuthorDisplay,
+            looksLikeTestSource,
+            suspiciousMetadata.Count,
+            suspiciousMetadata.Samples);
+    }
+
+    private static SuspiciousMetadataResult FindSuspiciousMetadata(
+        ContentSourceViewModel source,
+        SourceMetadataContext sourceContext,
+        IReadOnlyList<SourceDocumentDiagnosticsRow> documentRows)
+    {
+        var sourceRoot = string.IsNullOrWhiteSpace(source.LocalFolderPath)
+            ? null
+            : Path.GetFullPath(source.LocalFolderPath);
+        var suspiciousCount = 0;
+        var samples = new List<string>();
+
+        foreach (var row in documentRows)
+        {
+            var reason = GetSuspiciousMetadataReason(row, sourceContext, sourceRoot);
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                continue;
+            }
+
+            suspiciousCount++;
+            if (samples.Count < 5)
+            {
+                samples.Add(reason);
+            }
+        }
+
+        return new SuspiciousMetadataResult(suspiciousCount, samples);
+    }
+
+    private static string GetSuspiciousMetadataReason(
+        SourceDocumentDiagnosticsRow row,
+        SourceMetadataContext sourceContext,
+        string? sourceRoot)
+    {
+        var fileName = Path.GetFileName(row.SourceFilePath);
+
+        if (string.IsNullOrWhiteSpace(row.Title))
+        {
+            return $"{fileName}: title is empty.";
+        }
+
+        if (string.Equals(row.Title.Trim(), "en RB", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{fileName}: title is still \"en RB\".";
+        }
+
+        if (row.Title.Trim().Length < 4)
+        {
+            return $"{fileName}: title is shorter than 4 characters.";
+        }
+
+        var metadataRoot = sourceRoot ??
+                           Path.GetDirectoryName(row.SourceFilePath) ??
+                           Directory.GetCurrentDirectory();
+        SermonMetadata expectedMetadata;
+        try
+        {
+            expectedMetadata = SermonMetadataParser.Parse(row.SourceFilePath, metadataRoot, sourceContext);
+        }
+        catch (Exception ex)
+        {
+            return $"{fileName}: metadata parser failed ({ex.Message}).";
+        }
+
+        if (expectedMetadata.Year > 0 && row.Year != expectedMetadata.Year)
+        {
+            return $"{fileName}: year is {row.Year}, expected {expectedMetadata.Year}.";
+        }
+
+        if (IsCircularLetterMetadata(expectedMetadata) &&
+            !row.Title.StartsWith("Circular Letter", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{fileName}: circular-letter filename has non-circular title \"{row.Title}\".";
+        }
+
+        return string.Empty;
+    }
+
+    private static string DetermineSourceStatus(
+        ContentSourceViewModel source,
+        SourceMetadataContext sourceContext,
+        bool folderMissing,
+        int pdfFilesFound,
+        bool looksLikeTestSource,
+        int suspiciousMetadataCount)
+    {
+        if (looksLikeTestSource)
+        {
+            return "Test Source";
+        }
+
+        if (folderMissing)
+        {
+            return "Folder Missing";
+        }
+
+        if (pdfFilesFound == 0)
+        {
+            return "No PDFs Found";
+        }
+
+        if (suspiciousMetadataCount > 0)
+        {
+            return "Needs Metadata Repair";
+        }
+
+        if (SermonMetadataParser.IsEwaldFrankSource(sourceContext) &&
+            string.Equals(source.SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Production Ready";
+        }
+
+        return "Production Ready";
     }
 
     private async Task LoadProjectionHistoryAsync()
@@ -1942,6 +2451,33 @@ public sealed class MainViewModel : ObservableObject
     {
         return string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(sourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeTestSource(ContentSourceViewModel source)
+    {
+        return source.DisplayName.Contains("Test", StringComparison.OrdinalIgnoreCase) ||
+               source.Name.Contains("test", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsCircularLetterMetadata(SermonMetadata metadata)
+    {
+        return metadata.Title.StartsWith("Circular Letter", StringComparison.OrdinalIgnoreCase) ||
+               metadata.SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool WouldRepairSourceMetadata(
+        SourceDocumentDiagnosticsRow sermon,
+        SermonMetadata metadata,
+        int? expectedAuthorId)
+    {
+        return !string.Equals(sermon.Title, metadata.Title, StringComparison.Ordinal) ||
+               !string.Equals(sermon.SermonCode, metadata.SermonCode, StringComparison.Ordinal) ||
+               sermon.Year != metadata.Year ||
+               sermon.Date != metadata.Date ||
+               !string.Equals(sermon.Location, metadata.Location, StringComparison.Ordinal) ||
+               !string.Equals(sermon.Language, metadata.Language, StringComparison.Ordinal) ||
+               expectedAuthorId is null ||
+               sermon.AuthorId != expectedAuthorId.Value;
     }
 
     private static SourceMetadataContext CreateSourceMetadataContext(ContentSourceViewModel source)
@@ -2152,6 +2688,26 @@ public sealed class MainViewModel : ObservableObject
     private sealed record PdfSourceScanResult(
         List<string> PdfFilePaths,
         List<string> InvalidOrMissingFiles);
+
+    private sealed record SourceDocumentDiagnosticsRow(
+        string Title,
+        string SermonCode,
+        int Year,
+        DateTime? Date,
+        string? Location,
+        string Language,
+        int AuthorId,
+        string AuthorDisplayName,
+        string SourceFilePath);
+
+    private sealed record SuspiciousMetadataResult(
+        int Count,
+        IReadOnlyList<string> Samples);
+
+    private sealed record SourceMetadataRepairPreview(
+        int DocumentCount,
+        int DocumentsToRepairCount,
+        bool WouldChangeSourceType);
 
     private readonly record struct FilterLoadResult(int LinkedAuthorCount, int LinkedSourceCount, int YearCount);
 }

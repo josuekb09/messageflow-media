@@ -229,6 +229,15 @@ public static partial class SermonMetadataParser
                 : $"Circular Letter - {CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(monthYear.Value.Month)} {monthYear.Value.Year:D4}";
         }
 
+        if (IsEwaldFrankSermonSource(sourceContext))
+        {
+            var cleanFilenameTitle = CleanGenericTitle(fileName);
+            if (IsMeaningfulGenericTitle(cleanFilenameTitle))
+            {
+                return cleanFilenameTitle;
+            }
+        }
+
         var titleWithoutMetadata = RemoveGenericMetadataTokens(fileName);
         if (IsMeaningfulGenericTitle(titleWithoutMetadata))
         {
@@ -309,10 +318,30 @@ public static partial class SermonMetadataParser
             return true;
         }
 
+        if (IsEwaldFrankSermonSource(sourceContext))
+        {
+            return ContainsIgnoreCase(fileName, "circular");
+        }
+
         return ContainsIgnoreCase(fileName, "circular") ||
                ContainsIgnoreCase(sourceContext?.DisplayName, "circular") ||
                ContainsIgnoreCase(sourceContext?.Name, "circular") ||
                (IsEwaldFrankSource(sourceContext) && monthYear is not null);
+    }
+
+    private static bool IsEwaldFrankSermonSource(SourceMetadataContext? sourceContext)
+    {
+        return sourceContext is not null &&
+               IsEwaldFrankSource(sourceContext) &&
+               string.Equals(sourceContext.SourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase) &&
+               (ContainsIgnoreCase(sourceContext.DisplayName, "sermon") ||
+                ContainsIgnoreCase(sourceContext.DisplayName, "preaching") ||
+                ContainsIgnoreCase(sourceContext.DisplayName, "broadcast") ||
+                ContainsIgnoreCase(sourceContext.DisplayName, "service") ||
+                ContainsIgnoreCase(sourceContext.Name, "sermon") ||
+                ContainsIgnoreCase(sourceContext.Name, "preaching") ||
+                ContainsIgnoreCase(sourceContext.Name, "broadcast") ||
+                ContainsIgnoreCase(sourceContext.Name, "service"));
     }
 
     private static bool IsMeaningfulGenericTitle(string value)

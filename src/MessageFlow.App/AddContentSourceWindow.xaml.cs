@@ -12,6 +12,7 @@ public partial class AddContentSourceWindow : Window
         InitializeComponent();
         SourceTypeBox.ItemsSource = ContentSourceTypeOption.All;
         SourceTypeBox.SelectedItem = ContentSourceTypeOption.All[0];
+        UpdateFolderSuggestion();
         DisplayNameBox.Focus();
     }
 
@@ -53,6 +54,11 @@ public partial class AddContentSourceWindow : Window
         }
     }
 
+    private void SourceTypeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        UpdateFolderSuggestion();
+    }
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         ValidationMessage.Text = string.Empty;
@@ -71,10 +77,10 @@ public partial class AddContentSourceWindow : Window
             return;
         }
 
-        if (string.Equals(SourceTypeValue, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase) &&
+        if (RequiresLocalFolder(SourceTypeValue) &&
             string.IsNullOrWhiteSpace(LocalFolderPathBox.Text))
         {
-            ValidationMessage.Text = "Local Folder Path is required for sermon PDF collections.";
+            ValidationMessage.Text = "Local Folder Path is required for PDF source types.";
             LocalFolderPathBox.Focus();
             return;
         }
@@ -92,5 +98,24 @@ public partial class AddContentSourceWindow : Window
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
+    }
+
+    private void UpdateFolderSuggestion()
+    {
+        FolderSuggestionText.Text = SourceTypeValue switch
+        {
+            "CircularLetter" =>
+                "Suggested folder example:\nD:\\Ewald Frank\\Circular Letters\\PDF",
+            "SermonPdfCollection" =>
+                "Suggested folder examples:\nD:\\Br William Marrion Branham\\PDF\nD:\\Ewald Frank\\Sermons\\PDF",
+            _ =>
+                "Choose a local folder when this source type needs files imported later."
+        };
+    }
+
+    private static bool RequiresLocalFolder(string sourceType)
+    {
+        return string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(sourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase);
     }
 }

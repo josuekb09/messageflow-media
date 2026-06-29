@@ -47,6 +47,7 @@
                           Margin="0,7,0,16"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
+                          SelectionChanged="SourceTypeBox_SelectionChanged"
                           VerticalContentAlignment="Center" />
 
                 <TextBlock Text="Description"
@@ -78,6 +79,12 @@
                             Content="Browse"
                             Click="Browse_Click" />
                 </Grid>
+                <TextBlock x:Name="FolderSuggestionText"
+                           Margin="0,0,0,16"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           FontSize="13"
+                           LineHeight="18"
+                           TextWrapping="Wrap" />
             </StackPanel>
         </ScrollViewer>
 

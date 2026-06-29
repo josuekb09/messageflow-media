@@ -20,7 +20,7 @@
             <TextBlock Text="Import Preview"
                        FontSize="24"
                        FontWeight="SemiBold" />
-            <TextBlock Text="{Binding WarningText}"
+            <TextBlock Text="{Binding WarningText, Mode=OneWay}"
                        Margin="0,7,0,0"
                        Foreground="{StaticResource SecondaryTextBrush}"
                        FontSize="14"
@@ -52,7 +52,7 @@
                                    Foreground="{StaticResource MutedTextBrush}"
                                    FontSize="13" />
                         <TextBlock Grid.Column="1"
-                                   Text="{Binding SourceDisplayName}"
+                                   Text="{Binding SourceDisplayName, Mode=OneWay}"
                                    FontWeight="SemiBold"
                                    TextWrapping="Wrap" />
 
@@ -63,7 +63,7 @@
                                    FontSize="13" />
                         <TextBlock Grid.Row="1"
                                    Grid.Column="1"
-                                   Text="{Binding SourceTypeDisplay}"
+                                   Text="{Binding SourceTypeDisplay, Mode=OneWay}"
                                    Margin="0,10,0,0"
                                    Foreground="{StaticResource AccentBrush}"
                                    FontWeight="SemiBold"
@@ -76,7 +76,7 @@
                                    FontSize="13" />
                         <TextBlock Grid.Row="2"
                                    Grid.Column="1"
-                                   Text="{Binding LocalFolderPath}"
+                                   Text="{Binding LocalFolderPath, Mode=OneWay}"
                                    Margin="0,10,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap" />
@@ -88,7 +88,7 @@
                                    FontSize="13" />
                         <TextBlock Grid.Row="3"
                                    Grid.Column="1"
-                                   Text="{Binding EstimatedAuthorName}"
+                                   Text="{Binding EstimatedAuthorName, Mode=OneWay}"
                                    Margin="0,10,0,0"
                                    TextWrapping="Wrap" />
                     </Grid>
@@ -114,7 +114,7 @@
                             <TextBlock Text="PDF files found"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13" />
-                            <TextBlock Text="{Binding PdfFilesFound, StringFormat={}{0:N0}}"
+                            <TextBlock Text="{Binding PdfFilesFound, StringFormat={}{0:N0}, Mode=OneWay}"
                                        Margin="0,6,0,0"
                                        FontSize="28"
                                        FontWeight="SemiBold" />
@@ -124,7 +124,7 @@
                             <TextBlock Text="Ready to import"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13" />
-                            <TextBlock Text="{Binding ReadyToImportFiles, StringFormat={}{0:N0}}"
+                            <TextBlock Text="{Binding ReadyToImportFiles, StringFormat={}{0:N0}, Mode=OneWay}"
                                        Margin="0,6,0,0"
                                        Foreground="{StaticResource AccentBrush}"
                                        FontSize="28"
@@ -137,7 +137,7 @@
                             <TextBlock Text="Already imported"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13" />
-                            <TextBlock Text="{Binding AlreadyImportedFiles, StringFormat={}{0:N0}}"
+                            <TextBlock Text="{Binding AlreadyImportedFiles, StringFormat={}{0:N0}, Mode=OneWay}"
                                        Margin="0,6,0,0"
                                        FontSize="22"
                                        FontWeight="SemiBold" />
@@ -149,7 +149,7 @@
                             <TextBlock Text="Invalid or missing"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13" />
-                            <TextBlock Text="{Binding InvalidOrMissingFilesCount, StringFormat={}{0:N0}}"
+                            <TextBlock Text="{Binding InvalidOrMissingFilesCount, StringFormat={}{0:N0}, Mode=OneWay}"
                                        Margin="0,6,0,0"
                                        FontSize="22"
                                        FontWeight="SemiBold" />
@@ -164,10 +164,113 @@
                         BorderThickness="1"
                         CornerRadius="6">
                     <StackPanel>
+                        <TextBlock Text="Sample parsed metadata"
+                                   FontSize="14"
+                                   FontWeight="SemiBold" />
+                        <ItemsControl ItemsSource="{Binding MetadataSamples, Mode=OneWay}"
+                                      Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12"
+                                            Margin="0,0,0,10"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="5">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.ColumnSpan="2"
+                                                       Text="{Binding FileName, Mode=OneWay}"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="1"
+                                                       Text="Title"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13" />
+                                            <TextBlock Grid.Row="1"
+                                                       Grid.Column="1"
+                                                       Text="{Binding DetectedTitle, Mode=OneWay}"
+                                                       Margin="0,8,0,0"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="2"
+                                                       Text="Code / Year"
+                                                       Margin="0,6,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13" />
+                                            <TextBlock Grid.Row="2"
+                                                       Grid.Column="1"
+                                                       Margin="0,6,0,0"
+                                                       TextWrapping="Wrap">
+                                                <Run Text="{Binding DetectedCode, Mode=OneWay}" />
+                                                <Run Text=" / " />
+                                                <Run Text="{Binding DetectedYearDisplay, Mode=OneWay}" />
+                                            </TextBlock>
+
+                                            <TextBlock Grid.Row="3"
+                                                       Text="Author"
+                                                       Margin="0,6,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13" />
+                                            <TextBlock Grid.Row="3"
+                                                       Grid.Column="1"
+                                                       Text="{Binding DetectedAuthor, Mode=OneWay}"
+                                                       Margin="0,6,0,0"
+                                                       TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="4"
+                                                       Text="Type / Status"
+                                                       Margin="0,6,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13" />
+                                            <TextBlock Grid.Row="4"
+                                                       Grid.Column="1"
+                                                       Margin="0,6,0,0"
+                                                       TextWrapping="Wrap">
+                                                <Run Text="{Binding DetectedSourceType, Mode=OneWay}" />
+                                                <Run Text=" / " />
+                                                <Run Text="{Binding Status, Mode=OneWay}" />
+                                            </TextBlock>
+
+                                            <TextBlock Grid.Row="5"
+                                                       Grid.ColumnSpan="2"
+                                                       Text="{Binding WarningDisplay, Mode=OneWay}"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border Padding="16"
+                        Margin="0,16,0,0"
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                    <StackPanel>
                         <TextBlock Text="Invalid or missing files"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding InvalidOrMissingFilesDisplay}"
+                        <TextBlock Text="{Binding InvalidOrMissingFilesDisplay, Mode=OneWay}"
                                    Margin="0,8,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    FontSize="13"
@@ -193,13 +296,13 @@
                        VerticalAlignment="Center"
                        TextWrapping="Wrap" />
             <Button Grid.Column="1"
-                    Content="Cancel"
+                    Content="{Binding CancelButtonText, Mode=OneWay}"
                     Background="{StaticResource DisabledBackgroundBrush}"
                     BorderBrush="{StaticResource DisabledBackgroundBrush}"
                     Click="Cancel_Click" />
             <Button Grid.Column="3"
                     Content="Start Import"
-                    IsEnabled="{Binding CanStartImport}"
+                    IsEnabled="{Binding CanStartImport, Mode=OneWay}"
                     Click="StartImport_Click" />
         </Grid>
     </Grid>

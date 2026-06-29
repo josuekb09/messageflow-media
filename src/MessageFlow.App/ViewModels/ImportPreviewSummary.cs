@@ -11,7 +11,8 @@ public sealed class ImportPreviewSummary
         int readyToImportFiles,
         IReadOnlyList<string> invalidOrMissingFiles,
         string estimatedAuthorName,
-        IReadOnlyList<string> readyFilePaths)
+        IReadOnlyList<string> readyFilePaths,
+        IReadOnlyList<ImportPreviewMetadataSample> metadataSamples)
     {
         SourceDisplayName = sourceDisplayName;
         SourceTypeDisplay = sourceTypeDisplay;
@@ -22,6 +23,7 @@ public sealed class ImportPreviewSummary
         InvalidOrMissingFiles = invalidOrMissingFiles;
         EstimatedAuthorName = estimatedAuthorName;
         ReadyFilePaths = readyFilePaths;
+        MetadataSamples = metadataSamples;
     }
 
     public string SourceDisplayName { get; }
@@ -49,8 +51,16 @@ public sealed class ImportPreviewSummary
 
     public IReadOnlyList<string> ReadyFilePaths { get; }
 
+    public IReadOnlyList<ImportPreviewMetadataSample> MetadataSamples { get; }
+
     public bool CanStartImport => ReadyToImportFiles > 0;
 
+    public string CancelButtonText => CanStartImport ? "Cancel" : "Close";
+
     public string WarningText =>
-        "This will import local PDF files into the MessageFlow database. Existing sermons will not be deleted.";
+        PdfFilesFound == 0
+            ? "No PDF files found in this source folder."
+            : ReadyToImportFiles == 0
+                ? "All PDF files in this source folder are already imported. Start Import is disabled."
+                : "This will import local PDF files into the MessageFlow database. Existing sermons will not be deleted.";
 }
