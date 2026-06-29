@@ -59,11 +59,11 @@ public sealed class MainViewModel : ObservableObject
         selectedSourceFilter = SourceFilters[0];
         selectedYear = YearFilters[0];
 
-        PreviousParagraphCommand = new RelayCommand(SelectPreviousParagraph, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
-        NextParagraphCommand = new RelayCommand(SelectNextParagraph, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
-        CopyCommand = new RelayCommand(CopySelectedParagraph, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
-        ProjectCommand = new RelayCommand(ProjectSelectedParagraph);
-        ToggleFavoriteCommand = new RelayCommand(ToggleFavorite, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
+        PreviousParagraphCommand = new RelayCommand(SelectPreviousParagraph, CanUseCurrentSelection);
+        NextParagraphCommand = new RelayCommand(SelectNextParagraph, CanUseCurrentSelection);
+        CopyCommand = new RelayCommand(CopySelectedParagraph, CanUseCurrentSelection);
+        ProjectCommand = new RelayCommand(ProjectSelectedParagraph, CanUseCurrentSelection);
+        ToggleFavoriteCommand = new RelayCommand(ToggleFavorite, CanUseCurrentSelection);
         ClearSearchCommand = new RelayCommand(ClearSearch);
         BibleSearchCommand = new RelayCommand(
             () => _ = SearchBibleAsync(),
@@ -97,7 +97,12 @@ public sealed class MainViewModel : ObservableObject
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
-        BibleResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsBibleResultsEmpty));
+        FavoriteParagraphs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsFavoritesEmpty));
+        BibleResults.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsBibleResultsEmpty));
+            OnPropertyChanged(nameof(LibraryCountText));
+        };
     }
 
     public event Action? ProjectRequested;
@@ -232,6 +237,9 @@ public sealed class MainViewModel : ObservableObject
 
                 OnPropertyChanged(nameof(SelectedParagraphHeader));
                 OnPropertyChanged(nameof(SelectedParagraphMeta));
+                OnPropertyChanged(nameof(PreviewHeader));
+                OnPropertyChanged(nameof(PreviewMeta));
+                OnPropertyChanged(nameof(PreviewText));
                 OnPropertyChanged(nameof(ProjectionParagraphTitle));
                 OnPropertyChanged(nameof(ProjectionParagraphNumber));
                 OnPropertyChanged(nameof(SelectedParagraphText));
@@ -306,6 +314,9 @@ public sealed class MainViewModel : ObservableObject
 
                 OnPropertyChanged(nameof(SelectedParagraphHeader));
                 OnPropertyChanged(nameof(SelectedParagraphMeta));
+                OnPropertyChanged(nameof(PreviewHeader));
+                OnPropertyChanged(nameof(PreviewMeta));
+                OnPropertyChanged(nameof(PreviewText));
                 OnPropertyChanged(nameof(ProjectionParagraphTitle));
                 OnPropertyChanged(nameof(ProjectionParagraphNumber));
                 OnPropertyChanged(nameof(SelectedParagraphText));
@@ -424,7 +435,13 @@ public sealed class MainViewModel : ObservableObject
     public int ResultCount
     {
         get => resultCount;
-        set => SetProperty(ref resultCount, value);
+        set
+        {
+            if (SetProperty(ref resultCount, value))
+            {
+                OnPropertyChanged(nameof(LibraryCountText));
+            }
+        }
     }
 
     public string ProjectionStatusText =>
@@ -439,6 +456,15 @@ public sealed class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(IsNotBibleMode));
                 OnPropertyChanged(nameof(CenterPanelTitle));
+                OnPropertyChanged(nameof(RightPanelTitle));
+                OnPropertyChanged(nameof(LibraryCountText));
+                OnPropertyChanged(nameof(PreviewHeader));
+                OnPropertyChanged(nameof(PreviewMeta));
+                OnPropertyChanged(nameof(PreviewText));
+                OnPropertyChanged(nameof(PreviousButtonText));
+                OnPropertyChanged(nameof(NextButtonText));
+                OnPropertyChanged(nameof(FavoriteButtonText));
+                RaiseCommandStates();
             }
         }
     }
@@ -446,6 +472,32 @@ public sealed class MainViewModel : ObservableObject
     public bool IsNotBibleMode => !IsBibleMode;
 
     public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : "Paragraphs";
+
+    public string RightPanelTitle => IsBibleMode ? "Live / Projection" : "Selected Paragraph";
+
+    public string LibraryCountText =>
+        IsBibleMode
+            ? FormatCount(BibleResults.Count, "Bible result", "Bible results")
+            : FormatCount(ResultCount, "paragraph", "paragraphs");
+
+    public string PreviewHeader =>
+        IsBibleMode
+            ? SelectedBibleVerse?.ReferenceDisplay ?? "No Bible verse selected"
+            : SelectedParagraph is null
+                ? "No paragraph selected"
+                : $"{SelectedParagraph.SermonTitle}";
+
+    public string PreviewMeta =>
+        IsBibleMode
+            ? SelectedBibleVerse?.MetaLine ?? "Search and select a Bible verse to preview it here."
+            : SelectedParagraph is null
+                ? "Search and select a paragraph to preview it here."
+                : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
+
+    public string PreviewText =>
+        IsBibleMode
+            ? SelectedBibleVerse?.Text ?? string.Empty
+            : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public string SelectedParagraphHeader =>
         SelectedBibleVerse is not null
@@ -462,11 +514,17 @@ public sealed class MainViewModel : ObservableObject
             : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string ProjectionParagraphTitle =>
-        SelectedBibleVerse?.ReferenceDisplay ?? SelectedParagraph?.SermonTitle ?? "MessageFlow";
+        SelectedBibleVerse is not null
+            ? SelectedBibleVerse.ReferenceDisplay
+            : IsBibleMode
+                ? "MessageFlow Bible"
+                : SelectedParagraph?.SermonTitle ?? "MessageFlow";
 
     public string ProjectionParagraphNumber =>
         SelectedBibleVerse is not null
             ? SelectedBibleVerse.TranslationAbbreviation
+            : IsBibleMode
+                ? string.Empty
             : SelectedParagraph is null
                 ? string.Empty
                 : $"Paragraph {SelectedParagraph.ParagraphNumber}";
@@ -481,13 +539,19 @@ public sealed class MainViewModel : ObservableObject
         SelectedProjectionFontSize?.LineHeight ?? 64;
 
     public string FavoriteButtonText =>
-        SelectedBibleVerse is not null
+        IsBibleMode
             ? "Bible Favorites Coming Soon"
             : SelectedParagraph?.IsFavorite == true
                 ? "Remove Favorite"
                 : "Add Favorite";
 
+    public string PreviousButtonText => IsBibleMode ? "Previous Verse" : "Previous Paragraph";
+
+    public string NextButtonText => IsBibleMode ? "Next Verse" : "Next Paragraph";
+
     public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
+
+    public bool IsFavoritesEmpty => FavoriteParagraphs.Count == 0;
 
     public bool IsParagraphResultsEmpty => ParagraphResults.Count == 0;
 
@@ -1634,7 +1698,7 @@ public sealed class MainViewModel : ObservableObject
             SelectedBibleVerse = BibleResults.FirstOrDefault();
             StatusText = BibleResults.Count == 0
                 ? $"No Bible results found in {stopwatch.ElapsedMilliseconds:N0} ms."
-                : $"{BibleResults.Count:N0} Bible results in {stopwatch.ElapsedMilliseconds:N0} ms.";
+                : $"{FormatCount(BibleResults.Count, "Bible result", "Bible results")} found in {stopwatch.ElapsedMilliseconds:N0} ms.";
         }
         catch (Exception ex)
         {
@@ -1906,7 +1970,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async void SelectPreviousParagraph()
     {
-        if (SelectedBibleVerse is not null)
+        if (IsBibleMode)
         {
             await MoveBibleSelectionAsync(-1);
             return;
@@ -1917,7 +1981,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async void SelectNextParagraph()
     {
-        if (SelectedBibleVerse is not null)
+        if (IsBibleMode)
         {
             await MoveBibleSelectionAsync(1);
             return;
@@ -2034,8 +2098,14 @@ public sealed class MainViewModel : ObservableObject
 
     private void CopySelectedParagraph()
     {
-        if (SelectedBibleVerse is not null)
+        if (IsBibleMode)
         {
+            if (SelectedBibleVerse is null)
+            {
+                StatusText = "Please select a Bible verse before copying.";
+                return;
+            }
+
             Clipboard.SetText(
                 $"{SelectedBibleVerse.ReferenceDisplay} {SelectedBibleVerse.TranslationAbbreviation}{Environment.NewLine}{SelectedBibleVerse.Text}");
             StatusText = "Bible verse copied.";
@@ -2053,7 +2123,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async void ProjectSelectedParagraph()
     {
-        if (SelectedBibleVerse is not null)
+        if (IsBibleMode)
         {
             await ProjectCurrentBibleSelectionAsync();
             return;
@@ -2132,7 +2202,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async void ToggleFavorite()
     {
-        if (SelectedBibleVerse is not null)
+        if (IsBibleMode)
         {
             StatusText = "Bible favorites are coming soon.";
             return;
@@ -2411,11 +2481,15 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedSourceFilter));
         OnPropertyChanged(nameof(SelectedParagraphHeader));
         OnPropertyChanged(nameof(SelectedParagraphMeta));
+        OnPropertyChanged(nameof(PreviewHeader));
+        OnPropertyChanged(nameof(PreviewMeta));
+        OnPropertyChanged(nameof(PreviewText));
         OnPropertyChanged(nameof(ProjectionParagraphTitle));
         OnPropertyChanged(nameof(ProjectionParagraphNumber));
         OnPropertyChanged(nameof(SelectedParagraphText));
         OnPropertyChanged(nameof(FavoriteButtonText));
         OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
+        OnPropertyChanged(nameof(IsFavoritesEmpty));
         OnPropertyChanged(nameof(IsBibleResultsEmpty));
 
         await InitializeAsync();
@@ -2976,6 +3050,11 @@ public sealed class MainViewModel : ObservableObject
         return ParagraphDisplayTextCleaner.CreatePreview(text);
     }
 
+    private static string FormatCount(int count, string singular, string plural)
+    {
+        return count == 1 ? $"1 {singular}" : $"{count:N0} {plural}";
+    }
+
     private static string TrimTo(string value, int maxLength)
     {
         return value.Length <= maxLength ? value : value[..maxLength];
@@ -3201,6 +3280,11 @@ public sealed class MainViewModel : ObservableObject
     private void ClearSearch()
     {
         SearchText = string.Empty;
+    }
+
+    private bool CanUseCurrentSelection()
+    {
+        return IsBibleMode ? SelectedBibleVerse is not null : SelectedParagraph is not null;
     }
 
     private void RaiseCommandStates()

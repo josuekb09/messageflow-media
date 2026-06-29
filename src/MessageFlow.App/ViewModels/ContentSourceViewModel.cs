@@ -12,4 +12,9 @@ public sealed record ContentSourceViewModel(
 
     public string LocationDisplay =>
         string.IsNullOrWhiteSpace(LocalFolderPath) ? "No local folder configured." : LocalFolderPath;
+
+    public override string ToString()
+    {
+        return DisplayName;
+    }
 }

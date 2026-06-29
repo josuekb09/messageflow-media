@@ -7,4 +7,9 @@ public sealed record BibleTranslationOption(
     string Language)
 {
     public string DisplayName => $"{Abbreviation} - {Name}";
+
+    public override string ToString()
+    {
+        return DisplayName;
+    }
 }

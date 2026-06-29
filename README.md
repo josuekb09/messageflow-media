@@ -274,6 +274,34 @@ Bible projection workflow:
 - `Copy` copies the reference, translation abbreviation, and verse text.
 - Bible favorites are intentionally deferred and show `Bible favorites are coming soon.`
 
+## Search and Bible UX Workflow
+
+MessageFlow separates operator work into clear modes:
+
+- `Search` is for sermons and document paragraphs.
+- `Bible` is for Bible references, keyword lookup, preview, and verse projection.
+- `Favorites` and `History` are sermon paragraph collections.
+- `Tools` is for local sources, Bible CSV import, and database backup/restore.
+
+The main workflow is:
+
+```text
+Search > Preview > Project
+Bible  > Preview > Project
+```
+
+Search mode keeps paragraph labels, paragraph counts, and Previous/Next Paragraph controls. Bible mode keeps Bible result counts, Bible Preview text, selected translation details, and Previous/Next Verse controls. Switching modes should not visually mix sermon labels with Bible labels.
+
+Bible import remains local CSV only. MessageFlow does not scrape websites or download Bible files automatically.
+
+Screenshot placeholders for future documentation:
+
+```text
+docs/screenshots/search-preview-project.png
+docs/screenshots/bible-preview-project.png
+docs/screenshots/import-bible-preview.png
+```
+
 ## WPF App
 
 Run the desktop app:
