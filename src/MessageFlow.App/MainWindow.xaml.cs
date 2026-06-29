@@ -106,12 +106,16 @@ public partial class MainWindow : Window
 
     private async void LibraryTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!ReferenceEquals(e.OriginalSource, LibraryTabs) ||
-            !ReferenceEquals(LibraryTabs.SelectedItem, HistoryTab))
+        if (!ReferenceEquals(e.OriginalSource, LibraryTabs))
         {
             return;
         }
 
-        await viewModel.RefreshProjectionHistoryAsync();
+        viewModel.SetBibleMode(ReferenceEquals(LibraryTabs.SelectedItem, BibleTab));
+
+        if (ReferenceEquals(LibraryTabs.SelectedItem, HistoryTab))
+        {
+            await viewModel.RefreshProjectionHistoryAsync();
+        }
     }
 }

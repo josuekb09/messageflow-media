@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using MessageFlow.App.Infrastructure;
+using MessageFlow.Core.Bible;
 using MessageFlow.Core.ContentSources;
 using MessageFlow.Core.Sermons;
 using MessageFlow.Data;
@@ -32,13 +33,18 @@ public sealed class MainViewModel : ObservableObject
     private SavedParagraphViewModel? selectedFavoriteParagraph;
     private SavedParagraphViewModel? selectedHistoryParagraph;
     private ContentSourceViewModel? selectedContentSource;
+    private BibleTranslationOption? selectedBibleTranslation;
+    private BibleVerseResultViewModel? selectedBibleVerse;
     private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
+    private string bibleSearchText = string.Empty;
     private string statusText = "Ready";
     private string? latestBackupPath;
     private bool isProjectionOpen;
     private bool isSearching;
     private bool isDatabaseOperationRunning;
+    private bool isBibleAvailable;
+    private bool isBibleMode;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
 
@@ -53,12 +59,15 @@ public sealed class MainViewModel : ObservableObject
         selectedSourceFilter = SourceFilters[0];
         selectedYear = YearFilters[0];
 
-        PreviousParagraphCommand = new RelayCommand(SelectPreviousParagraph, () => SelectedParagraph is not null);
-        NextParagraphCommand = new RelayCommand(SelectNextParagraph, () => SelectedParagraph is not null);
-        CopyCommand = new RelayCommand(CopySelectedParagraph, () => SelectedParagraph is not null);
+        PreviousParagraphCommand = new RelayCommand(SelectPreviousParagraph, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
+        NextParagraphCommand = new RelayCommand(SelectNextParagraph, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
+        CopyCommand = new RelayCommand(CopySelectedParagraph, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
         ProjectCommand = new RelayCommand(ProjectSelectedParagraph);
-        ToggleFavoriteCommand = new RelayCommand(ToggleFavorite, () => SelectedParagraph is not null);
+        ToggleFavoriteCommand = new RelayCommand(ToggleFavorite, () => SelectedParagraph is not null || SelectedBibleVerse is not null);
         ClearSearchCommand = new RelayCommand(ClearSearch);
+        BibleSearchCommand = new RelayCommand(
+            () => _ = SearchBibleAsync(),
+            () => IsBibleAvailable && !IsSearching);
         BackupDatabaseCommand = new RelayCommand(
             () => _ = BackupDatabaseAsync(),
             () => !IsDatabaseOperationRunning);
@@ -77,6 +86,9 @@ public sealed class MainViewModel : ObservableObject
         RepairSourceMetadataCommand = new RelayCommand(
             () => _ = RepairSelectedSourceMetadataAsync(),
             () => SelectedContentSource is not null && !IsDatabaseOperationRunning);
+        ImportBibleCommand = new RelayCommand(
+            () => _ = ImportBibleAsync(),
+            () => !IsDatabaseOperationRunning);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -85,6 +97,7 @@ public sealed class MainViewModel : ObservableObject
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
+        BibleResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsBibleResultsEmpty));
     }
 
     public event Action? ProjectRequested;
@@ -105,6 +118,10 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<ContentSourceViewModel> ContentSources { get; } = [];
 
+    public ObservableCollection<BibleTranslationOption> BibleTranslations { get; } = [];
+
+    public ObservableCollection<BibleVerseResultViewModel> BibleResults { get; } = [];
+
     public ObservableCollection<ProjectionFontSizeOption> ProjectionFontSizes { get; } = [];
 
     public RelayCommand PreviousParagraphCommand { get; }
@@ -119,6 +136,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand ClearSearchCommand { get; }
 
+    public RelayCommand BibleSearchCommand { get; }
+
     public RelayCommand BackupDatabaseCommand { get; }
 
     public RelayCommand RestoreDatabaseCommand { get; }
@@ -130,6 +149,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ImportSourceCommand { get; }
 
     public RelayCommand RepairSourceMetadataCommand { get; }
+
+    public RelayCommand ImportBibleCommand { get; }
 
     public string SearchText
     {
@@ -198,6 +219,17 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref selectedParagraph, value))
             {
+                if (value is not null && selectedBibleVerse is not null)
+                {
+                    selectedBibleVerse = null;
+                    OnPropertyChanged(nameof(SelectedBibleVerse));
+                }
+
+                if (value is not null)
+                {
+                    IsBibleMode = false;
+                }
+
                 OnPropertyChanged(nameof(SelectedParagraphHeader));
                 OnPropertyChanged(nameof(SelectedParagraphMeta));
                 OnPropertyChanged(nameof(ProjectionParagraphTitle));
@@ -253,6 +285,42 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public BibleTranslationOption? SelectedBibleTranslation
+    {
+        get => selectedBibleTranslation;
+        set => SetProperty(ref selectedBibleTranslation, value);
+    }
+
+    public BibleVerseResultViewModel? SelectedBibleVerse
+    {
+        get => selectedBibleVerse;
+        set
+        {
+            if (SetProperty(ref selectedBibleVerse, value))
+            {
+                if (value is not null && selectedParagraph is not null)
+                {
+                    selectedParagraph = null;
+                    OnPropertyChanged(nameof(SelectedParagraph));
+                }
+
+                OnPropertyChanged(nameof(SelectedParagraphHeader));
+                OnPropertyChanged(nameof(SelectedParagraphMeta));
+                OnPropertyChanged(nameof(ProjectionParagraphTitle));
+                OnPropertyChanged(nameof(ProjectionParagraphNumber));
+                OnPropertyChanged(nameof(SelectedParagraphText));
+                OnPropertyChanged(nameof(FavoriteButtonText));
+                RaiseCommandStates();
+            }
+        }
+    }
+
+    public string BibleSearchText
+    {
+        get => bibleSearchText;
+        set => SetProperty(ref bibleSearchText, value);
+    }
+
     public SourceDiagnosticsViewModel SelectedSourceDetails
     {
         get => selectedSourceDetails;
@@ -299,7 +367,13 @@ public sealed class MainViewModel : ObservableObject
     public bool IsSearching
     {
         get => isSearching;
-        set => SetProperty(ref isSearching, value);
+        set
+        {
+            if (SetProperty(ref isSearching, value))
+            {
+                BibleSearchCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 
     public bool IsDatabaseOperationRunning
@@ -315,9 +389,25 @@ public sealed class MainViewModel : ObservableObject
                 AddNewSourceCommand.RaiseCanExecuteChanged();
                 ImportSourceCommand.RaiseCanExecuteChanged();
                 RepairSourceMetadataCommand.RaiseCanExecuteChanged();
+                ImportBibleCommand.RaiseCanExecuteChanged();
             }
         }
     }
+
+    public bool IsBibleAvailable
+    {
+        get => isBibleAvailable;
+        private set
+        {
+            if (SetProperty(ref isBibleAvailable, value))
+            {
+                OnPropertyChanged(nameof(IsBibleUnavailable));
+                BibleSearchCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool IsBibleUnavailable => !IsBibleAvailable;
 
     public bool IsProjectionOpen
     {
@@ -340,24 +430,49 @@ public sealed class MainViewModel : ObservableObject
     public string ProjectionStatusText =>
         IsProjectionOpen ? "Projection: Open" : "Projection: Closed";
 
+    public bool IsBibleMode
+    {
+        get => isBibleMode;
+        private set
+        {
+            if (SetProperty(ref isBibleMode, value))
+            {
+                OnPropertyChanged(nameof(IsNotBibleMode));
+                OnPropertyChanged(nameof(CenterPanelTitle));
+            }
+        }
+    }
+
+    public bool IsNotBibleMode => !IsBibleMode;
+
+    public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : "Paragraphs";
+
     public string SelectedParagraphHeader =>
-        SelectedParagraph is null
+        SelectedBibleVerse is not null
+            ? SelectedBibleVerse.ReferenceDisplay
+            : SelectedParagraph is null
             ? "No paragraph selected"
             : $"{SelectedParagraph.SermonTitle}";
 
     public string SelectedParagraphMeta =>
-        SelectedParagraph is null
+        SelectedBibleVerse is not null
+            ? SelectedBibleVerse.MetaLine
+            : SelectedParagraph is null
             ? "Search and select a paragraph to preview it here."
             : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string ProjectionParagraphTitle =>
-        SelectedParagraph?.SermonTitle ?? "MessageFlow";
+        SelectedBibleVerse?.ReferenceDisplay ?? SelectedParagraph?.SermonTitle ?? "MessageFlow";
 
     public string ProjectionParagraphNumber =>
-        SelectedParagraph is null ? string.Empty : $"Paragraph {SelectedParagraph.ParagraphNumber}";
+        SelectedBibleVerse is not null
+            ? SelectedBibleVerse.TranslationAbbreviation
+            : SelectedParagraph is null
+                ? string.Empty
+                : $"Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string SelectedParagraphText =>
-        SelectedParagraph?.FullParagraphText ?? string.Empty;
+        SelectedBibleVerse?.Text ?? SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public double ProjectionFontSize =>
         SelectedProjectionFontSize?.FontSize ?? 48;
@@ -366,11 +481,17 @@ public sealed class MainViewModel : ObservableObject
         SelectedProjectionFontSize?.LineHeight ?? 64;
 
     public string FavoriteButtonText =>
-        SelectedParagraph?.IsFavorite == true ? "Remove Favorite" : "Add Favorite";
+        SelectedBibleVerse is not null
+            ? "Bible Favorites Coming Soon"
+            : SelectedParagraph?.IsFavorite == true
+                ? "Remove Favorite"
+                : "Add Favorite";
 
     public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
 
     public bool IsParagraphResultsEmpty => ParagraphResults.Count == 0;
+
+    public bool IsBibleResultsEmpty => BibleResults.Count == 0;
 
     public async Task InitializeAsync()
     {
@@ -428,6 +549,16 @@ public sealed class MainViewModel : ObservableObject
             startupMessages.Add("Content sources could not load.");
         }
 
+        try
+        {
+            await LoadBibleTranslationsAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible translations failed to load during startup.", ex);
+            startupMessages.Add("Bible translations could not load.");
+        }
+
         StatusText = startupMessages.Count == 0
             ? "Type to search sermons and paragraphs."
             : string.Join(' ', startupMessages);
@@ -436,6 +567,11 @@ public sealed class MainViewModel : ObservableObject
     public Task RefreshProjectionHistoryAsync()
     {
         return LoadProjectionHistoryAsync();
+    }
+
+    public void SetBibleMode(bool enabled)
+    {
+        IsBibleMode = enabled;
     }
 
     public async Task BackupDatabaseAsync()
@@ -631,6 +767,151 @@ public sealed class MainViewModel : ObservableObject
         {
             App.LogStartupError("Content source save failed.", ex);
             StatusText = $"Source save failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task ImportBibleAsync()
+    {
+        var dialog = new ImportBibleWindow
+        {
+            Owner = Application.Current.MainWindow,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        if (dialog.ShowDialog() != true || dialog.PreviewSummary is null)
+        {
+            StatusText = "Bible import canceled. No database changes were made.";
+            return;
+        }
+
+        var preview = dialog.PreviewSummary;
+        if (preview.VerseCount == 0)
+        {
+            StatusText = "No Bible verses are ready to import.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = $"Preparing {preview.Abbreviation} Bible import...";
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+            var translation = await dbContext.BibleTranslations
+                .FirstOrDefaultAsync(item => item.Abbreviation == preview.Abbreviation);
+
+            if (translation is not null)
+            {
+                var existingVerseCount = await dbContext.BibleVerses
+                    .CountAsync(verse => verse.TranslationId == translation.Id);
+
+                if (existingVerseCount > 0)
+                {
+                    var confirmation = MessageBox.Show(
+                        $"{preview.Abbreviation} already exists. Replace existing verses?",
+                        "Import Bible",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning,
+                        MessageBoxResult.No);
+
+                    if (confirmation != MessageBoxResult.Yes)
+                    {
+                        StatusText = "Bible import canceled. Existing verses were kept.";
+                        return;
+                    }
+                }
+            }
+
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            if (translation is null)
+            {
+                translation = new BibleTranslation
+                {
+                    Name = TrimTo(preview.TranslationName, 200),
+                    Abbreviation = TrimTo(preview.Abbreviation, 40),
+                    Language = TrimTo(preview.Language, 80),
+                    Description = TrimTo(
+                        string.IsNullOrWhiteSpace(preview.Description)
+                            ? $"{preview.TranslationName} local CSV import."
+                            : preview.Description,
+                        1000),
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                dbContext.BibleTranslations.Add(translation);
+                await dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                translation.Name = TrimTo(preview.TranslationName, 200);
+                translation.Language = TrimTo(preview.Language, 80);
+                translation.Description = TrimTo(
+                    string.IsNullOrWhiteSpace(preview.Description)
+                        ? $"{preview.TranslationName} local CSV import."
+                        : preview.Description,
+                    1000);
+
+                await dbContext.BibleVerses
+                    .Where(verse => verse.TranslationId == translation.Id)
+                    .ExecuteDeleteAsync();
+                await dbContext.SaveChangesAsync();
+            }
+
+            var booksByName = await dbContext.BibleBooks
+                .AsNoTracking()
+                .ToDictionaryAsync(book => book.Name, StringComparer.OrdinalIgnoreCase);
+
+            var distinctRows = preview.Verses
+                .GroupBy(row => new { row.BookName, row.Chapter, row.Verse })
+                .Select(group => group.Last())
+                .ToList();
+
+            var importedAt = DateTime.UtcNow;
+            dbContext.BibleVerses.AddRange(distinctRows.Select(row =>
+            {
+                if (!booksByName.TryGetValue(row.BookName, out var book))
+                {
+                    throw new InvalidOperationException($"Bible book is missing from database: {row.BookName}.");
+                }
+
+                return new BibleVerse
+                {
+                    TranslationId = translation.Id,
+                    BookId = book.Id,
+                    Chapter = row.Chapter,
+                    Verse = row.Verse,
+                    Text = row.Text,
+                    SearchText = row.SearchText,
+                    CreatedAt = importedAt
+                };
+            }));
+
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            await LoadBibleTranslationsAsync(translation.Id);
+            StatusText = $"Imported {preview.Abbreviation}: {distinctRows.Count:N0} verses.";
+            MessageBox.Show(
+                $"Imported {distinctRows.Count:N0} verses for {preview.TranslationName} ({preview.Abbreviation}).",
+                "Import Bible",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible import failed.", ex);
+            StatusText = $"Bible import failed: {ex.Message}";
+            MessageBox.Show(
+                $"Bible import failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Import Bible",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
         finally
         {
@@ -1307,7 +1588,108 @@ public sealed class MainViewModel : ObservableObject
     public async Task QuickProjectAsync()
     {
         searchDebounce?.Cancel();
+        if (await TryQuickProjectBibleReferenceAsync())
+        {
+            return;
+        }
+
         await ExecuteSearchAsync(CreateSearchSnapshot(projectBestResult: true), CancellationToken.None);
+    }
+
+    private async Task SearchBibleAsync()
+    {
+        if (!IsBibleAvailable)
+        {
+            StatusText = "No Bible translations imported yet.";
+            return;
+        }
+
+        var queryText = BibleSearchText.Trim();
+        if (string.IsNullOrWhiteSpace(queryText))
+        {
+            BibleResults.Clear();
+            SelectedBibleVerse = null;
+            StatusText = "Enter a Bible reference or keyword.";
+            return;
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            IsSearching = true;
+            StatusText = "Searching Bible...";
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var bibleSearchService = scope.ServiceProvider.GetRequiredService<IBibleSearchService>();
+            var results = await bibleSearchService.SearchAsync(
+                new BibleSearchQuery(queryText, SelectedBibleTranslation?.Id, 200));
+
+            BibleResults.Clear();
+            foreach (var result in results.Select(result => new BibleVerseResultViewModel(result)))
+            {
+                BibleResults.Add(result);
+            }
+
+            IsBibleMode = true;
+            SelectedBibleVerse = BibleResults.FirstOrDefault();
+            StatusText = BibleResults.Count == 0
+                ? $"No Bible results found in {stopwatch.ElapsedMilliseconds:N0} ms."
+                : $"{BibleResults.Count:N0} Bible results in {stopwatch.ElapsedMilliseconds:N0} ms.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible search failed.", ex);
+            BibleResults.Clear();
+            SelectedBibleVerse = null;
+            StatusText = $"Bible search failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSearching = false;
+            BibleSearchCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    private async Task<bool> TryQuickProjectBibleReferenceAsync()
+    {
+        var queryText = SearchText.Trim();
+        if (!IsBibleAvailable ||
+            string.IsNullOrWhiteSpace(queryText) ||
+            !BibleReferenceParser.TryParse(queryText, out var reference) ||
+            !reference.IsValid ||
+            reference.Verse is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var bibleSearchService = scope.ServiceProvider.GetRequiredService<IBibleSearchService>();
+            var results = await bibleSearchService.SearchAsync(
+                new BibleSearchQuery(queryText, SelectedBibleTranslation?.Id, 1));
+            var result = results.FirstOrDefault();
+            if (result is null)
+            {
+                StatusText = "No matching Bible verse found.";
+                return true;
+            }
+
+            BibleSearchText = queryText;
+            BibleResults.Clear();
+            var verse = new BibleVerseResultViewModel(result);
+            BibleResults.Add(verse);
+            IsBibleMode = true;
+            SelectedBibleVerse = verse;
+            await ProjectCurrentBibleSelectionAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible quick project failed.", ex);
+            StatusText = $"Bible quick project failed: {ex.Message}";
+            return true;
+        }
     }
 
     private void QueueSearch()
@@ -1524,11 +1906,23 @@ public sealed class MainViewModel : ObservableObject
 
     private async void SelectPreviousParagraph()
     {
+        if (SelectedBibleVerse is not null)
+        {
+            await MoveBibleSelectionAsync(-1);
+            return;
+        }
+
         await MoveSelectionAsync(-1);
     }
 
     private async void SelectNextParagraph()
     {
+        if (SelectedBibleVerse is not null)
+        {
+            await MoveBibleSelectionAsync(1);
+            return;
+        }
+
         await MoveSelectionAsync(1);
     }
 
@@ -1571,8 +1965,83 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private async Task MoveBibleSelectionAsync(int offset)
+    {
+        var currentVerse = SelectedBibleVerse;
+        if (currentVerse is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var verseQuery = dbContext.BibleVerses
+                .AsNoTracking()
+                .Include(verse => verse.BibleBook)
+                .Include(verse => verse.BibleTranslation)
+                .Where(verse =>
+                    verse.TranslationId == currentVerse.TranslationId &&
+                    verse.BookId == currentVerse.BookId &&
+                    verse.Chapter == currentVerse.Chapter);
+
+            verseQuery = offset > 0
+                ? verseQuery.Where(verse => verse.Verse > currentVerse.Verse)
+                    .OrderBy(verse => verse.Verse)
+                : verseQuery.Where(verse => verse.Verse < currentVerse.Verse)
+                    .OrderByDescending(verse => verse.Verse);
+
+            var adjacentVerse = await verseQuery
+                .Select(verse => new BibleSearchResult(
+                    verse.Id,
+                    verse.TranslationId,
+                    verse.BibleTranslation!.Name,
+                    verse.BibleTranslation.Abbreviation,
+                    verse.BookId,
+                    verse.BibleBook!.Name,
+                    verse.BibleBook.BookOrder,
+                    verse.Chapter,
+                    verse.Verse,
+                    verse.Text))
+                .FirstOrDefaultAsync();
+
+            if (adjacentVerse is null)
+            {
+                StatusText = offset > 0
+                    ? "Already at the last verse."
+                    : "Already at the first verse.";
+                return;
+            }
+
+            var viewModel = new BibleVerseResultViewModel(adjacentVerse);
+            var existing = BibleResults.FirstOrDefault(result => result.VerseId == viewModel.VerseId);
+            if (existing is null)
+            {
+                BibleResults.Add(viewModel);
+                existing = viewModel;
+            }
+
+            SelectedBibleVerse = existing;
+            StatusText = $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible verse navigation failed.", ex);
+            StatusText = $"Could not move Bible selection: {ex.Message}";
+        }
+    }
+
     private void CopySelectedParagraph()
     {
+        if (SelectedBibleVerse is not null)
+        {
+            Clipboard.SetText(
+                $"{SelectedBibleVerse.ReferenceDisplay} {SelectedBibleVerse.TranslationAbbreviation}{Environment.NewLine}{SelectedBibleVerse.Text}");
+            StatusText = "Bible verse copied.";
+            return;
+        }
+
         if (SelectedParagraph is null)
         {
             return;
@@ -1584,6 +2053,12 @@ public sealed class MainViewModel : ObservableObject
 
     private async void ProjectSelectedParagraph()
     {
+        if (SelectedBibleVerse is not null)
+        {
+            await ProjectCurrentBibleSelectionAsync();
+            return;
+        }
+
         if (SelectedParagraph is null)
         {
             StatusText = "Please select a paragraph before projecting.";
@@ -1642,8 +2117,27 @@ public sealed class MainViewModel : ObservableObject
         ProjectRequested?.Invoke();
     }
 
+    private Task ProjectCurrentBibleSelectionAsync()
+    {
+        if (SelectedBibleVerse is null)
+        {
+            StatusText = "Please select a Bible verse before projecting.";
+            return Task.CompletedTask;
+        }
+
+        StatusText = $"Projecting {SelectedBibleVerse.ReferenceDisplay} ({SelectedBibleVerse.TranslationAbbreviation}).";
+        ProjectRequested?.Invoke();
+        return Task.CompletedTask;
+    }
+
     private async void ToggleFavorite()
     {
+        if (SelectedBibleVerse is not null)
+        {
+            StatusText = "Bible favorites are coming soon.";
+            return;
+        }
+
         if (SelectedParagraph is null)
         {
             return;
@@ -1889,6 +2383,8 @@ public sealed class MainViewModel : ObservableObject
         selectedFavoriteParagraph = null;
         selectedHistoryParagraph = null;
         selectedContentSource = null;
+        selectedBibleTranslation = null;
+        selectedBibleVerse = null;
         selectedSourceFilter = null;
         allParagraphResults = [];
 
@@ -1897,8 +2393,12 @@ public sealed class MainViewModel : ObservableObject
         FavoriteParagraphs.Clear();
         ProjectionHistoryItems.Clear();
         ContentSources.Clear();
+        BibleTranslations.Clear();
+        BibleResults.Clear();
         SourceFilters.Clear();
         ResultCount = 0;
+        IsBibleAvailable = false;
+        IsBibleMode = false;
         SelectedSourceDetails = SourceDiagnosticsViewModel.None;
 
         OnPropertyChanged(nameof(SelectedSermon));
@@ -1906,6 +2406,8 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedFavoriteParagraph));
         OnPropertyChanged(nameof(SelectedHistoryParagraph));
         OnPropertyChanged(nameof(SelectedContentSource));
+        OnPropertyChanged(nameof(SelectedBibleTranslation));
+        OnPropertyChanged(nameof(SelectedBibleVerse));
         OnPropertyChanged(nameof(SelectedSourceFilter));
         OnPropertyChanged(nameof(SelectedParagraphHeader));
         OnPropertyChanged(nameof(SelectedParagraphMeta));
@@ -1914,6 +2416,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedParagraphText));
         OnPropertyChanged(nameof(FavoriteButtonText));
         OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
+        OnPropertyChanged(nameof(IsBibleResultsEmpty));
 
         await InitializeAsync();
 
@@ -2026,6 +2529,44 @@ public sealed class MainViewModel : ObservableObject
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
         await LoadFilterOptionsAsync(dbContext, SelectedAuthor?.Value, SelectedSourceFilter?.Value, SelectedYear?.Value);
+    }
+
+    private async Task LoadBibleTranslationsAsync(int? preferredTranslationId = null)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var translations = await dbContext.BibleTranslations
+            .AsNoTracking()
+            .OrderBy(translation => translation.Abbreviation)
+            .ThenBy(translation => translation.Name)
+            .Select(translation => new BibleTranslationOption(
+                translation.Id,
+                translation.Name,
+                translation.Abbreviation,
+                translation.Language))
+            .ToListAsync();
+
+        var existingSelectionId = preferredTranslationId ?? SelectedBibleTranslation?.Id;
+        BibleTranslations.Clear();
+        foreach (var translation in translations)
+        {
+            BibleTranslations.Add(translation);
+        }
+
+        SelectedBibleTranslation = existingSelectionId is null
+            ? BibleTranslations.FirstOrDefault()
+            : BibleTranslations.FirstOrDefault(translation => translation.Id == existingSelectionId.Value) ??
+              BibleTranslations.FirstOrDefault();
+
+        IsBibleAvailable = BibleTranslations.Count > 0;
+        if (!IsBibleAvailable)
+        {
+            BibleResults.Clear();
+            SelectedBibleVerse = null;
+        }
+
+        App.LogStartupMessage($"Loaded Bible translations: {BibleTranslations.Count}.");
     }
 
     private async Task LoadContentSourcesAsync(int? preferredSourceId = null)
@@ -2669,12 +3210,14 @@ public sealed class MainViewModel : ObservableObject
         CopyCommand.RaiseCanExecuteChanged();
         ProjectCommand.RaiseCanExecuteChanged();
         ToggleFavoriteCommand.RaiseCanExecuteChanged();
+        BibleSearchCommand.RaiseCanExecuteChanged();
         BackupDatabaseCommand.RaiseCanExecuteChanged();
         RestoreDatabaseCommand.RaiseCanExecuteChanged();
         OpenBackupFolderCommand.RaiseCanExecuteChanged();
         AddNewSourceCommand.RaiseCanExecuteChanged();
         ImportSourceCommand.RaiseCanExecuteChanged();
         RepairSourceMetadataCommand.RaiseCanExecuteChanged();
+        ImportBibleCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(

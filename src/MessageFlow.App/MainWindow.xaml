@@ -169,6 +169,113 @@
                             </ListBox>
                         </TabItem>
 
+                        <TabItem x:Name="BibleTab"
+                                 Header="Bible">
+                            <Grid Margin="0,10,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel>
+                                    <TextBox Text="{Binding BibleSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Search Bible references or keywords"
+                                             VerticalContentAlignment="Center" />
+                                    <ComboBox Margin="0,10,0,0"
+                                              ItemsSource="{Binding BibleTranslations}"
+                                              SelectedItem="{Binding SelectedBibleTranslation}"
+                                              DisplayMemberPath="DisplayName"
+                                              TextSearch.TextPath="DisplayName"
+                                              VerticalContentAlignment="Center" />
+                                    <Button Content="Search Bible"
+                                            Margin="0,10,0,0"
+                                            Command="{Binding BibleSearchCommand}" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="1"
+                                           Text="No Bible translations imported yet."
+                                           Margin="4,14,4,8"
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <Grid Grid.Row="2">
+                                    <ListBox ItemsSource="{Binding BibleResults}"
+                                             SelectedItem="{Binding SelectedBibleVerse}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="12"
+                                                        Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                        BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="5">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock Text="{Binding DisplayLine}"
+                                                                   FontSize="14"
+                                                                   FontWeight="SemiBold"
+                                                                   TextWrapping="Wrap" />
+                                                        <TextBlock Grid.Row="1"
+                                                                   Margin="0,6,0,0"
+                                                                   Text="{Binding MetaLine}"
+                                                                   Foreground="{StaticResource AccentBrush}"
+                                                                   FontSize="13"
+                                                                   FontWeight="SemiBold" />
+                                                        <TextBlock Grid.Row="2"
+                                                                   Margin="0,7,0,0"
+                                                                   Text="{Binding PreviewText}"
+                                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                                   FontSize="13"
+                                                                   LineHeight="18"
+                                                                   MaxHeight="54"
+                                                                   TextWrapping="Wrap" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <TextBlock Text="No Bible results to show."
+                                               Margin="12,22,12,0"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="14"
+                                               TextWrapping="Wrap"
+                                               IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsBibleAvailable}" Value="True" />
+                                                            <Condition Binding="{Binding IsBibleResultsEmpty}" Value="True" />
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+
                         <TabItem Header="Favorites">
                             <ListBox x:Name="FavoritesList"
                                      Margin="0,10,0,0"
@@ -512,6 +619,23 @@
                                     <Separator Margin="0,18,0,14"
                                                Background="{StaticResource BorderBrush}" />
 
+                                    <TextBlock Text="Bible"
+                                               FontSize="15"
+                                               FontWeight="SemiBold"
+                                               Margin="4,0,4,10" />
+                                    <Button Content="Import Bible"
+                                            Command="{Binding ImportBibleCommand}"
+                                            ToolTip="Preview and import a local Bible CSV file" />
+                                    <TextBlock Text="CSV format: book, chapter, verse, text. MessageFlow does not download Bible files automatically."
+                                               Margin="4,10,4,0"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               LineHeight="17"
+                                               TextWrapping="Wrap" />
+
+                                    <Separator Margin="0,18,0,14"
+                                               Background="{StaticResource BorderBrush}" />
+
                                     <TextBlock Text="Database"
                                                FontSize="15"
                                                FontWeight="SemiBold"
@@ -554,7 +678,7 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="16,14,16,10">
-                        <TextBlock Text="Paragraphs"
+                        <TextBlock Text="{Binding CenterPanelTitle}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    DockPanel.Dock="Left" />
@@ -569,6 +693,16 @@
                              Margin="10,0,10,10"
                              ItemsSource="{Binding ParagraphResults}"
                              SelectedItem="{Binding SelectedParagraph}">
+                        <ListBox.Style>
+                            <Style TargetType="ListBox">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.Style>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border x:Name="ParagraphCard"
@@ -638,6 +772,37 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="20,8,20,20"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedParagraphHeader}"
+                                       FontSize="24"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding SelectedParagraphMeta}"
+                                       Margin="0,8,0,20"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       FontSize="15"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding SelectedParagraphText}"
+                                       FontSize="30"
+                                       LineHeight="42"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource PrimaryTextBrush}" />
+                        </StackPanel>
+                    </ScrollViewer>
+
                     <TextBlock Grid.Row="1"
                                Text="No paragraph results to show."
                                Margin="24"
@@ -652,9 +817,13 @@
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsParagraphResultsEmpty}" Value="True">
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsNotBibleMode}" Value="True" />
+                                            <Condition Binding="{Binding IsParagraphResultsEmpty}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
                                         <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
+                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>

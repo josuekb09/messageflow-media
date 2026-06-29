@@ -1,3 +1,4 @@
+using MessageFlow.Core.Bible;
 using Microsoft.Data.Sqlite;
 using SQLitePCL;
 
@@ -18,6 +19,7 @@ public static class MessageFlowDatabaseRepair
 {
     private const string AddContentSourcesMigrationId = "20260627094500_AddContentSources";
     private const string AddSearchPerformanceMigrationId = "20260627224500_AddSearchPerformanceIndexesAndFts";
+    private const string AddBibleModuleMigrationId = "20260629090000_AddBibleModule";
     private const string ProductVersion = "10.0.9";
     private static readonly string[] ExpectedFtsColumns =
     [
@@ -83,11 +85,24 @@ public static class MessageFlowDatabaseRepair
                                                     "Sermons",
                                                     "ContentSourceId",
                                                     cancellationToken);
+            var bibleTranslationsExisted = await TableExistsAsync(
+                connection,
+                "BibleTranslations",
+                cancellationToken);
+            var bibleBooksExisted = await TableExistsAsync(
+                connection,
+                "BibleBooks",
+                cancellationToken);
+            var bibleVersesExisted = await TableExistsAsync(
+                connection,
+                "BibleVerses",
+                cancellationToken);
 
             log?.Invoke($"FavoriteParagraphs exists before repair: {favoriteParagraphsExisted}");
             log?.Invoke($"ProjectionHistories exists before repair: {projectionHistoriesExisted}");
             log?.Invoke($"ContentSources exists before repair: {contentSourcesExisted}");
             log?.Invoke($"Sermons.ContentSourceId exists before repair: {sermonsContentSourceIdExisted}");
+            log?.Invoke($"Bible tables exist before repair: translations={bibleTranslationsExisted}, books={bibleBooksExisted}, verses={bibleVersesExisted}");
 
             if (!favoriteParagraphsExisted)
             {
@@ -262,6 +277,13 @@ public static class MessageFlowDatabaseRepair
                 AddSearchPerformanceMigrationId,
                 cancellationToken);
 
+            await EnsureBibleTablesAsync(connection, log, cancellationToken);
+
+            await MarkMigrationAppliedIfHistoryExistsAsync(
+                connection,
+                AddBibleModuleMigrationId,
+                cancellationToken);
+
             var result = new MessageFlowDatabaseRepairResult(
                 databasePath,
                 favoriteParagraphsExisted,
@@ -277,6 +299,7 @@ public static class MessageFlowDatabaseRepair
             log?.Invoke($"ProjectionHistories created by repair: {result.ProjectionHistoriesCreated}");
             log?.Invoke($"ContentSources created by repair: {result.ContentSourcesCreated}");
             log?.Invoke($"Sermons.ContentSourceId created by repair: {result.SermonsContentSourceIdCreated}");
+            log?.Invoke($"Bible tables created by repair: translations={!bibleTranslationsExisted}, books={!bibleBooksExisted}, verses={!bibleVersesExisted}");
             log?.Invoke("Database repair completed.");
 
             return result;
@@ -385,6 +408,84 @@ public static class MessageFlowDatabaseRepair
         command.Parameters.AddWithValue("$migrationId", migrationId);
         command.Parameters.AddWithValue("$productVersion", ProductVersion);
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task EnsureBibleTablesAsync(
+        SqliteConnection connection,
+        Action<string>? log,
+        CancellationToken cancellationToken)
+    {
+        log?.Invoke("Ensuring Bible tables and indexes.");
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS "BibleTranslations" (
+                "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "Name" TEXT NOT NULL,
+                "Abbreviation" TEXT NOT NULL,
+                "Language" TEXT NOT NULL,
+                "Description" TEXT NOT NULL,
+                "CreatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS "BibleBooks" (
+                "Id" INTEGER NOT NULL PRIMARY KEY,
+                "Name" TEXT NOT NULL,
+                "ShortName" TEXT NOT NULL,
+                "BookOrder" INTEGER NOT NULL
+            );
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS "BibleVerses" (
+                "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "TranslationId" INTEGER NOT NULL,
+                "BookId" INTEGER NOT NULL,
+                "Chapter" INTEGER NOT NULL,
+                "Verse" INTEGER NOT NULL,
+                "Text" TEXT NOT NULL,
+                "SearchText" TEXT NOT NULL,
+                "CreatedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY ("TranslationId") REFERENCES "BibleTranslations" ("Id") ON DELETE CASCADE,
+                FOREIGN KEY ("BookId") REFERENCES "BibleBooks" ("Id") ON DELETE RESTRICT
+            );
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_BibleTranslations_Abbreviation" ON "BibleTranslations" ("Abbreviation");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_BibleBooks_Name" ON "BibleBooks" ("Name");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_BibleBooks_ShortName" ON "BibleBooks" ("ShortName");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_BibleBooks_BookOrder" ON "BibleBooks" ("BookOrder");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_BibleVerses_TranslationId_BookId_Chapter_Verse" ON "BibleVerses" ("TranslationId", "BookId", "Chapter", "Verse");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_BibleVerses_SearchText" ON "BibleVerses" ("SearchText");""", cancellationToken);
+
+        foreach (var book in BibleBookSeed.All)
+        {
+            await ExecuteAsync(
+                connection,
+                """
+                INSERT INTO "BibleBooks" ("Id", "Name", "ShortName", "BookOrder")
+                VALUES ($id, $name, $shortName, $bookOrder)
+                ON CONFLICT("Id") DO UPDATE SET
+                    "Name" = excluded."Name",
+                    "ShortName" = excluded."ShortName",
+                    "BookOrder" = excluded."BookOrder";
+                """,
+                cancellationToken,
+                new SqliteParameter("$id", book.Id),
+                new SqliteParameter("$name", book.Name),
+                new SqliteParameter("$shortName", book.ShortName),
+                new SqliteParameter("$bookOrder", book.BookOrder));
+        }
     }
 
     private static async Task EnsureSearchPerformanceIndexesAsync(
@@ -831,10 +932,16 @@ public static class MessageFlowDatabaseRepair
     private static async Task ExecuteAsync(
         SqliteConnection connection,
         string sql,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        params SqliteParameter[] parameters)
     {
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
+        foreach (var parameter in parameters)
+        {
+            command.Parameters.Add(parameter);
+        }
+
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

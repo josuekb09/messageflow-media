@@ -1,3 +1,4 @@
+using MessageFlow.Core.Bible;
 using MessageFlow.Core.ContentSources;
 using MessageFlow.Core.Sermons;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,12 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
     public DbSet<FavoriteParagraph> FavoriteParagraphs => Set<FavoriteParagraph>();
 
     public DbSet<ProjectionHistory> ProjectionHistories => Set<ProjectionHistory>();
+
+    public DbSet<BibleTranslation> BibleTranslations => Set<BibleTranslation>();
+
+    public DbSet<BibleBook> BibleBooks => Set<BibleBook>();
+
+    public DbSet<BibleVerse> BibleVerses => Set<BibleVerse>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -236,6 +243,95 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 .WithMany(paragraph => paragraph.ProjectionHistories)
                 .HasForeignKey(history => history.SermonParagraphId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BibleTranslation>(entity =>
+        {
+            entity.ToTable("BibleTranslations");
+            entity.HasKey(translation => translation.Id);
+
+            entity.Property(translation => translation.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(translation => translation.Abbreviation)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(translation => translation.Language)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(translation => translation.Description)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(translation => translation.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(translation => translation.Abbreviation)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<BibleBook>(entity =>
+        {
+            entity.ToTable("BibleBooks");
+            entity.HasKey(book => book.Id);
+
+            entity.Property(book => book.Name)
+                .HasMaxLength(120)
+                .IsRequired();
+
+            entity.Property(book => book.ShortName)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.HasIndex(book => book.Name)
+                .IsUnique();
+
+            entity.HasIndex(book => book.ShortName);
+            entity.HasIndex(book => book.BookOrder)
+                .IsUnique();
+
+            entity.HasData(BibleBookSeed.All);
+        });
+
+        modelBuilder.Entity<BibleVerse>(entity =>
+        {
+            entity.ToTable("BibleVerses");
+            entity.HasKey(verse => verse.Id);
+
+            entity.Property(verse => verse.Text)
+                .IsRequired();
+
+            entity.Property(verse => verse.SearchText)
+                .IsRequired();
+
+            entity.Property(verse => verse.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .IsRequired();
+
+            entity.HasIndex(verse => new
+                {
+                    verse.TranslationId,
+                    verse.BookId,
+                    verse.Chapter,
+                    verse.Verse
+                })
+                .IsUnique();
+
+            entity.HasIndex(verse => verse.SearchText);
+
+            entity.HasOne(verse => verse.BibleTranslation)
+                .WithMany(translation => translation.Verses)
+                .HasForeignKey(verse => verse.TranslationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(verse => verse.BibleBook)
+                .WithMany(book => book.Verses)
+                .HasForeignKey(verse => verse.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

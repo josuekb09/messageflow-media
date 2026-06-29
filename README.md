@@ -63,6 +63,9 @@ The current schema stores:
 - Import logs
 - Favorite paragraphs
 - Projection history
+- Bible translations
+- Bible books
+- Bible verses
 
 The initial migration seeds this author:
 
@@ -221,6 +224,56 @@ Quick Project ranking prioritizes:
 - Title match
 - Paragraph keyword match
 
+## Bible Module
+
+MessageFlow includes a local Bible module for OpenLP-style preview and projection. It does not download Bible files automatically. Import uses a local CSV file selected by the operator.
+
+Supported local CSV format:
+
+```text
+book,chapter,verse,text
+Genesis,1,1,"In the beginning God created the heaven and the earth."
+John,3,16,"For God so loved the world..."
+Romans,1,23,"And changed the glory of the uncorruptible God..."
+```
+
+Import workflow:
+
+1. Open `Tools`.
+2. Click `Import Bible`.
+3. Enter translation name, abbreviation, and language.
+4. Browse to a local CSV file.
+5. Click `Preview`.
+6. Review verses found, invalid rows, and the first 10 sample verses.
+7. Click `Start Import`.
+
+If the selected abbreviation, such as `KJV`, already exists, MessageFlow asks before replacing that translation's Bible verses. Sermon data, source data, favorites, and projection history are not changed by Bible import.
+
+Bible search supports references and keywords in the selected translation:
+
+```text
+John 3:16
+Romans 1
+Romans 1:23
+Daniel 5:23
+1 Corinthians 13
+1 Cor 13:4
+Psalm 23
+love
+faith
+beginning
+```
+
+Bible projection workflow:
+
+- Select the `Bible` tab.
+- Search by reference or keyword.
+- Select a verse to preview it.
+- Click `Project` to send the verse to the existing black projection window.
+- `Previous` and `Next` move within the selected chapter.
+- `Copy` copies the reference, translation abbreviation, and verse text.
+- Bible favorites are intentionally deferred and show `Bible favorites are coming soon.`
+
 ## WPF App
 
 Run the desktop app:
@@ -237,6 +290,7 @@ The first WPF screen includes:
 - Paragraph result list
 - Full paragraph preview
 - Copy, project, next/previous paragraph, and favorite actions
+- Bible tab for local Bible search, preview, copy, projection, and verse navigation
 - Borderless black projection window with title, paragraph number, and large centered text
 
 Keyboard shortcuts:
@@ -248,6 +302,7 @@ Keyboard shortcuts:
 - `Right Arrow` moves to the next paragraph
 - `Left Arrow` moves to the previous paragraph
 - In the projection window, `Right Arrow` and `Left Arrow` move between paragraphs
+- When a Bible verse is selected, `Right Arrow` and `Left Arrow` move between verses in the same chapter
 - In the projection window, `Esc` closes projection
 - In the projection window, `F11` toggles fullscreen
 
@@ -333,6 +388,11 @@ Before using MessageFlow in a live service, run this quick manual checklist:
 - Add New Source dialog shows all fields and clean Source Type labels.
 - Import Source asks for confirmation and skips already imported PDFs.
 - Author, Year, and Projection Font Size filters show clean labels and stay usable.
+- Bible tab opens and shows `No Bible translations imported yet.` when empty.
+- Import Bible previews local CSV files before writing to the database.
+- Bible search finds references such as `John 3:16` after a translation is imported.
+- Bible projection, Copy, Next, and Previous work for selected Bible verses.
+- Existing Quick Project sermon examples still work after Bible reference support is added.
 
 ## Current Status
 
@@ -344,7 +404,8 @@ Before using MessageFlow in a live service, run this quick manual checklist:
 - Local SQLite database path is `database/messageflow.db`.
 - Importer scans local PDFs, extracts text from positioned PdfPig words, creates sermons and paragraphs, skips duplicates, supports `--force` and `--reset`, prints extraction diagnostics, and logs errors.
 - Search service supports title, code, year, paragraph number, keyword, and partial keyword search with SQLite FTS5.
-- WPF app has a working dark-theme interface for searching, browsing paragraphs, copying text, favorites, history, backup/restore, source management, and projection.
+- Bible schema, local CSV import preview, Bible search, Bible projection, copy, and verse navigation are in place.
+- WPF app has a working dark-theme interface for searching, browsing paragraphs, Bible references, copying text, favorites, history, backup/restore, source management, and projection.
 
 ## Next Development Step
 
