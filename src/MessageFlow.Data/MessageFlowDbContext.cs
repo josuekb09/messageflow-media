@@ -27,6 +27,8 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
 
     public DbSet<BibleVerse> BibleVerses => Set<BibleVerse>();
 
+    public DbSet<BibleFavoriteVerse> BibleFavoriteVerses => Set<BibleFavoriteVerse>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Author>(entity =>
@@ -332,6 +334,28 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 .WithMany(book => book.Verses)
                 .HasForeignKey(verse => verse.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<BibleFavoriteVerse>(entity =>
+        {
+            entity.ToTable("BibleFavoriteVerses");
+            entity.HasKey(favorite => favorite.Id);
+
+            entity.Property(favorite => favorite.CreatedAt)
+                .IsRequired();
+
+            entity.Property(favorite => favorite.Notes)
+                .HasMaxLength(1000);
+
+            entity.HasIndex(favorite => favorite.BibleVerseId)
+                .IsUnique();
+
+            entity.HasIndex(favorite => favorite.CreatedAt);
+
+            entity.HasOne(favorite => favorite.BibleVerse)
+                .WithMany(verse => verse.Favorites)
+                .HasForeignKey(favorite => favorite.BibleVerseId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

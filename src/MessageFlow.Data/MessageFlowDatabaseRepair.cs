@@ -10,16 +10,19 @@ public sealed record MessageFlowDatabaseRepairResult(
     bool ProjectionHistoriesExisted,
     bool ContentSourcesExisted,
     bool SermonsContentSourceIdExisted,
+    bool BibleFavoriteVersesExisted,
     bool FavoriteParagraphsCreated,
     bool ProjectionHistoriesCreated,
     bool ContentSourcesCreated,
-    bool SermonsContentSourceIdCreated);
+    bool SermonsContentSourceIdCreated,
+    bool BibleFavoriteVersesCreated);
 
 public static class MessageFlowDatabaseRepair
 {
     private const string AddContentSourcesMigrationId = "20260627094500_AddContentSources";
     private const string AddSearchPerformanceMigrationId = "20260627224500_AddSearchPerformanceIndexesAndFts";
     private const string AddBibleModuleMigrationId = "20260629090000_AddBibleModule";
+    private const string AddBibleFavoriteVersesMigrationId = "20260630120500_AddBibleFavoriteVerses";
     private const string ProductVersion = "10.0.9";
     private static readonly string[] ExpectedFtsColumns =
     [
@@ -106,12 +109,17 @@ public static class MessageFlowDatabaseRepair
                 connection,
                 "BibleVerses",
                 cancellationToken);
+            var bibleFavoriteVersesExisted = await TableExistsAsync(
+                connection,
+                "BibleFavoriteVerses",
+                cancellationToken);
 
             log?.Invoke($"FavoriteParagraphs exists before repair: {favoriteParagraphsExisted}");
             log?.Invoke($"ProjectionHistories exists before repair: {projectionHistoriesExisted}");
             log?.Invoke($"ContentSources exists before repair: {contentSourcesExisted}");
             log?.Invoke($"Sermons.ContentSourceId exists before repair: {sermonsContentSourceIdExisted}");
             log?.Invoke($"Bible tables exist before repair: translations={bibleTranslationsExisted}, books={bibleBooksExisted}, verses={bibleVersesExisted}");
+            log?.Invoke($"BibleFavoriteVerses exists before repair: {bibleFavoriteVersesExisted}");
 
             if (!favoriteParagraphsExisted)
             {
@@ -297,22 +305,32 @@ public static class MessageFlowDatabaseRepair
                 AddBibleModuleMigrationId,
                 cancellationToken);
 
+            await EnsureBibleFavoriteVersesTableAsync(connection, log, cancellationToken);
+
+            await MarkMigrationAppliedIfHistoryExistsAsync(
+                connection,
+                AddBibleFavoriteVersesMigrationId,
+                cancellationToken);
+
             var result = new MessageFlowDatabaseRepairResult(
                 databasePath,
                 favoriteParagraphsExisted,
                 projectionHistoriesExisted,
                 contentSourcesExisted,
                 sermonsContentSourceIdExisted,
+                bibleFavoriteVersesExisted,
                 !favoriteParagraphsExisted,
                 !projectionHistoriesExisted,
                 !contentSourcesExisted,
-                sermonsTableExists && !sermonsContentSourceIdExisted);
+                sermonsTableExists && !sermonsContentSourceIdExisted,
+                !bibleFavoriteVersesExisted);
 
             log?.Invoke($"FavoriteParagraphs created by repair: {result.FavoriteParagraphsCreated}");
             log?.Invoke($"ProjectionHistories created by repair: {result.ProjectionHistoriesCreated}");
             log?.Invoke($"ContentSources created by repair: {result.ContentSourcesCreated}");
             log?.Invoke($"Sermons.ContentSourceId created by repair: {result.SermonsContentSourceIdCreated}");
             log?.Invoke($"Bible tables created by repair: translations={!bibleTranslationsExisted}, books={!bibleBooksExisted}, verses={!bibleVersesExisted}");
+            log?.Invoke($"BibleFavoriteVerses created by repair: {result.BibleFavoriteVersesCreated}");
             log?.Invoke("Database repair completed.");
 
             return result;
@@ -502,6 +520,43 @@ public static class MessageFlowDatabaseRepair
                 new SqliteParameter("$shortName", book.ShortName),
                 new SqliteParameter("$bookOrder", book.BookOrder));
         }
+    }
+
+    private static async Task EnsureBibleFavoriteVersesTableAsync(
+        SqliteConnection connection,
+        Action<string>? log,
+        CancellationToken cancellationToken)
+    {
+        log?.Invoke("Ensuring Bible favorite verse table and indexes.");
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS "BibleFavoriteVerses" (
+                "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "BibleVerseId" INTEGER NOT NULL,
+                "CreatedAt" TEXT NOT NULL,
+                "Notes" TEXT NULL,
+                FOREIGN KEY ("BibleVerseId") REFERENCES "BibleVerses" ("Id") ON DELETE CASCADE
+            );
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_BibleFavoriteVerses_BibleVerseId"
+            ON "BibleFavoriteVerses" ("BibleVerseId");
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE INDEX IF NOT EXISTS "IX_BibleFavoriteVerses_CreatedAt"
+            ON "BibleFavoriteVerses" ("CreatedAt");
+            """,
+            cancellationToken);
     }
 
     private static async Task EnsureSearchPerformanceIndexesAsync(

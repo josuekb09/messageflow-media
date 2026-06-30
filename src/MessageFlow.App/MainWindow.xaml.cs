@@ -142,6 +142,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void BibleFavoritesList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (BibleFavoritesList.SelectedItem is BibleFavoriteVerseViewModel favoriteVerse)
+        {
+            await viewModel.ProjectBibleFavoriteAsync(favoriteVerse);
+        }
+    }
+
     private async void HistoryList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (HistoryList.SelectedItem is SavedParagraphViewModel savedParagraph)

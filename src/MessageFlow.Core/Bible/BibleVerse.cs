@@ -21,4 +21,6 @@ public sealed class BibleVerse
     public string SearchText { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<BibleFavoriteVerse> Favorites { get; } = new List<BibleFavoriteVerse>();
 }

@@ -34,6 +34,7 @@ public sealed class MainViewModel : ObservableObject
     private SermonResultViewModel? selectedSermon;
     private ParagraphResultViewModel? selectedParagraph;
     private SavedParagraphViewModel? selectedFavoriteParagraph;
+    private BibleFavoriteVerseViewModel? selectedBibleFavoriteVerse;
     private SavedParagraphViewModel? selectedHistoryParagraph;
     private ContentSourceViewModel? selectedContentSource;
     private BibleTranslationOption? selectedBibleTranslation;
@@ -50,6 +51,7 @@ public sealed class MainViewModel : ObservableObject
     private bool isDatabaseOperationRunning;
     private bool isBibleAvailable;
     private bool isBibleMode;
+    private bool selectedBibleVerseIsFavorite;
     private bool showTestSourcesInManageSources;
     private bool suppressBibleSearchQueue;
     private int resultCount;
@@ -80,6 +82,15 @@ public sealed class MainViewModel : ObservableObject
             item => item is not null);
         RemoveFavoriteCommand = new RelayCommand<SavedParagraphViewModel>(
             item => _ = RemoveSavedFavoriteAsync(item),
+            item => item is not null && !IsDatabaseOperationRunning);
+        ProjectBibleFavoriteCommand = new RelayCommand<BibleFavoriteVerseViewModel>(
+            item => _ = ProjectBibleFavoriteAsync(item),
+            item => item is not null);
+        CopyBibleFavoriteCommand = new RelayCommand<BibleFavoriteVerseViewModel>(
+            CopyBibleFavorite,
+            item => item is not null);
+        RemoveBibleFavoriteCommand = new RelayCommand<BibleFavoriteVerseViewModel>(
+            item => _ = RemoveBibleFavoriteAsync(item),
             item => item is not null && !IsDatabaseOperationRunning);
         ProjectHistoryCommand = new RelayCommand<SavedParagraphViewModel>(
             item => _ = ProjectSavedParagraphAsync(item),
@@ -125,7 +136,18 @@ public sealed class MainViewModel : ObservableObject
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
-        FavoriteParagraphs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsFavoritesEmpty));
+        FavoriteParagraphs.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsFavoritesEmpty));
+            OnPropertyChanged(nameof(HasFavorites));
+            OnPropertyChanged(nameof(IsSermonFavoritesEmpty));
+        };
+        BibleFavoriteVerses.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsFavoritesEmpty));
+            OnPropertyChanged(nameof(HasFavorites));
+            OnPropertyChanged(nameof(IsBibleFavoritesEmpty));
+        };
         ProjectionHistoryItems.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
@@ -155,6 +177,8 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<ParagraphResultViewModel> ParagraphResults { get; } = [];
 
     public ObservableCollection<SavedParagraphViewModel> FavoriteParagraphs { get; } = [];
+
+    public ObservableCollection<BibleFavoriteVerseViewModel> BibleFavoriteVerses { get; } = [];
 
     public ObservableCollection<SavedParagraphViewModel> ProjectionHistoryItems { get; } = [];
 
@@ -187,6 +211,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand<SavedParagraphViewModel> ProjectFavoriteCommand { get; }
 
     public RelayCommand<SavedParagraphViewModel> RemoveFavoriteCommand { get; }
+
+    public RelayCommand<BibleFavoriteVerseViewModel> ProjectBibleFavoriteCommand { get; }
+
+    public RelayCommand<BibleFavoriteVerseViewModel> CopyBibleFavoriteCommand { get; }
+
+    public RelayCommand<BibleFavoriteVerseViewModel> RemoveBibleFavoriteCommand { get; }
 
     public RelayCommand<SavedParagraphViewModel> ProjectHistoryCommand { get; }
 
@@ -282,6 +312,7 @@ public sealed class MainViewModel : ObservableObject
                 if (value is not null && selectedBibleVerse is not null)
                 {
                     selectedBibleVerse = null;
+                    selectedBibleVerseIsFavorite = false;
                     OnPropertyChanged(nameof(SelectedBibleVerse));
                 }
 
@@ -318,6 +349,18 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref selectedFavoriteParagraph, value) && value is not null)
             {
                 _ = SelectSavedParagraphAsync(value.ParagraphId);
+            }
+        }
+    }
+
+    public BibleFavoriteVerseViewModel? SelectedBibleFavoriteVerse
+    {
+        get => selectedBibleFavoriteVerse;
+        set
+        {
+            if (SetProperty(ref selectedBibleFavoriteVerse, value) && value is not null)
+            {
+                SelectBibleFavorite(value);
             }
         }
     }
@@ -384,6 +427,16 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(ProjectionParagraphNumber));
                 OnPropertyChanged(nameof(SelectedParagraphText));
                 OnPropertyChanged(nameof(FavoriteButtonText));
+                if (value is null)
+                {
+                    selectedBibleVerseIsFavorite = false;
+                    OnPropertyChanged(nameof(FavoriteButtonText));
+                }
+                else
+                {
+                    _ = RefreshSelectedBibleFavoriteStateAsync(value.VerseId);
+                }
+
                 RaiseCommandStates();
             }
         }
@@ -488,6 +541,7 @@ public sealed class MainViewModel : ObservableObject
                 VerifyProductionDataCommand.RaiseCanExecuteChanged();
                 CleanupTestDataCommand.RaiseCanExecuteChanged();
                 RemoveFavoriteCommand.RaiseCanExecuteChanged();
+                RemoveBibleFavoriteCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -649,7 +703,9 @@ public sealed class MainViewModel : ObservableObject
 
     public string FavoriteButtonText =>
         IsBibleMode
-            ? "Bible favorites will be added later"
+            ? selectedBibleVerseIsFavorite
+                ? "Remove Bible Favorite"
+                : "Add Bible Favorite"
             : SelectedParagraph?.IsFavorite == true
                 ? "Remove Favorite"
                 : "Add Favorite";
@@ -660,7 +716,13 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
 
-    public bool IsFavoritesEmpty => FavoriteParagraphs.Count == 0;
+    public bool IsFavoritesEmpty => FavoriteParagraphs.Count == 0 && BibleFavoriteVerses.Count == 0;
+
+    public bool HasFavorites => !IsFavoritesEmpty;
+
+    public bool IsSermonFavoritesEmpty => FavoriteParagraphs.Count == 0;
+
+    public bool IsBibleFavoritesEmpty => BibleFavoriteVerses.Count == 0;
 
     public bool IsParagraphResultsEmpty => ParagraphResults.Count == 0;
 
@@ -2971,6 +3033,70 @@ public sealed class MainViewModel : ObservableObject
         await ProjectCurrentSelectionAsync(recordHistory: true);
     }
 
+    public async Task ProjectBibleFavoriteAsync(BibleFavoriteVerseViewModel? favorite)
+    {
+        if (favorite is null)
+        {
+            StatusText = "Please select a Bible favorite before projecting.";
+            return;
+        }
+
+        SelectBibleFavorite(favorite);
+        await ProjectCurrentBibleSelectionAsync();
+    }
+
+    private void SelectBibleFavorite(BibleFavoriteVerseViewModel favorite)
+    {
+        var verse = CreateBibleVerseResult(favorite);
+        var existingVerse = BibleResults.FirstOrDefault(result => result.VerseId == verse.VerseId);
+        if (existingVerse is null)
+        {
+            BibleResults.Add(verse);
+            existingVerse = verse;
+        }
+
+        var existingNavigationItem = BibleNavigationItems.FirstOrDefault(item => item.Verse?.VerseId == existingVerse.VerseId);
+        if (existingNavigationItem is null)
+        {
+            existingNavigationItem = BibleNavigationItemViewModel.ForVerse(existingVerse);
+            BibleNavigationItems.Add(existingNavigationItem);
+        }
+
+        IsBibleMode = true;
+        SelectedBibleNavigationItem = existingNavigationItem;
+        SelectedBibleVerse = existingVerse;
+        selectedBibleVerseIsFavorite = true;
+        OnPropertyChanged(nameof(FavoriteButtonText));
+        StatusText = $"Selected {favorite.ReferenceDisplay}.";
+    }
+
+    private void CopyBibleFavorite(BibleFavoriteVerseViewModel? favorite)
+    {
+        if (favorite is null)
+        {
+            StatusText = "Please select a Bible favorite before copying.";
+            return;
+        }
+
+        Clipboard.SetText($"{favorite.ReferenceDisplay} {favorite.TranslationAbbreviation}{Environment.NewLine}{favorite.Text}");
+        StatusText = $"Copied {favorite.ReferenceDisplay}.";
+    }
+
+    private static BibleVerseResultViewModel CreateBibleVerseResult(BibleFavoriteVerseViewModel favorite)
+    {
+        return new BibleVerseResultViewModel(new BibleSearchResult(
+            favorite.VerseId,
+            favorite.TranslationId,
+            favorite.TranslationName,
+            favorite.TranslationAbbreviation,
+            favorite.BookId,
+            favorite.BookName,
+            favorite.BookOrder,
+            favorite.Chapter,
+            favorite.Verse,
+            favorite.Text));
+    }
+
     private async Task RemoveSavedFavoriteAsync(SavedParagraphViewModel? favorite)
     {
         if (favorite is null)
@@ -3001,6 +3127,43 @@ public sealed class MainViewModel : ObservableObject
         {
             App.LogStartupError("Remove favorite failed.", ex);
             StatusText = $"Favorite could not be removed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task RemoveBibleFavoriteAsync(BibleFavoriteVerseViewModel? favorite)
+    {
+        if (favorite is null)
+        {
+            StatusText = "Please select a Bible favorite to remove.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            await dbContext.BibleFavoriteVerses
+                .Where(row => row.Id == favorite.Id)
+                .ExecuteDeleteAsync();
+
+            await LoadFavoritesAsync();
+            if (SelectedBibleVerse?.VerseId == favorite.VerseId)
+            {
+                selectedBibleVerseIsFavorite = false;
+                OnPropertyChanged(nameof(FavoriteButtonText));
+            }
+
+            StatusText = $"Removed {favorite.ReferenceDisplay} from favorites.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Remove Bible favorite failed.", ex);
+            StatusText = $"Bible favorite could not be removed: {ex.Message}";
         }
         finally
         {
@@ -3046,7 +3209,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsBibleMode)
         {
-            StatusText = "Bible favorites will be added later.";
+            await ToggleBibleFavoriteAsync();
             return;
         }
 
@@ -3089,6 +3252,56 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusText = $"Favorite update failed: {ex.Message}";
+        }
+    }
+
+    private async Task ToggleBibleFavoriteAsync()
+    {
+        if (SelectedBibleVerse is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var verseId = SelectedBibleVerse.VerseId;
+            var existingFavorite = await dbContext.BibleFavoriteVerses
+                .FirstOrDefaultAsync(favorite => favorite.BibleVerseId == verseId);
+
+            if (existingFavorite is null)
+            {
+                dbContext.BibleFavoriteVerses.Add(new BibleFavoriteVerse
+                {
+                    BibleVerseId = verseId,
+                    CreatedAt = DateTime.UtcNow,
+                    Notes = string.Empty
+                });
+
+                selectedBibleVerseIsFavorite = true;
+                StatusText = $"Added {SelectedBibleVerse.ReferenceDisplay} to favorites.";
+            }
+            else
+            {
+                dbContext.BibleFavoriteVerses.Remove(existingFavorite);
+                selectedBibleVerseIsFavorite = false;
+                StatusText = $"Removed {SelectedBibleVerse.ReferenceDisplay} from favorites.";
+            }
+
+            await dbContext.SaveChangesAsync();
+            await LoadFavoritesAsync();
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible favorite update failed.", ex);
+            StatusText = $"Bible favorite update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
         }
     }
 
@@ -3285,6 +3498,45 @@ public sealed class MainViewModel : ObservableObject
                 favorite.CreatedAt,
                 "Favorite"));
         }
+
+        var bibleFavorites = await dbContext.BibleFavoriteVerses
+            .AsNoTracking()
+            .OrderByDescending(favorite => favorite.CreatedAt)
+            .ThenByDescending(favorite => favorite.Id)
+            .Select(favorite => new
+            {
+                favorite.Id,
+                favorite.CreatedAt,
+                VerseId = favorite.BibleVerseId,
+                favorite.BibleVerse!.TranslationId,
+                TranslationName = favorite.BibleVerse.BibleTranslation!.Name,
+                TranslationAbbreviation = favorite.BibleVerse.BibleTranslation.Abbreviation,
+                favorite.BibleVerse.BookId,
+                BookName = favorite.BibleVerse.BibleBook!.Name,
+                favorite.BibleVerse.BibleBook.BookOrder,
+                favorite.BibleVerse.Chapter,
+                favorite.BibleVerse.Verse,
+                favorite.BibleVerse.Text
+            })
+            .ToListAsync();
+
+        BibleFavoriteVerses.Clear();
+        foreach (var favorite in bibleFavorites)
+        {
+            BibleFavoriteVerses.Add(new BibleFavoriteVerseViewModel(
+                favorite.Id,
+                favorite.VerseId,
+                favorite.TranslationId,
+                favorite.TranslationName,
+                favorite.TranslationAbbreviation,
+                favorite.BookId,
+                favorite.BookName,
+                favorite.BookOrder,
+                favorite.Chapter,
+                favorite.Verse,
+                favorite.Text,
+                favorite.CreatedAt));
+        }
     }
 
     private async Task ReloadAfterDatabaseRestoreAsync()
@@ -3293,17 +3545,20 @@ public sealed class MainViewModel : ObservableObject
         selectedSermon = null;
         selectedParagraph = null;
         selectedFavoriteParagraph = null;
+        selectedBibleFavoriteVerse = null;
         selectedHistoryParagraph = null;
         selectedContentSource = null;
         selectedBibleTranslation = null;
         selectedBibleVerse = null;
         selectedBibleNavigationItem = null;
         selectedSourceFilter = null;
+        selectedBibleVerseIsFavorite = false;
         allParagraphResults = [];
 
         SermonResults.Clear();
         ParagraphResults.Clear();
         FavoriteParagraphs.Clear();
+        BibleFavoriteVerses.Clear();
         ProjectionHistoryItems.Clear();
         ContentSources.Clear();
         BibleTranslations.Clear();
@@ -3318,6 +3573,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedSermon));
         OnPropertyChanged(nameof(SelectedParagraph));
         OnPropertyChanged(nameof(SelectedFavoriteParagraph));
+        OnPropertyChanged(nameof(SelectedBibleFavoriteVerse));
         OnPropertyChanged(nameof(SelectedHistoryParagraph));
         OnPropertyChanged(nameof(SelectedContentSource));
         OnPropertyChanged(nameof(SelectedBibleTranslation));
@@ -3335,6 +3591,9 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(FavoriteButtonText));
         OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
         OnPropertyChanged(nameof(IsFavoritesEmpty));
+        OnPropertyChanged(nameof(HasFavorites));
+        OnPropertyChanged(nameof(IsSermonFavoritesEmpty));
+        OnPropertyChanged(nameof(IsBibleFavoritesEmpty));
         OnPropertyChanged(nameof(IsBibleResultsEmpty));
 
         await InitializeAsync();
@@ -3880,6 +4139,38 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private async Task RefreshSelectedBibleFavoriteStateAsync(int? verseId)
+    {
+        if (verseId is null || SelectedBibleVerse is null || SelectedBibleVerse.VerseId != verseId.Value)
+        {
+            selectedBibleVerseIsFavorite = false;
+            OnPropertyChanged(nameof(FavoriteButtonText));
+            return;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var isFavorite = await dbContext.BibleFavoriteVerses
+                .AsNoTracking()
+                .AnyAsync(favorite => favorite.BibleVerseId == verseId.Value);
+
+            if (SelectedBibleVerse?.VerseId != verseId.Value)
+            {
+                return;
+            }
+
+            selectedBibleVerseIsFavorite = isFavorite;
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Bible favorite state refresh failed.", ex);
+            OnPropertyChanged(nameof(FavoriteButtonText));
+        }
+    }
+
     private async Task RecordProjectionHistoryAsync(
         ParagraphResultViewModel paragraph,
         string searchQuery)
@@ -4217,6 +4508,9 @@ public sealed class MainViewModel : ObservableObject
         CleanupTestDataCommand.RaiseCanExecuteChanged();
         ProjectFavoriteCommand.RaiseCanExecuteChanged();
         RemoveFavoriteCommand.RaiseCanExecuteChanged();
+        ProjectBibleFavoriteCommand.RaiseCanExecuteChanged();
+        CopyBibleFavoriteCommand.RaiseCanExecuteChanged();
+        RemoveBibleFavoriteCommand.RaiseCanExecuteChanged();
         ProjectHistoryCommand.RaiseCanExecuteChanged();
     }
 

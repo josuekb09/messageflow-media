@@ -81,6 +81,19 @@ var kjvVerseCount = kjvTranslationId is null
         new SqliteParameter("$translationId", kjvTranslationId.Value));
 checks.Add(new CheckResult("KJV verse count", kjvVerseCount == 31_102, $"{kjvVerseCount:N0} verse(s)."));
 
+var bibleFavoriteTableExists = await ExecuteScalarLongAsync(
+    connection,
+    """
+    SELECT COUNT(1)
+    FROM sqlite_master
+    WHERE type = 'table'
+      AND name = 'BibleFavoriteVerses';
+    """) > 0;
+checks.Add(new CheckResult(
+    "Bible favorites table",
+    bibleFavoriteTableExists,
+    bibleFavoriteTableExists ? "Bible favorites are available." : "Bible favorites table is missing."));
+
 if (kjvTranslationId is not null)
 {
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Genesis", 1, 1));
