@@ -1,0 +1,302 @@
+<Window x:Class="MessageFlow.App.ManageSourcesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Manage Sources"
+        Height="760"
+        Width="1120"
+        MinHeight="680"
+        MinWidth="980"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource WindowBackgroundBrush}">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0"
+                   Margin="0,0,0,20">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="Manage Sources"
+                           FontSize="26"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="Review local folders and run source imports from here."
+                           Margin="0,6,0,0"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           FontSize="14"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+            <CheckBox Content="Show test sources"
+                      IsChecked="{Binding ShowTestSourcesInManageSources}"
+                      Foreground="{StaticResource SecondaryTextBrush}"
+                      FontSize="13"
+                      VerticalAlignment="Bottom"
+                      HorizontalAlignment="Right" />
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Padding="{StaticResource CardPadding}"
+                    Background="{StaticResource PanelBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource BorderRadius}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Sources"
+                               FontSize="17"
+                               FontWeight="SemiBold"
+                               Margin="2,0,2,12" />
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding ManageableContentSources}"
+                             SelectedItem="{Binding SelectedContentSource}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="{StaticResource CardPadding}"
+                                        Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                        BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource BorderRadius}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding SourceTypeDisplay}"
+                                                   Margin="0,6,0,0"
+                                                   Foreground="{StaticResource AccentBrush}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding LocationDisplay}"
+                                                   Margin="0,7,0,0"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="12"
+                                                   LineHeight="17"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2"
+                    Padding="{StaticResource CardPadding}"
+                    Background="{StaticResource PanelBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource BorderRadius}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedSourceDetails.DisplayName}"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding SelectedSourceDetails.SourceTypeDisplay}"
+                                   Margin="0,6,0,18"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Padding="14"
+                                    Background="{StaticResource CardBackgroundBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource BorderRadius}">
+                                <StackPanel>
+                                    <TextBlock Text="Status"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12" />
+                                    <TextBlock Text="{Binding SelectedSourceDetails.SourceStatus}"
+                                               Margin="0,6,0,0"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               FontSize="15"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Padding="14"
+                                    Background="{StaticResource CardBackgroundBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource BorderRadius}">
+                                <StackPanel>
+                                    <TextBlock Text="Documents"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12" />
+                                    <TextBlock Text="{Binding SelectedSourceDetails.ImportedDocumentCountDisplay}"
+                                               Margin="0,6,0,0"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="4"
+                                    Padding="14"
+                                    Background="{StaticResource CardBackgroundBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource BorderRadius}">
+                                <StackPanel>
+                                    <TextBlock Text="Paragraphs"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12" />
+                                    <TextBlock Text="{Binding SelectedSourceDetails.ImportedParagraphCountDisplay}"
+                                               Margin="0,6,0,0"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Text="Folder"
+                                   Margin="2,22,2,6"
+                                   Foreground="{StaticResource MutedTextBrush}"
+                                   FontSize="12" />
+                        <Border Padding="14"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource BorderRadius}">
+                            <TextBlock Text="{Binding SelectedSourceDetails.LocalFolderPathDisplay}"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       FontSize="14"
+                                       TextWrapping="Wrap" />
+                        </Border>
+
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Column="0"
+                                    Content="Import"
+                                    Command="{Binding ImportSourceCommand}" />
+                            <Button Grid.Column="2"
+                                    Content="Repair Metadata"
+                                    Command="{Binding RepairSourceMetadataCommand}" />
+                        </Grid>
+
+                        <TextBlock Text="Advanced Details"
+                                   Margin="2,24,2,10"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Local PDFs"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="12" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SelectedSourceDetails.PdfFilesFoundDisplay}"
+                                       FontSize="13" />
+
+                            <TextBlock Grid.Row="1"
+                                       Text="Author"
+                                       Margin="0,9,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="12" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedSourceDetails.LinkedAuthorDisplay}"
+                                       Margin="0,9,0,0"
+                                       FontSize="13"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="2"
+                                       Text="Test source"
+                                       Margin="0,9,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="12" />
+                            <TextBlock Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedSourceDetails.LooksLikeTestSourceDisplay}"
+                                       Margin="0,9,0,0"
+                                       FontSize="13" />
+
+                            <TextBlock Grid.Row="3"
+                                       Text="Suspicious"
+                                       Margin="0,9,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="12" />
+                            <TextBlock Grid.Row="3"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedSourceDetails.SuspiciousMetadataDisplay}"
+                                       Margin="0,9,0,0"
+                                       FontSize="13"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="4"
+                                       Grid.ColumnSpan="2"
+                                       Text="{Binding SelectedSourceDetails.SuspiciousMetadataSamplesDisplay}"
+                                       Margin="0,14,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="12"
+                                       LineHeight="17"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Margin="0,20,0,0"
+                Padding="0,16,0,0"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="118" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="1"
+                        Content="Add Source"
+                        Command="{Binding AddNewSourceCommand}" />
+                <Button Grid.Column="3"
+                        Content="Close"
+                        Click="Close_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

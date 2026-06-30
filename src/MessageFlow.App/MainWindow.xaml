@@ -275,14 +275,15 @@
                                         </ListBox.ItemTemplate>
                                     </ListBox>
 
-                                    <TextBlock Text="No Bible results to show."
-                                               Margin="12,22,12,0"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="14"
-                                               TextWrapping="Wrap"
-                                               IsHitTestVisible="False">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
+                                    <Border Margin="12,22,12,0"
+                                            Padding="16"
+                                            Background="{StaticResource CardBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="{StaticResource BorderRadius}"
+                                            IsHitTestVisible="False">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                                 <Style.Triggers>
                                                     <MultiDataTrigger>
@@ -294,8 +295,12 @@
                                                     </MultiDataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                        </Border.Style>
+                                        <TextBlock Text="No Bible results to show."
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="14"
+                                                   TextWrapping="Wrap" />
+                                    </Border>
                                 </Grid>
                             </Grid>
                         </TabItem>
@@ -344,14 +349,15 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
 
-                                <TextBlock Text="No favorites yet."
-                                           Margin="12,22,12,0"
-                                           Foreground="{StaticResource MutedTextBrush}"
-                                           FontSize="14"
-                                           TextWrapping="Wrap"
-                                           IsHitTestVisible="False">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
+                                <Border Margin="12,22,12,0"
+                                        Padding="16"
+                                        Background="{StaticResource CardBackgroundBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource BorderRadius}"
+                                        IsHitTestVisible="False">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsFavoritesEmpty}" Value="True">
@@ -359,8 +365,12 @@
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                    </Border.Style>
+                                    <TextBlock Text="No favorites yet."
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="14"
+                                               TextWrapping="Wrap" />
+                                </Border>
                             </Grid>
                         </TabItem>
 
@@ -415,14 +425,15 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
 
-                                <TextBlock Text="No projection history yet."
-                                           Margin="12,22,12,0"
-                                           Foreground="{StaticResource MutedTextBrush}"
-                                           FontSize="14"
-                                           TextWrapping="Wrap"
-                                           IsHitTestVisible="False">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
+                                <Border Margin="12,22,12,0"
+                                        Padding="16"
+                                        Background="{StaticResource CardBackgroundBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource BorderRadius}"
+                                        IsHitTestVisible="False">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsProjectionHistoryEmpty}" Value="True">
@@ -430,8 +441,12 @@
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                    </Border.Style>
+                                    <TextBlock Text="No history yet."
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="14"
+                                               TextWrapping="Wrap" />
+                                </Border>
                             </Grid>
                         </TabItem>
 
@@ -440,274 +455,101 @@
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel>
-                                    <TextBlock Text="Import and manage local sources, Bible files, and database backups."
-                                               Margin="4,0,4,14"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="13"
-                                               TextWrapping="Wrap" />
-                                    <TextBlock Text="Sources"
-                                               FontSize="15"
-                                               FontWeight="SemiBold"
-                                               Margin="4,4,4,10" />
-                                    <ListBox ItemsSource="{Binding ContentSources}"
-                                             SelectedItem="{Binding SelectedContentSource}"
-                                             MaxHeight="190"
-                                             Margin="0,0,0,10">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Padding="{StaticResource CardPadding}"
-                                                        Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
-                                                        BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="{StaticResource BorderRadius}">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                        </Grid.RowDefinitions>
-                                                        <TextBlock Text="{Binding DisplayName}"
-                                                                   FontSize="14"
-                                                                   FontWeight="SemiBold"
-                                                                   TextWrapping="Wrap" />
-                                                        <TextBlock Grid.Row="1"
-                                                                   Margin="0,6,0,0"
-                                                                   Text="{Binding SourceTypeDisplay}"
-                                                                   Foreground="{StaticResource AccentBrush}"
-                                                                   FontSize="13"
-                                                                   FontWeight="SemiBold" />
-                                                        <TextBlock Grid.Row="2"
-                                                                   Margin="0,7,0,0"
-                                                                   Text="{Binding Description}"
-                                                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                                                   FontSize="13"
-                                                                   LineHeight="18"
-                                                                   MaxHeight="54"
-                                                                   TextWrapping="Wrap" />
-                                                        <TextBlock Grid.Row="3"
-                                                                   Margin="0,7,0,0"
-                                                                   Text="{Binding LocationDisplay}"
-                                                                   Foreground="{StaticResource MutedTextBrush}"
-                                                                   FontSize="12"
-                                                                   LineHeight="17"
-                                                                   TextWrapping="Wrap" />
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                    <Button Content="Add New Source"
-                                            Command="{Binding AddNewSourceCommand}"
-                                            ToolTip="Add a local content source" />
-                                    <Button Content="Import Source"
-                                            Margin="0,10,0,0"
-                                            Command="{Binding ImportSourceCommand}"
-                                            ToolTip="Import local PDFs from the selected source" />
-                                    <Button Content="Repair Source Metadata"
-                                            Margin="0,10,0,0"
-                                            Command="{Binding RepairSourceMetadataCommand}"
-                                            ToolTip="Repair title, year, code, and author for the selected non-Branham source" />
-
-                                    <TextBlock Text="Source Details"
-                                               FontSize="15"
-                                               FontWeight="SemiBold"
-                                               Margin="4,18,4,10" />
                                     <Border Padding="{StaticResource CardPadding}"
-                                            Background="{StaticResource PanelBackgroundBrush}"
+                                            Background="{StaticResource CardBackgroundBrush}"
                                             BorderBrush="{StaticResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="{StaticResource BorderRadius}">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="112" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-
-                                            <TextBlock Text="Status"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.SourceStatus}"
-                                                       Foreground="{StaticResource AccentBrush}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="1"
-                                                       Text="Display name"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="1"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.DisplayName}"
-                                                       Margin="0,8,0,0"
+                                        <StackPanel>
+                                            <TextBlock Text="Bible"
+                                                       FontSize="17"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="Import a local Bible CSV file."
+                                                       Margin="0,7,0,0"
+                                                       Foreground="{StaticResource SecondaryTextBrush}"
                                                        FontSize="13"
                                                        TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="2"
-                                                       Text="Source type"
-                                                       Margin="0,8,0,0"
+                                            <TextBlock Text="{Binding CurrentBibleTranslationDisplay}"
+                                                       Margin="0,6,0,14"
                                                        Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="2"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.SourceTypeDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13"
+                                                       FontSize="12"
                                                        TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="3"
-                                                       Text="Folder"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="3"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.LocalFolderPathDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13"
-                                                       TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="4"
-                                                       Text="Documents"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="4"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.ImportedDocumentCountDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13" />
-
-                                            <TextBlock Grid.Row="5"
-                                                       Text="Paragraphs"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="5"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.ImportedParagraphCountDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13" />
-
-                                            <TextBlock Grid.Row="6"
-                                                       Text="Local PDFs"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="6"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.PdfFilesFoundDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13" />
-
-                                            <TextBlock Grid.Row="7"
-                                                       Text="Author"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="7"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.LinkedAuthorDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13"
-                                                       TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="8"
-                                                       Text="Test source"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="8"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.LooksLikeTestSourceDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13" />
-
-                                            <TextBlock Grid.Row="9"
-                                                       Text="Suspicious"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12" />
-                                            <TextBlock Grid.Row="9"
-                                                       Grid.Column="1"
-                                                       Text="{Binding SelectedSourceDetails.SuspiciousMetadataDisplay}"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="13"
-                                                       TextWrapping="Wrap" />
-                                        </Grid>
+                                            <Button Content="Import Bible"
+                                                    Command="{Binding ImportBibleCommand}"
+                                                    ToolTip="Preview and import a local Bible CSV file" />
+                                        </StackPanel>
                                     </Border>
-                                    <TextBlock Text="{Binding SelectedSourceDetails.SuspiciousMetadataSamplesDisplay}"
-                                               Margin="4,8,4,0"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="12"
-                                               LineHeight="17"
-                                               TextWrapping="Wrap" />
 
-                                    <TextBlock Text="Brother Frank content should be added as two separate sources:&#x0a;- Ewald Frank Sermons: spoken sermons, services, broadcasts, sermon transcripts.&#x0a;- Ewald Frank Circular Letters: written circular letters such as December 2020 or April 2020.&#x0a;&#x0a;Recommended folders:&#x0a;D:\Ewald Frank\Sermons\PDF&#x0a;D:\Ewald Frank\Circular Letters\PDF&#x0a;&#x0a;Download files manually and place them in local folders before importing. MessageFlow does not scrape websites."
-                                               Margin="4,18,4,0"
-                                               Foreground="{StaticResource SecondaryTextBrush}"
-                                               FontSize="12"
-                                               LineHeight="17"
-                                               TextWrapping="Wrap" />
+                                    <Border Margin="0,14,0,0"
+                                            Padding="{StaticResource CardPadding}"
+                                            Background="{StaticResource CardBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="{StaticResource BorderRadius}">
+                                        <StackPanel>
+                                            <TextBlock Text="Sources"
+                                                       FontSize="17"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="Manage sermon, circular letter, and book folders."
+                                                       Margin="0,7,0,14"
+                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+                                            <Button Content="Manage Sources"
+                                                    Command="{Binding ManageSourcesCommand}" />
+                                        </StackPanel>
+                                    </Border>
 
-                                    <Separator Margin="0,18,0,14"
-                                               Background="{StaticResource BorderBrush}" />
+                                    <Border Margin="0,14,0,0"
+                                            Padding="{StaticResource CardPadding}"
+                                            Background="{StaticResource CardBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="{StaticResource BorderRadius}">
+                                        <StackPanel>
+                                            <TextBlock Text="Database"
+                                                       FontSize="17"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="Keep a safe copy before big imports."
+                                                       Margin="0,7,0,14"
+                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+                                            <Button Content="Backup Database"
+                                                    Command="{Binding BackupDatabaseCommand}" />
+                                            <Button Content="Restore Database"
+                                                    Margin="0,10,0,0"
+                                                    Command="{Binding RestoreDatabaseCommand}" />
+                                        </StackPanel>
+                                    </Border>
 
-                                    <TextBlock Text="Bible"
-                                               FontSize="15"
-                                               FontWeight="SemiBold"
-                                               Margin="4,0,4,10" />
-                                    <Button Content="Import Bible"
-                                            Command="{Binding ImportBibleCommand}"
-                                            ToolTip="Preview and import a local Bible CSV file" />
-                                    <TextBlock Text="CSV format: book, chapter, verse, text. MessageFlow does not download Bible files automatically."
-                                               Margin="4,10,4,0"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="12"
-                                               LineHeight="17"
-                                               TextWrapping="Wrap" />
-
-                                    <Separator Margin="0,18,0,14"
-                                               Background="{StaticResource BorderBrush}" />
-
-                                    <TextBlock Text="Database"
-                                               FontSize="15"
-                                               FontWeight="SemiBold"
-                                               Margin="4,0,4,10" />
-                                    <Button Content="Backup Database"
-                                            Command="{Binding BackupDatabaseCommand}" />
-                                    <Button Content="Restore Database"
-                                            Margin="0,10,0,0"
-                                            Command="{Binding RestoreDatabaseCommand}" />
-                                    <Button Content="Open Backup Folder"
-                                            Margin="0,10,0,0"
-                                            Command="{Binding OpenBackupFolderCommand}" />
-                                    <TextBlock Text="Latest backup"
-                                               FontSize="13"
-                                               FontWeight="SemiBold"
-                                               Margin="4,18,4,6"
-                                               Foreground="{StaticResource SecondaryTextBrush}" />
-                                    <TextBlock Text="{Binding LatestBackupDisplay}"
-                                               Margin="4,0,4,12"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="12"
-                                               LineHeight="17"
-                                               TextWrapping="Wrap" />
+                                    <Expander Header="Advanced"
+                                              Margin="0,14,0,0"
+                                              Foreground="{StaticResource SecondaryTextBrush}"
+                                              Background="{StaticResource CardBackgroundBrush}">
+                                        <Border Padding="{StaticResource CardPadding}"
+                                                Background="{StaticResource CardBackgroundBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{StaticResource BorderRadius}">
+                                            <StackPanel>
+                                                <TextBlock Text="Advanced source tools are kept here for setup and maintenance."
+                                                           Margin="0,0,0,14"
+                                                           Foreground="{StaticResource MutedTextBrush}"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap" />
+                                                <Button Content="Repair Source Metadata"
+                                                        Command="{Binding RepairSourceMetadataCommand}"
+                                                        ToolTip="Repair title, year, code, and author for the selected non-Branham source" />
+                                                <Button Content="Show Source Details"
+                                                        Margin="0,10,0,0"
+                                                        Command="{Binding ManageSourcesCommand}" />
+                                                <Button Content="Open Backup Folder"
+                                                        Margin="0,10,0,0"
+                                                        Command="{Binding OpenBackupFolderCommand}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Expander>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>
@@ -852,18 +694,18 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <TextBlock Grid.Row="1"
-                               Text="No paragraph results to show."
-                               Margin="24"
-                               Foreground="{StaticResource MutedTextBrush}"
-                               FontSize="16"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               IsHitTestVisible="False">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
+                    <Border Grid.Row="1"
+                            Margin="24"
+                            Padding="22"
+                            Background="{StaticResource CardBackgroundBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource BorderRadius}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False">
+                        <Border.Style>
+                            <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <MultiDataTrigger>
@@ -875,8 +717,13 @@
                                     </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                        </Border.Style>
+                        <TextBlock Text="No paragraph results to show."
+                                   Foreground="{StaticResource MutedTextBrush}"
+                                   FontSize="16"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+                    </Border>
                 </Grid>
             </Border>
 

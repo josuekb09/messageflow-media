@@ -36,6 +36,15 @@ public static class MessageFlowDatabaseRepair
         "ParagraphNumber",
         "SearchText"
     ];
+    private static readonly string[] ExpectedFtsTriggerNames =
+    [
+        "SermonParagraphsFts_author_au",
+        "SermonParagraphsFts_source_au",
+        "SermonParagraphsFts_sermon_au",
+        "SermonParagraphsFts_au",
+        "SermonParagraphsFts_ad",
+        "SermonParagraphsFts_ai"
+    ];
 
     public static async Task<MessageFlowDatabaseRepairResult> RepairAsync(
         string databasePath,
@@ -187,7 +196,11 @@ public static class MessageFlowDatabaseRepair
                     "DisplayName" = excluded."DisplayName",
                     "SourceType" = excluded."SourceType",
                     "Description" = excluded."Description",
-                    "LocalFolderPath" = excluded."LocalFolderPath";
+                    "LocalFolderPath" = excluded."LocalFolderPath"
+                WHERE "ContentSources"."DisplayName" IS NOT excluded."DisplayName"
+                   OR "ContentSources"."SourceType" IS NOT excluded."SourceType"
+                   OR "ContentSources"."Description" IS NOT excluded."Description"
+                   OR "ContentSources"."LocalFolderPath" IS NOT excluded."LocalFolderPath";
                 """,
                 cancellationToken);
 
@@ -478,7 +491,10 @@ public static class MessageFlowDatabaseRepair
                 ON CONFLICT("Id") DO UPDATE SET
                     "Name" = excluded."Name",
                     "ShortName" = excluded."ShortName",
-                    "BookOrder" = excluded."BookOrder";
+                    "BookOrder" = excluded."BookOrder"
+                WHERE "BibleBooks"."Name" IS NOT excluded."Name"
+                   OR "BibleBooks"."ShortName" IS NOT excluded."ShortName"
+                   OR "BibleBooks"."BookOrder" IS NOT excluded."BookOrder";
                 """,
                 cancellationToken,
                 new SqliteParameter("$id", book.Id),
@@ -623,6 +639,11 @@ public static class MessageFlowDatabaseRepair
         SqliteConnection connection,
         CancellationToken cancellationToken)
     {
+        if (await SermonParagraphsFtsTriggersExistAsync(connection, cancellationToken))
+        {
+            return;
+        }
+
         await DropSermonParagraphsFtsTriggersAsync(connection, cancellationToken);
 
         await ExecuteAsync(
@@ -871,6 +892,36 @@ public static class MessageFlowDatabaseRepair
             END;
             """,
             cancellationToken);
+    }
+
+    private static async Task<bool> SermonParagraphsFtsTriggersExistAsync(
+        SqliteConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var triggerNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'trigger'
+              AND name IN (
+                  'SermonParagraphsFts_author_au',
+                  'SermonParagraphsFts_source_au',
+                  'SermonParagraphsFts_sermon_au',
+                  'SermonParagraphsFts_au',
+                  'SermonParagraphsFts_ad',
+                  'SermonParagraphsFts_ai'
+              );
+            """;
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            triggerNames.Add(reader.GetString(0));
+        }
+
+        return ExpectedFtsTriggerNames.All(triggerNames.Contains);
     }
 
     private static async Task RebuildSermonParagraphsFtsAsync(

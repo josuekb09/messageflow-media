@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.IO;
 using MessageFlow.App.ViewModels;
 using Microsoft.Win32;
 
@@ -6,9 +8,16 @@ namespace MessageFlow.App;
 
 public partial class ImportBibleWindow : Window
 {
+    private const string SuggestedKjvFolder = @"D:\Bible\KJV";
+    private const string SuggestedKjvFile = @"D:\Bible\KJV\kjv.csv";
+    private bool isUpdatingPreview;
+
     public ImportBibleWindow()
     {
         InitializeComponent();
+        SuggestedFileText.Visibility = File.Exists(SuggestedKjvFile)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     public BibleImportPreviewSummary? PreviewSummary { get; private set; }
@@ -23,11 +32,19 @@ public partial class ImportBibleWindow : Window
             Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
         };
 
+        if (Directory.Exists(SuggestedKjvFolder))
+        {
+            dialog.InitialDirectory = SuggestedKjvFolder;
+            if (File.Exists(SuggestedKjvFile))
+            {
+                dialog.FileName = Path.GetFileName(SuggestedKjvFile);
+            }
+        }
+
         if (dialog.ShowDialog(this) == true)
         {
             FilePathBox.Text = dialog.FileName;
-            StartImportButton.IsEnabled = false;
-            PreviewStatusText.Text = "Click Preview to inspect the CSV.";
+            ResetPreview("Click Preview to inspect the CSV.");
         }
     }
 
@@ -38,15 +55,26 @@ public partial class ImportBibleWindow : Window
 
     private void StartImport_Click(object sender, RoutedEventArgs e)
     {
-        if (PreviewSummary is null && !BuildPreview(showErrors: true))
+        var preview = PreviewSummary;
+        if (preview is null)
+        {
+            if (!BuildPreview(showErrors: true))
+            {
+                return;
+            }
+
+            preview = PreviewSummary;
+        }
+
+        if (preview is null)
         {
             return;
         }
 
-        if (PreviewSummary?.VerseCount <= 0)
+        if (preview.VerseCount <= 0 || preview.InvalidRowCount > 0)
         {
             MessageBox.Show(
-                "No valid Bible verses are ready to import.",
+                "No clean Bible preview is ready to import.",
                 "Import Bible",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -92,22 +120,31 @@ public partial class ImportBibleWindow : Window
                 description,
                 FilePathBox.Text.Trim());
 
+            isUpdatingPreview = true;
             DataContext = PreviewSummary;
             PreviewTranslationText.Text = $"{PreviewSummary.TranslationName} ({PreviewSummary.Abbreviation})";
             PreviewVerseCountText.Text = PreviewSummary.VerseCount.ToString("N0");
             PreviewInvalidCountText.Text = PreviewSummary.InvalidRowCount.ToString("N0");
+            NoInvalidRowsPanel.Visibility = PreviewSummary.InvalidRowCount == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            InvalidRowsList.Visibility = PreviewSummary.InvalidRowCount == 0
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+            var canImport = PreviewSummary.VerseCount > 0 && PreviewSummary.InvalidRowCount == 0;
             PreviewStatusText.Text = PreviewSummary.VerseCount == 0
                 ? "No valid verses found."
-                : "Preview ready.";
-            StartImportButton.IsEnabled = PreviewSummary.VerseCount > 0;
+                : canImport
+                    ? "Preview ready."
+                    : "Fix invalid rows before importing.";
+            StartImportButton.IsEnabled = canImport;
+            isUpdatingPreview = false;
             return true;
         }
         catch (Exception ex)
         {
-            PreviewSummary = null;
-            DataContext = null;
-            StartImportButton.IsEnabled = false;
-            PreviewStatusText.Text = "Preview failed.";
+            ResetPreview("Preview failed.");
 
             if (showErrors)
             {
@@ -120,5 +157,28 @@ public partial class ImportBibleWindow : Window
 
             return false;
         }
+    }
+
+    private void InputChanged(object sender, TextChangedEventArgs e)
+    {
+        if (isUpdatingPreview || StartImportButton is null)
+        {
+            return;
+        }
+
+        ResetPreview("Click Preview to inspect the CSV.");
+    }
+
+    private void ResetPreview(string statusText)
+    {
+        PreviewSummary = null;
+        DataContext = null;
+        StartImportButton.IsEnabled = false;
+        PreviewStatusText.Text = statusText;
+        PreviewTranslationText.Text = "-";
+        PreviewVerseCountText.Text = "0";
+        PreviewInvalidCountText.Text = "0";
+        NoInvalidRowsPanel.Visibility = Visibility.Visible;
+        InvalidRowsList.Visibility = Visibility.Collapsed;
     }
 }

@@ -45,6 +45,7 @@ public sealed class MainViewModel : ObservableObject
     private bool isDatabaseOperationRunning;
     private bool isBibleAvailable;
     private bool isBibleMode;
+    private bool showTestSourcesInManageSources;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
 
@@ -79,6 +80,9 @@ public sealed class MainViewModel : ObservableObject
             CanOpenLatestBackupFolder);
         AddNewSourceCommand = new RelayCommand(
             () => _ = AddNewSourceAsync(),
+            () => !IsDatabaseOperationRunning);
+        ManageSourcesCommand = new RelayCommand(
+            ShowManageSources,
             () => !IsDatabaseOperationRunning);
         ImportSourceCommand = new RelayCommand(
             () => _ = ImportSelectedSourceAsync(),
@@ -123,6 +127,8 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<ContentSourceViewModel> ContentSources { get; } = [];
 
+    public ObservableCollection<ContentSourceViewModel> ManageableContentSources { get; } = [];
+
     public ObservableCollection<BibleTranslationOption> BibleTranslations { get; } = [];
 
     public ObservableCollection<BibleVerseResultViewModel> BibleResults { get; } = [];
@@ -150,6 +156,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand OpenBackupFolderCommand { get; }
 
     public RelayCommand AddNewSourceCommand { get; }
+
+    public RelayCommand ManageSourcesCommand { get; }
 
     public RelayCommand ImportSourceCommand { get; }
 
@@ -296,7 +304,13 @@ public sealed class MainViewModel : ObservableObject
     public BibleTranslationOption? SelectedBibleTranslation
     {
         get => selectedBibleTranslation;
-        set => SetProperty(ref selectedBibleTranslation, value);
+        set
+        {
+            if (SetProperty(ref selectedBibleTranslation, value))
+            {
+                OnPropertyChanged(nameof(CurrentBibleTranslationDisplay));
+            }
+        }
     }
 
     public BibleVerseResultViewModel? SelectedBibleVerse
@@ -398,9 +412,22 @@ public sealed class MainViewModel : ObservableObject
                 RestoreDatabaseCommand.RaiseCanExecuteChanged();
                 OpenBackupFolderCommand.RaiseCanExecuteChanged();
                 AddNewSourceCommand.RaiseCanExecuteChanged();
+                ManageSourcesCommand.RaiseCanExecuteChanged();
                 ImportSourceCommand.RaiseCanExecuteChanged();
                 RepairSourceMetadataCommand.RaiseCanExecuteChanged();
                 ImportBibleCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool ShowTestSourcesInManageSources
+    {
+        get => showTestSourcesInManageSources;
+        set
+        {
+            if (SetProperty(ref showTestSourcesInManageSources, value))
+            {
+                RefreshManageableContentSources();
             }
         }
     }
@@ -419,6 +446,11 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public bool IsBibleUnavailable => !IsBibleAvailable;
+
+    public string CurrentBibleTranslationDisplay =>
+        SelectedBibleTranslation is null
+            ? "No Bible translation imported yet."
+            : $"Current translation: {SelectedBibleTranslation.Abbreviation}";
 
     public bool IsProjectionOpen
     {
@@ -836,6 +868,17 @@ public sealed class MainViewModel : ObservableObject
         {
             IsDatabaseOperationRunning = false;
         }
+    }
+
+    private void ShowManageSources()
+    {
+        var dialog = new ManageSourcesWindow(this)
+        {
+            Owner = Application.Current.MainWindow,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        dialog.ShowDialog();
     }
 
     private async Task ImportBibleAsync()
@@ -2667,11 +2710,18 @@ public sealed class MainViewModel : ObservableObject
             ContentSources.Add(source);
         }
 
+        RefreshManageableContentSources();
+
+        var visibleSources = ManageableContentSources.Count > 0
+            ? ManageableContentSources
+            : ContentSources;
+
         SelectedContentSource = preferredSourceId is null
-            ? ContentSources.FirstOrDefault(source => source.Id == SelectedContentSource?.Id) ??
-              ContentSources.FirstOrDefault()
-            : ContentSources.FirstOrDefault(source => source.Id == preferredSourceId.Value) ??
-              ContentSources.FirstOrDefault();
+            ? visibleSources.FirstOrDefault(source => source.Id == SelectedContentSource?.Id) ??
+              visibleSources.FirstOrDefault()
+            : visibleSources.FirstOrDefault(source => source.Id == preferredSourceId.Value) ??
+              ContentSources.FirstOrDefault(source => source.Id == preferredSourceId.Value) ??
+              visibleSources.FirstOrDefault();
 
         if (sources.Count == 0)
         {
@@ -2681,6 +2731,33 @@ public sealed class MainViewModel : ObservableObject
         }
 
         _ = LoadSelectedSourceDiagnosticsAsync(SelectedContentSource);
+    }
+
+    private void RefreshManageableContentSources()
+    {
+        var selectedSourceId = SelectedContentSource?.Id;
+
+        ManageableContentSources.Clear();
+        foreach (var source in ContentSources.Where(source => ShowTestSourcesInManageSources || !LooksLikeTestSource(source)))
+        {
+            ManageableContentSources.Add(source);
+        }
+
+        if (SelectedContentSource is not null &&
+            !ShowTestSourcesInManageSources &&
+            LooksLikeTestSource(SelectedContentSource))
+        {
+            SelectedContentSource = ManageableContentSources.FirstOrDefault();
+            return;
+        }
+
+        if (SelectedContentSource is null && ManageableContentSources.Count > 0)
+        {
+            SelectedContentSource = selectedSourceId is null
+                ? ManageableContentSources.FirstOrDefault()
+                : ManageableContentSources.FirstOrDefault(source => source.Id == selectedSourceId.Value) ??
+                  ManageableContentSources.FirstOrDefault();
+        }
     }
 
     private async Task LoadSelectedSourceDiagnosticsAsync(ContentSourceViewModel? source)
@@ -3299,6 +3376,7 @@ public sealed class MainViewModel : ObservableObject
         RestoreDatabaseCommand.RaiseCanExecuteChanged();
         OpenBackupFolderCommand.RaiseCanExecuteChanged();
         AddNewSourceCommand.RaiseCanExecuteChanged();
+        ManageSourcesCommand.RaiseCanExecuteChanged();
         ImportSourceCommand.RaiseCanExecuteChanged();
         RepairSourceMetadataCommand.RaiseCanExecuteChanged();
         ImportBibleCommand.RaiseCanExecuteChanged();
