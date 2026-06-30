@@ -53,8 +53,18 @@
                          Margin="0,0,14,0"
                          MinWidth="260"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="Search sermons and paragraphs"
-                         VerticalContentAlignment="Center" />
+                         ToolTip="Search sermons by title, code, phrase, or paragraph number"
+                         VerticalContentAlignment="Center">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
 
                 <ComboBox Grid.Column="2"
                           Margin="0,0,14,0"
@@ -63,7 +73,17 @@
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
                           MinWidth="190"
-                          VerticalContentAlignment="Center" />
+                          VerticalContentAlignment="Center">
+                    <ComboBox.Style>
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.Style>
+                </ComboBox>
 
                 <ComboBox Grid.Column="3"
                           Margin="0,0,14,0"
@@ -72,7 +92,17 @@
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
                           MinWidth="190"
-                          VerticalContentAlignment="Center" />
+                          VerticalContentAlignment="Center">
+                    <ComboBox.Style>
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.Style>
+                </ComboBox>
 
                 <ComboBox Grid.Column="4"
                           ItemsSource="{Binding YearFilters}"
@@ -80,7 +110,17 @@
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
                           MinWidth="110"
-                          VerticalContentAlignment="Center" />
+                          VerticalContentAlignment="Center">
+                    <ComboBox.Style>
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.Style>
+                </ComboBox>
 
                 <ComboBox Grid.Column="5"
                           Margin="14,0,0,0"
@@ -296,7 +336,7 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock Text="No Bible results to show."
+                                    <TextBlock Text="Search Bible by reference or keyword."
                                                    Foreground="{StaticResource MutedTextBrush}"
                                                    FontSize="14"
                                                    TextWrapping="Wrap" />
@@ -377,8 +417,27 @@
                         <TabItem x:Name="HistoryTab"
                                  Header="History">
                             <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Margin="0,10,0,10">
+                                    <TextBlock Text="Recent projections"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"
+                                               DockPanel.Dock="Left" />
+                                    <Button Content="Clear History"
+                                            Command="{Binding ClearHistoryCommand}"
+                                            MinHeight="38"
+                                            Padding="12,7"
+                                            FontSize="13"
+                                            HorizontalAlignment="Right" />
+                                </DockPanel>
+
                                 <ListBox x:Name="HistoryList"
-                                         Margin="0,10,0,0"
+                                         Grid.Row="1"
                                          ItemsSource="{Binding ProjectionHistoryItems}"
                                          SelectedItem="{Binding SelectedHistoryParagraph}"
                                          MouseDoubleClick="HistoryList_MouseDoubleClick">
@@ -426,6 +485,7 @@
                                 </ListBox>
 
                                 <Border Margin="12,22,12,0"
+                                        Grid.Row="1"
                                         Padding="16"
                                         Background="{StaticResource CardBackgroundBrush}"
                                         BorderBrush="{StaticResource BorderBrush}"
@@ -448,110 +508,6 @@
                                                TextWrapping="Wrap" />
                                 </Border>
                             </Grid>
-                        </TabItem>
-
-                        <TabItem Header="Tools">
-                            <ScrollViewer Margin="0,10,0,0"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel>
-                                    <Border Padding="{StaticResource CardPadding}"
-                                            Background="{StaticResource CardBackgroundBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="{StaticResource BorderRadius}">
-                                        <StackPanel>
-                                            <TextBlock Text="Bible"
-                                                       FontSize="17"
-                                                       FontWeight="SemiBold" />
-                                            <TextBlock Text="Import a local Bible CSV file."
-                                                       Margin="0,7,0,0"
-                                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                                       FontSize="13"
-                                                       TextWrapping="Wrap" />
-                                            <TextBlock Text="{Binding CurrentBibleTranslationDisplay}"
-                                                       Margin="0,6,0,14"
-                                                       Foreground="{StaticResource MutedTextBrush}"
-                                                       FontSize="12"
-                                                       TextWrapping="Wrap" />
-                                            <Button Content="Import Bible"
-                                                    Command="{Binding ImportBibleCommand}"
-                                                    ToolTip="Preview and import a local Bible CSV file" />
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border Margin="0,14,0,0"
-                                            Padding="{StaticResource CardPadding}"
-                                            Background="{StaticResource CardBackgroundBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="{StaticResource BorderRadius}">
-                                        <StackPanel>
-                                            <TextBlock Text="Sources"
-                                                       FontSize="17"
-                                                       FontWeight="SemiBold" />
-                                            <TextBlock Text="Manage sermon, circular letter, and book folders."
-                                                       Margin="0,7,0,14"
-                                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                                       FontSize="13"
-                                                       TextWrapping="Wrap" />
-                                            <Button Content="Manage Sources"
-                                                    Command="{Binding ManageSourcesCommand}" />
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border Margin="0,14,0,0"
-                                            Padding="{StaticResource CardPadding}"
-                                            Background="{StaticResource CardBackgroundBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="{StaticResource BorderRadius}">
-                                        <StackPanel>
-                                            <TextBlock Text="Database"
-                                                       FontSize="17"
-                                                       FontWeight="SemiBold" />
-                                            <TextBlock Text="Keep a safe copy before big imports."
-                                                       Margin="0,7,0,14"
-                                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                                       FontSize="13"
-                                                       TextWrapping="Wrap" />
-                                            <Button Content="Backup Database"
-                                                    Command="{Binding BackupDatabaseCommand}" />
-                                            <Button Content="Restore Database"
-                                                    Margin="0,10,0,0"
-                                                    Command="{Binding RestoreDatabaseCommand}" />
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Expander Header="Advanced"
-                                              Margin="0,14,0,0"
-                                              Foreground="{StaticResource SecondaryTextBrush}"
-                                              Background="{StaticResource CardBackgroundBrush}">
-                                        <Border Padding="{StaticResource CardPadding}"
-                                                Background="{StaticResource CardBackgroundBrush}"
-                                                BorderBrush="{StaticResource BorderBrush}"
-                                                BorderThickness="1"
-                                                CornerRadius="{StaticResource BorderRadius}">
-                                            <StackPanel>
-                                                <TextBlock Text="Advanced source tools are kept here for setup and maintenance."
-                                                           Margin="0,0,0,14"
-                                                           Foreground="{StaticResource MutedTextBrush}"
-                                                           FontSize="12"
-                                                           TextWrapping="Wrap" />
-                                                <Button Content="Repair Source Metadata"
-                                                        Command="{Binding RepairSourceMetadataCommand}"
-                                                        ToolTip="Repair title, year, code, and author for the selected non-Branham source" />
-                                                <Button Content="Show Source Details"
-                                                        Margin="0,10,0,0"
-                                                        Command="{Binding ManageSourcesCommand}" />
-                                                <Button Content="Open Backup Folder"
-                                                        Margin="0,10,0,0"
-                                                        Command="{Binding OpenBackupFolderCommand}" />
-                                            </StackPanel>
-                                        </Border>
-                                    </Expander>
-                                </StackPanel>
-                            </ScrollViewer>
                         </TabItem>
                     </TabControl>
                 </Grid>
@@ -718,7 +674,7 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <TextBlock Text="No paragraph results to show."
+                        <TextBlock Text="Ready to search sermons."
                                    Foreground="{StaticResource MutedTextBrush}"
                                    FontSize="16"
                                    TextAlignment="Center"
@@ -813,6 +769,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0"
@@ -827,6 +784,15 @@
                            Foreground="{StaticResource AccentBrush}"
                            FontSize="13"
                            FontWeight="SemiBold" />
+
+                <Button Grid.Column="2"
+                        Content="Admin"
+                        Margin="18,0,0,0"
+                        MinHeight="30"
+                        Padding="12,5"
+                        FontSize="12"
+                        Click="Admin_Click"
+                        ToolTip="Open Admin Tools (Ctrl+Shift+A)" />
             </Grid>
         </Border>
     </Grid>

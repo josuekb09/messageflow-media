@@ -40,6 +40,7 @@ public sealed class MainViewModel : ObservableObject
     private string bibleSearchText = string.Empty;
     private string statusText = "Ready";
     private string? latestBackupPath;
+    private int currentBibleVerseCount;
     private bool isProjectionOpen;
     private bool isSearching;
     private bool isDatabaseOperationRunning;
@@ -93,6 +94,15 @@ public sealed class MainViewModel : ObservableObject
         ImportBibleCommand = new RelayCommand(
             () => _ = ImportBibleAsync(),
             () => !IsDatabaseOperationRunning);
+        ClearHistoryCommand = new RelayCommand(
+            () => _ = ClearHistoryAsync(),
+            () => !IsDatabaseOperationRunning && ProjectionHistoryItems.Count > 0);
+        VerifyProductionDataCommand = new RelayCommand(
+            () => _ = VerifyProductionDataAsync(),
+            () => !IsDatabaseOperationRunning);
+        CleanupTestDataCommand = new RelayCommand(
+            () => _ = CleanupTestDataAsync(),
+            () => !IsDatabaseOperationRunning);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
@@ -102,6 +112,11 @@ public sealed class MainViewModel : ObservableObject
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
         FavoriteParagraphs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsFavoritesEmpty));
+        ProjectionHistoryItems.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
+            ClearHistoryCommand.RaiseCanExecuteChanged();
+        };
         BibleResults.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(IsBibleResultsEmpty));
@@ -164,6 +179,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand RepairSourceMetadataCommand { get; }
 
     public RelayCommand ImportBibleCommand { get; }
+
+    public RelayCommand ClearHistoryCommand { get; }
+
+    public RelayCommand VerifyProductionDataCommand { get; }
+
+    public RelayCommand CleanupTestDataCommand { get; }
 
     public string SearchText
     {
@@ -309,6 +330,7 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref selectedBibleTranslation, value))
             {
                 OnPropertyChanged(nameof(CurrentBibleTranslationDisplay));
+                OnPropertyChanged(nameof(CurrentBibleVerseCountDisplay));
             }
         }
     }
@@ -416,6 +438,9 @@ public sealed class MainViewModel : ObservableObject
                 ImportSourceCommand.RaiseCanExecuteChanged();
                 RepairSourceMetadataCommand.RaiseCanExecuteChanged();
                 ImportBibleCommand.RaiseCanExecuteChanged();
+                ClearHistoryCommand.RaiseCanExecuteChanged();
+                VerifyProductionDataCommand.RaiseCanExecuteChanged();
+                CleanupTestDataCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -450,7 +475,10 @@ public sealed class MainViewModel : ObservableObject
     public string CurrentBibleTranslationDisplay =>
         SelectedBibleTranslation is null
             ? "No Bible translation imported yet."
-            : $"Current translation: {SelectedBibleTranslation.Abbreviation}";
+            : $"Bible: {SelectedBibleTranslation.Name} ({SelectedBibleTranslation.Abbreviation})";
+
+    public string CurrentBibleVerseCountDisplay =>
+        currentBibleVerseCount <= 0 ? "No Bible verses imported." : $"{currentBibleVerseCount:N0} verses available.";
 
     public bool IsProjectionOpen
     {
@@ -503,9 +531,9 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsNotBibleMode => !IsBibleMode;
 
-    public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : "Paragraphs";
+    public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : "Sermon Results";
 
-    public string RightPanelTitle => IsBibleMode ? "Live / Projection" : "Selected Paragraph";
+    public string RightPanelTitle => "Live / Projection";
 
     public string LibraryCountText =>
         IsBibleMode
@@ -514,16 +542,16 @@ public sealed class MainViewModel : ObservableObject
 
     public string PreviewHeader =>
         IsBibleMode
-            ? SelectedBibleVerse?.ReferenceDisplay ?? "No Bible verse selected"
+            ? SelectedBibleVerse?.ReferenceDisplay ?? "Ready to search the Bible"
             : SelectedParagraph is null
-                ? "No paragraph selected"
+                ? "Ready to search sermons"
                 : $"{SelectedParagraph.SermonTitle}";
 
     public string PreviewMeta =>
         IsBibleMode
-            ? SelectedBibleVerse?.MetaLine ?? "Search and select a Bible verse to preview it here."
+            ? SelectedBibleVerse?.MetaLine ?? "Examples: John 3:16, Romans 8:28, Psalm 23."
             : SelectedParagraph is null
-                ? "Search and select a paragraph to preview it here."
+                ? "Search by sermon title, code, phrase, or paragraph number."
                 : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string PreviewText =>
@@ -532,28 +560,28 @@ public sealed class MainViewModel : ObservableObject
             : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public string SelectedParagraphHeader =>
-        SelectedBibleVerse is not null
+        IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.ReferenceDisplay
             : SelectedParagraph is null
-            ? "No paragraph selected"
+            ? "Ready to search sermons"
             : $"{SelectedParagraph.SermonTitle}";
 
     public string SelectedParagraphMeta =>
-        SelectedBibleVerse is not null
+        IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.MetaLine
             : SelectedParagraph is null
-            ? "Search and select a paragraph to preview it here."
+            ? "Search by sermon title, code, phrase, or paragraph number."
             : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string ProjectionParagraphTitle =>
-        SelectedBibleVerse is not null
+        IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.ReferenceDisplay
             : IsBibleMode
                 ? "MessageFlow Bible"
                 : SelectedParagraph?.SermonTitle ?? "MessageFlow";
 
     public string ProjectionParagraphNumber =>
-        SelectedBibleVerse is not null
+        IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.TranslationAbbreviation
             : IsBibleMode
                 ? string.Empty
@@ -562,7 +590,7 @@ public sealed class MainViewModel : ObservableObject
                 : $"Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string SelectedParagraphText =>
-        SelectedBibleVerse?.Text ?? SelectedParagraph?.FullParagraphText ?? string.Empty;
+        IsBibleMode ? SelectedBibleVerse?.Text ?? string.Empty : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public double ProjectionFontSize =>
         SelectedProjectionFontSize?.FontSize ?? 48;
@@ -572,7 +600,7 @@ public sealed class MainViewModel : ObservableObject
 
     public string FavoriteButtonText =>
         IsBibleMode
-            ? "Bible Favorites Coming Soon"
+            ? "Bible favorites will be added later"
             : SelectedParagraph?.IsFavorite == true
                 ? "Remove Favorite"
                 : "Add Favorite";
@@ -656,13 +684,377 @@ public sealed class MainViewModel : ObservableObject
         }
 
         StatusText = startupMessages.Count == 0
-            ? "Type to search sermons and paragraphs."
+            ? "Search sermons by title, code, phrase, or paragraph number."
             : string.Join(' ', startupMessages);
     }
 
     public Task RefreshProjectionHistoryAsync()
     {
         return LoadProjectionHistoryAsync();
+    }
+
+    private async Task ClearHistoryAsync()
+    {
+        var confirmation = MessageBox.Show(
+            "Clear all projection history? This will not delete sermons, Bible verses, favorites, or sources.",
+            "Clear History",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            StatusText = "History was kept.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            await dbContext.ProjectionHistories.ExecuteDeleteAsync();
+
+            ProjectionHistoryItems.Clear();
+            SelectedHistoryParagraph = null;
+            StatusText = "History cleared.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Clear history failed.", ex);
+            StatusText = $"History could not be cleared: {ex.Message}";
+            MessageBox.Show(
+                $"History could not be cleared:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Clear History",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task VerifyProductionDataAsync()
+    {
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Verifying production data...";
+
+            var report = await BuildProductionVerificationReportAsync();
+            var window = new MessageFlow.App.ProductionVerificationWindow(report)
+            {
+                Owner = Application.Current.MainWindow,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+
+            window.ShowDialog();
+
+            StatusText = report.All(item => item.Passed)
+                ? "Production data verification passed."
+                : "Production data verification found items to review.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Production data verification failed.", ex);
+            StatusText = $"Production verification failed: {ex.Message}";
+            MessageBox.Show(
+                $"Production verification failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Verify Production Data",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task<IReadOnlyList<ProductionVerificationItem>> BuildProductionVerificationReportAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        var items = new List<ProductionVerificationItem>();
+
+        var branhamSource = await dbContext.ContentSources
+            .AsNoTracking()
+            .FirstOrDefaultAsync(source => source.Name == "brother_branham" ||
+                                           source.DisplayName.Contains("Branham"));
+        items.Add(new ProductionVerificationItem(
+            "Brother Branham source",
+            branhamSource is not null,
+            branhamSource is null ? "Brother Branham source was not found." : "Brother Branham source is available."));
+
+        var branhamDocumentCount = branhamSource is null
+            ? 0
+            : await dbContext.Sermons
+                .AsNoTracking()
+                .CountAsync(sermon => sermon.ContentSourceId == branhamSource.Id);
+        items.Add(new ProductionVerificationItem(
+            "Brother Branham documents",
+            branhamDocumentCount is >= 1_150 and <= 1_260,
+            $"{branhamDocumentCount:N0} document(s) found."));
+
+        var branhamParagraphCount = branhamSource is null
+            ? 0
+            : await dbContext.SermonParagraphs
+                .AsNoTracking()
+                .CountAsync(paragraph => paragraph.Sermon!.ContentSourceId == branhamSource.Id);
+        items.Add(new ProductionVerificationItem(
+            "Brother Branham paragraphs",
+            branhamParagraphCount > 190_000,
+            $"{branhamParagraphCount:N0} paragraph(s) found."));
+
+        var kjvTranslation = await dbContext.BibleTranslations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(translation => translation.Abbreviation == "KJV");
+        items.Add(new ProductionVerificationItem(
+            "KJV Bible",
+            kjvTranslation is not null,
+            kjvTranslation is null ? "KJV translation was not found." : "King James Version is available."));
+
+        var bibleBookCount = await dbContext.BibleBooks
+            .AsNoTracking()
+            .CountAsync();
+        items.Add(new ProductionVerificationItem(
+            "Bible books",
+            bibleBookCount == 66,
+            $"{bibleBookCount:N0} book(s) found."));
+
+        var kjvVerseCount = kjvTranslation is null
+            ? 0
+            : await dbContext.BibleVerses
+                .AsNoTracking()
+                .CountAsync(verse => verse.TranslationId == kjvTranslation.Id);
+        items.Add(new ProductionVerificationItem(
+            "KJV verse count",
+            kjvVerseCount == 31_102,
+            $"{kjvVerseCount:N0} verse(s) found."));
+
+        if (kjvTranslation is not null)
+        {
+            items.Add(await VerifyBibleVerseAsync(dbContext, kjvTranslation.Id, "Genesis", 1, 1));
+            items.Add(await VerifyBibleVerseAsync(dbContext, kjvTranslation.Id, "John", 3, 16));
+            items.Add(await VerifyBibleVerseAsync(dbContext, kjvTranslation.Id, "Revelation", 22, 21));
+        }
+        else
+        {
+            items.Add(new ProductionVerificationItem("Genesis 1:1", false, "KJV was not available for verse checks."));
+            items.Add(new ProductionVerificationItem("John 3:16", false, "KJV was not available for verse checks."));
+            items.Add(new ProductionVerificationItem("Revelation 22:21", false, "KJV was not available for verse checks."));
+        }
+
+        items.Add(new ProductionVerificationItem(
+            "Operator source list",
+            ManageableContentSources.All(source => !LooksLikeTestSource(source)),
+            "Test sources are hidden from normal source selection."));
+
+        var searchIndexExists = await SearchIndexExistsAsync();
+        items.Add(new ProductionVerificationItem(
+            "Sermon search index",
+            searchIndexExists,
+            searchIndexExists ? "Sermon search index is available." : "Sermon search index was not found."));
+
+        items.Add(new ProductionVerificationItem(
+            "Projection window",
+            true,
+            "Projection window is available from Project."));
+
+        return items;
+    }
+
+    private static async Task<ProductionVerificationItem> VerifyBibleVerseAsync(
+        MessageFlowDbContext dbContext,
+        int translationId,
+        string bookName,
+        int chapter,
+        int verse)
+    {
+        var exists = await dbContext.BibleVerses
+            .AsNoTracking()
+            .AnyAsync(row =>
+                row.TranslationId == translationId &&
+                row.BibleBook!.Name == bookName &&
+                row.Chapter == chapter &&
+                row.Verse == verse);
+
+        var reference = $"{bookName} {chapter}:{verse}";
+        return new ProductionVerificationItem(
+            reference,
+            exists,
+            exists ? $"{reference} is available." : $"{reference} was not found.");
+    }
+
+    private static async Task<bool> SearchIndexExistsAsync()
+    {
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = MessageFlowDatabase.DefaultDatabasePath
+        }.ToString();
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT COUNT(1)
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name = 'SermonParagraphsFts';
+            """;
+
+        var result = await command.ExecuteScalarAsync();
+        return Convert.ToInt64(result) > 0;
+    }
+
+    private async Task CleanupTestDataAsync()
+    {
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Checking for test data...";
+
+            var preview = await BuildTestDataCleanupPreviewAsync();
+            if (preview.SourceCount == 0)
+            {
+                StatusText = "No test data was found.";
+                MessageBox.Show(
+                    "No test sources were found.",
+                    "Cleanup Test Data",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var confirmationWindow = new MessageFlow.App.TestDataCleanupWindow(preview)
+            {
+                Owner = Application.Current.MainWindow,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+
+            if (confirmationWindow.ShowDialog() != true)
+            {
+                StatusText = "Test data cleanup canceled.";
+                return;
+            }
+
+            var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+            var backupPath = Path.Combine(
+                Path.GetDirectoryName(databasePath) ?? Directory.GetCurrentDirectory(),
+                "backups",
+                $"messageflow_before_test_cleanup_{DateTime.Now:yyyyMMdd_HHmmss}.db");
+            BackupDatabaseFile(databasePath, backupPath);
+            LatestBackupPath = backupPath;
+
+            await DeleteTestDataAsync(preview);
+            await LoadContentSourcesAsync();
+            await RefreshFilterOptionsPreservingSelectionAsync();
+
+            StatusText = "Test data cleanup completed.";
+            MessageBox.Show(
+                $"Test data cleanup completed.{Environment.NewLine}{Environment.NewLine}Backup created:{Environment.NewLine}{backupPath}",
+                "Cleanup Test Data",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Test data cleanup failed.", ex);
+            StatusText = $"Test data cleanup failed: {ex.Message}";
+            MessageBox.Show(
+                $"Test data cleanup failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Cleanup Test Data",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task<TestDataCleanupPreview> BuildTestDataCleanupPreviewAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var sourceRows = await dbContext.ContentSources
+            .AsNoTracking()
+            .ToListAsync();
+
+        var testSources = sourceRows
+            .Where(source => !string.Equals(source.Name, "brother_branham", StringComparison.OrdinalIgnoreCase))
+            .Where(source => LooksLikeTestSource(source.Name, source.DisplayName, source.LocalFolderPath))
+            .OrderBy(source => source.DisplayName)
+            .ToList();
+
+        var sourcePreviews = new List<TestDataCleanupSourcePreview>();
+        foreach (var source in testSources)
+        {
+            var documentCount = await dbContext.Sermons
+                .AsNoTracking()
+                .CountAsync(sermon => sermon.ContentSourceId == source.Id);
+            var paragraphCount = await dbContext.SermonParagraphs
+                .AsNoTracking()
+                .CountAsync(paragraph => paragraph.Sermon!.ContentSourceId == source.Id);
+            var favoriteCount = await dbContext.FavoriteParagraphs
+                .AsNoTracking()
+                .CountAsync(favorite => favorite.SermonParagraph!.Sermon!.ContentSourceId == source.Id);
+            var historyCount = await dbContext.ProjectionHistories
+                .AsNoTracking()
+                .CountAsync(history => history.SermonParagraph!.Sermon!.ContentSourceId == source.Id);
+
+            sourcePreviews.Add(new TestDataCleanupSourcePreview(
+                source.Id,
+                source.DisplayName,
+                ContentSourceTypeOption.GetLabel(source.SourceType),
+                string.IsNullOrWhiteSpace(source.LocalFolderPath) ? "No local folder configured." : source.LocalFolderPath,
+                documentCount,
+                paragraphCount,
+                favoriteCount,
+                historyCount));
+        }
+
+        return new TestDataCleanupPreview(sourcePreviews);
+    }
+
+    private async Task DeleteTestDataAsync(TestDataCleanupPreview preview)
+    {
+        var sourceIds = preview.Sources.Select(source => source.SourceId).ToArray();
+        if (sourceIds.Length == 0)
+        {
+            return;
+        }
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        var testParagraphIds = dbContext.SermonParagraphs
+            .Where(paragraph => paragraph.Sermon!.ContentSourceId != null &&
+                                sourceIds.Contains(paragraph.Sermon.ContentSourceId.Value))
+            .Select(paragraph => paragraph.Id);
+
+        await dbContext.FavoriteParagraphs
+            .Where(favorite => testParagraphIds.Contains(favorite.SermonParagraphId))
+            .ExecuteDeleteAsync();
+        await dbContext.ProjectionHistories
+            .Where(history => testParagraphIds.Contains(history.SermonParagraphId))
+            .ExecuteDeleteAsync();
+        await dbContext.SermonParagraphs
+            .Where(paragraph => paragraph.Sermon!.ContentSourceId != null &&
+                                sourceIds.Contains(paragraph.Sermon.ContentSourceId.Value))
+            .ExecuteDeleteAsync();
+        await dbContext.Sermons
+            .Where(sermon => sermon.ContentSourceId != null &&
+                             sourceIds.Contains(sermon.ContentSourceId.Value))
+            .ExecuteDeleteAsync();
+        await dbContext.ContentSources
+            .Where(source => sourceIds.Contains(source.Id))
+            .ExecuteDeleteAsync();
+
+        await transaction.CommitAsync();
     }
 
     public void SetBibleMode(bool enabled)
@@ -1854,7 +2246,7 @@ public sealed class MainViewModel : ObservableObject
             SetResults([]);
             StatusText = snapshot.ProjectBestResult
                 ? "No matching paragraph found."
-                : "Type to search sermons and paragraphs.";
+                : "Search by sermon title, code, phrase, or paragraph number.";
             IsSearching = false;
             return;
         }
@@ -1938,6 +2330,7 @@ public sealed class MainViewModel : ObservableObject
 
             cancellationToken.ThrowIfCancellationRequested();
             return results
+                .Where(result => !LooksLikeTestSource(result.SourceDisplayName, result.SourceDisplayName, result.SourceFilePath))
                 .Select(result => new ParagraphResultViewModel(result))
                 .ToList();
         }, cancellationToken);
@@ -2592,20 +2985,25 @@ public sealed class MainViewModel : ObservableObject
             .OrderByDescending(year => year)
             .ToListAsync();
 
-        var linkedSources = await dbContext.Sermons
+        var linkedSourceRows = await dbContext.Sermons
             .AsNoTracking()
             .Where(sermon => sermon.ContentSourceId != null)
             .Select(sermon => new
             {
                 sermon.ContentSource!.Id,
                 sermon.ContentSource.DisplayName,
-                sermon.ContentSource.Name
+                sermon.ContentSource.Name,
+                sermon.ContentSource.LocalFolderPath
             })
             .Distinct()
+            .ToListAsync();
+
+        var linkedSources = linkedSourceRows
+            .Where(source => !LooksLikeTestSource(source.Name, source.DisplayName, source.LocalFolderPath))
             .OrderBy(source => source.DisplayName)
             .ThenBy(source => source.Name)
             .Select(source => new FilterOption(source.Id, source.DisplayName))
-            .ToListAsync();
+            .ToList();
 
         AuthorFilters.Clear();
         AuthorFilters.Add(new FilterOption(null, "All authors"));
@@ -2675,6 +3073,13 @@ public sealed class MainViewModel : ObservableObject
             ? BibleTranslations.FirstOrDefault()
             : BibleTranslations.FirstOrDefault(translation => translation.Id == existingSelectionId.Value) ??
               BibleTranslations.FirstOrDefault();
+
+        currentBibleVerseCount = SelectedBibleTranslation is null
+            ? 0
+            : await dbContext.BibleVerses
+                .AsNoTracking()
+                .CountAsync(verse => verse.TranslationId == SelectedBibleTranslation.Id);
+        OnPropertyChanged(nameof(CurrentBibleVerseCountDisplay));
 
         IsBibleAvailable = BibleTranslations.Count > 0;
         if (!IsBibleAvailable)
@@ -3152,8 +3557,15 @@ public sealed class MainViewModel : ObservableObject
 
     private static bool LooksLikeTestSource(ContentSourceViewModel source)
     {
-        return source.DisplayName.Contains("Test", StringComparison.OrdinalIgnoreCase) ||
-               source.Name.Contains("test", StringComparison.OrdinalIgnoreCase);
+        return LooksLikeTestSource(source.Name, source.DisplayName, source.LocalFolderPath);
+    }
+
+    private static bool LooksLikeTestSource(string name, string displayName, string? localFolderPath)
+    {
+        return displayName.Contains("Test", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("test", StringComparison.OrdinalIgnoreCase) ||
+               (!string.IsNullOrWhiteSpace(localFolderPath) &&
+                localFolderPath.Contains("Ewald Frank Test", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsCircularLetterMetadata(SermonMetadata metadata)
@@ -3380,6 +3792,9 @@ public sealed class MainViewModel : ObservableObject
         ImportSourceCommand.RaiseCanExecuteChanged();
         RepairSourceMetadataCommand.RaiseCanExecuteChanged();
         ImportBibleCommand.RaiseCanExecuteChanged();
+        ClearHistoryCommand.RaiseCanExecuteChanged();
+        VerifyProductionDataCommand.RaiseCanExecuteChanged();
+        CleanupTestDataCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(

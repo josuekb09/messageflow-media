@@ -9,6 +9,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel viewModel;
     private ProjectWindow? projectWindow;
+    private AdminToolsWindow? adminToolsWindow;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -81,6 +82,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A)
+        {
+            ShowAdminTools();
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Escape && projectWindow is not null)
         {
             projectWindow.Close();
@@ -117,5 +125,29 @@ public partial class MainWindow : Window
         {
             await viewModel.RefreshProjectionHistoryAsync();
         }
+    }
+
+    private void Admin_Click(object sender, RoutedEventArgs e)
+    {
+        ShowAdminTools();
+    }
+
+    private void ShowAdminTools()
+    {
+        if (adminToolsWindow is not null)
+        {
+            adminToolsWindow.Activate();
+            adminToolsWindow.Focus();
+            return;
+        }
+
+        adminToolsWindow = new AdminToolsWindow(viewModel)
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+        adminToolsWindow.Closed += (_, _) => adminToolsWindow = null;
+        adminToolsWindow.Show();
+        adminToolsWindow.Activate();
     }
 }
