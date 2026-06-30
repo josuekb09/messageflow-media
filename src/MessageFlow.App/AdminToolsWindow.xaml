@@ -20,7 +20,7 @@
             <TextBlock Text="Admin Tools"
                        FontSize="28"
                        FontWeight="SemiBold" />
-            <TextBlock Text="Setup, maintenance, backup, and cleanup tools are kept here so the service screen stays simple."
+            <TextBlock Text="Admin tools are for setup and maintenance. They are not needed during normal service."
                        Margin="0,6,0,0"
                        Foreground="{StaticResource SecondaryTextBrush}"
                        FontSize="14"

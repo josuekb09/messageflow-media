@@ -65,6 +65,25 @@ public partial class MainWindow : Window
 
     private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab) &&
+            (BibleSearchBox.IsKeyboardFocusWithin || BibleNavigationList.IsKeyboardFocusWithin))
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Return)
+            {
+                e.Handled = true;
+                await viewModel.ActivateSelectedBibleNavigationItemAsync();
+                return;
+            }
+
+            if (e.Key is Key.Down or Key.Up && BibleSearchBox.IsKeyboardFocusWithin)
+            {
+                MoveBibleNavigationSelection(e.Key == Key.Down ? 1 : -1);
+                BibleNavigationList.Focus();
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (Keyboard.Modifiers == ModifierKeys.None &&
             (e.Key == Key.Enter || e.Key == Key.Return) &&
             SearchBox.IsKeyboardFocusWithin)
@@ -96,6 +115,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private void MoveBibleNavigationSelection(int offset)
+    {
+        var itemCount = viewModel.BibleNavigationItems.Count;
+        if (itemCount == 0)
+        {
+            return;
+        }
+
+        var currentIndex = viewModel.SelectedBibleNavigationItem is null
+            ? -1
+            : viewModel.BibleNavigationItems.IndexOf(viewModel.SelectedBibleNavigationItem);
+        var nextIndex = currentIndex < 0
+            ? 0
+            : Math.Clamp(currentIndex + offset, 0, itemCount - 1);
+
+        viewModel.SelectedBibleNavigationItem = viewModel.BibleNavigationItems[nextIndex];
+        BibleNavigationList.ScrollIntoView(viewModel.SelectedBibleNavigationItem);
+    }
+
     private async void FavoritesList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (FavoritesList.SelectedItem is SavedParagraphViewModel savedParagraph)
@@ -110,6 +148,19 @@ public partial class MainWindow : Window
         {
             await viewModel.ProjectSavedParagraphAsync(savedParagraph);
         }
+    }
+
+    private async void BibleNavigationList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source ||
+            ItemsControl.ContainerFromElement(BibleNavigationList, source) is not ListBoxItem item ||
+            item.DataContext is not BibleNavigationItemViewModel navigationItem)
+        {
+            return;
+        }
+
+        viewModel.SelectedBibleNavigationItem = navigationItem;
+        await viewModel.ActivateSelectedBibleNavigationItemAsync();
     }
 
     private async void LibraryTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)

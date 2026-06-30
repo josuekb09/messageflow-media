@@ -15,6 +15,7 @@ public partial class ImportBibleWindow : Window
     public ImportBibleWindow()
     {
         InitializeComponent();
+        WindowPlacement.FitToWorkArea(this, 1120, 760, 860, 560);
         SuggestedFileText.Visibility = File.Exists(SuggestedKjvFile)
             ? Visibility.Visible
             : Visibility.Collapsed;

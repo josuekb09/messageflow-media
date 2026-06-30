@@ -8,6 +8,7 @@ public partial class AdminToolsWindow : Window
     public AdminToolsWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        WindowPlacement.FitToWorkArea(this, 1120, 760, 860, 560);
         DataContext = viewModel;
     }
 

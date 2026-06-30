@@ -10,6 +10,7 @@ public partial class AddContentSourceWindow : Window
     public AddContentSourceWindow()
     {
         InitializeComponent();
+        WindowPlacement.FitToWorkArea(this, 660, 640, 560, 500);
         SourceTypeBox.ItemsSource = ContentSourceTypeOption.All;
         SourceTypeBox.SelectedItem = ContentSourceTypeOption.All[0];
         UpdateFolderSuggestion();

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MessageFlow.Data\MessageFlow.Data.csproj" />
+    <ProjectReference Include="..\..\src\MessageFlow.Search\MessageFlow.Search.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

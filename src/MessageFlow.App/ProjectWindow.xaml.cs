@@ -29,6 +29,7 @@ public partial class ProjectWindow : Window
         this.viewModel = viewModel;
         DataContext = viewModel;
         InitializeComponent();
+        WindowPlacement.FitToWorkArea(this, 1100, 720, 800, 520);
 
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }

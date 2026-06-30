@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -22,7 +23,9 @@ public sealed class MainViewModel : ObservableObject
     private const int SearchDebounceMilliseconds = 400;
     private readonly IServiceScopeFactory scopeFactory;
     private CancellationTokenSource? searchDebounce;
+    private CancellationTokenSource? bibleSearchDebounce;
     private int searchRequestVersion;
+    private int bibleSearchRequestVersion;
     private int sourceDetailsRequestVersion;
     private string searchText = string.Empty;
     private FilterOption? selectedAuthor;
@@ -35,6 +38,7 @@ public sealed class MainViewModel : ObservableObject
     private ContentSourceViewModel? selectedContentSource;
     private BibleTranslationOption? selectedBibleTranslation;
     private BibleVerseResultViewModel? selectedBibleVerse;
+    private BibleNavigationItemViewModel? selectedBibleNavigationItem;
     private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private string bibleSearchText = string.Empty;
@@ -47,6 +51,7 @@ public sealed class MainViewModel : ObservableObject
     private bool isBibleAvailable;
     private bool isBibleMode;
     private bool showTestSourcesInManageSources;
+    private bool suppressBibleSearchQueue;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
 
@@ -70,6 +75,15 @@ public sealed class MainViewModel : ObservableObject
         BibleSearchCommand = new RelayCommand(
             () => _ = SearchBibleAsync(),
             () => IsBibleAvailable && !IsSearching);
+        ProjectFavoriteCommand = new RelayCommand<SavedParagraphViewModel>(
+            item => _ = ProjectSavedParagraphAsync(item),
+            item => item is not null);
+        RemoveFavoriteCommand = new RelayCommand<SavedParagraphViewModel>(
+            item => _ = RemoveSavedFavoriteAsync(item),
+            item => item is not null && !IsDatabaseOperationRunning);
+        ProjectHistoryCommand = new RelayCommand<SavedParagraphViewModel>(
+            item => _ = ProjectSavedParagraphAsync(item),
+            item => item is not null);
         BackupDatabaseCommand = new RelayCommand(
             () => _ = BackupDatabaseAsync(),
             () => !IsDatabaseOperationRunning);
@@ -119,6 +133,10 @@ public sealed class MainViewModel : ObservableObject
         };
         BibleResults.CollectionChanged += (_, _) =>
         {
+            OnPropertyChanged(nameof(LibraryCountText));
+        };
+        BibleNavigationItems.CollectionChanged += (_, _) =>
+        {
             OnPropertyChanged(nameof(IsBibleResultsEmpty));
             OnPropertyChanged(nameof(LibraryCountText));
         };
@@ -148,6 +166,8 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<BibleVerseResultViewModel> BibleResults { get; } = [];
 
+    public ObservableCollection<BibleNavigationItemViewModel> BibleNavigationItems { get; } = [];
+
     public ObservableCollection<ProjectionFontSizeOption> ProjectionFontSizes { get; } = [];
 
     public RelayCommand PreviousParagraphCommand { get; }
@@ -163,6 +183,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ClearSearchCommand { get; }
 
     public RelayCommand BibleSearchCommand { get; }
+
+    public RelayCommand<SavedParagraphViewModel> ProjectFavoriteCommand { get; }
+
+    public RelayCommand<SavedParagraphViewModel> RemoveFavoriteCommand { get; }
+
+    public RelayCommand<SavedParagraphViewModel> ProjectHistoryCommand { get; }
 
     public RelayCommand BackupDatabaseCommand { get; }
 
@@ -331,6 +357,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(CurrentBibleTranslationDisplay));
                 OnPropertyChanged(nameof(CurrentBibleVerseCountDisplay));
+                QueueBibleSearch();
             }
         }
     }
@@ -362,10 +389,29 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public BibleNavigationItemViewModel? SelectedBibleNavigationItem
+    {
+        get => selectedBibleNavigationItem;
+        set
+        {
+            if (SetProperty(ref selectedBibleNavigationItem, value) && value?.Verse is not null)
+            {
+                SelectedBibleVerse = value.Verse;
+                StatusText = $"Selected {value.Verse.ReferenceDisplay}.";
+            }
+        }
+    }
+
     public string BibleSearchText
     {
         get => bibleSearchText;
-        set => SetProperty(ref bibleSearchText, value);
+        set
+        {
+            if (SetProperty(ref bibleSearchText, value) && !suppressBibleSearchQueue)
+            {
+                QueueBibleSearch();
+            }
+        }
     }
 
     public SourceDiagnosticsViewModel SelectedSourceDetails
@@ -441,6 +487,7 @@ public sealed class MainViewModel : ObservableObject
                 ClearHistoryCommand.RaiseCanExecuteChanged();
                 VerifyProductionDataCommand.RaiseCanExecuteChanged();
                 CleanupTestDataCommand.RaiseCanExecuteChanged();
+                RemoveFavoriteCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -478,7 +525,9 @@ public sealed class MainViewModel : ObservableObject
             : $"Bible: {SelectedBibleTranslation.Name} ({SelectedBibleTranslation.Abbreviation})";
 
     public string CurrentBibleVerseCountDisplay =>
-        currentBibleVerseCount <= 0 ? "No Bible verses imported." : $"{currentBibleVerseCount:N0} verses available.";
+        currentBibleVerseCount <= 0
+            ? "No Bible verses imported."
+            : $"{currentBibleVerseCount.ToString("#,0", CultureInfo.InvariantCulture)} verses available.";
 
     public bool IsProjectionOpen
     {
@@ -537,7 +586,7 @@ public sealed class MainViewModel : ObservableObject
 
     public string LibraryCountText =>
         IsBibleMode
-            ? FormatCount(BibleResults.Count, "Bible result", "Bible results")
+            ? FormatCount(BibleNavigationItems.Count, "Bible result", "Bible results")
             : FormatCount(ResultCount, "paragraph", "paragraphs");
 
     public string PreviewHeader =>
@@ -615,7 +664,7 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsParagraphResultsEmpty => ParagraphResults.Count == 0;
 
-    public bool IsBibleResultsEmpty => BibleResults.Count == 0;
+    public bool IsBibleResultsEmpty => BibleNavigationItems.Count == 0;
 
     public async Task InitializeAsync()
     {
@@ -2097,55 +2146,359 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task SearchBibleAsync()
     {
+        bibleSearchDebounce?.Cancel();
+        var version = Interlocked.Increment(ref bibleSearchRequestVersion);
+        await UpdateBibleNavigationAsync(BibleSearchText.Trim(), selectExactOrKeywordVerse: true, CancellationToken.None, version);
+    }
+
+    private void QueueBibleSearch()
+    {
+        if (!IsBibleMode || !IsBibleAvailable)
+        {
+            return;
+        }
+
+        bibleSearchDebounce?.Cancel();
+        bibleSearchDebounce = new CancellationTokenSource();
+        var cancellationToken = bibleSearchDebounce.Token;
+        var queryText = BibleSearchText.Trim();
+        var version = Interlocked.Increment(ref bibleSearchRequestVersion);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(180, cancellationToken);
+                var operation = Application.Current.Dispatcher.InvokeAsync(
+                    () => UpdateBibleNavigationAsync(queryText, selectExactOrKeywordVerse: false, cancellationToken, version));
+
+                await operation.Task.Unwrap();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }, cancellationToken);
+    }
+
+    private bool IsCurrentBibleSearch(int version)
+    {
+        return version == Volatile.Read(ref bibleSearchRequestVersion);
+    }
+
+    private async Task UpdateBibleNavigationAsync(
+        string queryText,
+        bool selectExactOrKeywordVerse,
+        CancellationToken cancellationToken,
+        int version)
+    {
         if (!IsBibleAvailable)
         {
-            StatusText = "No Bible translations imported yet.";
+            StatusText = "Bible is not available. Open Admin Tools if setup is needed.";
             return;
         }
 
-        var queryText = BibleSearchText.Trim();
         if (string.IsNullOrWhiteSpace(queryText))
         {
-            BibleResults.Clear();
-            SelectedBibleVerse = null;
-            StatusText = "Enter a Bible reference or keyword.";
+            ClearBibleNavigation(clearSelectedVerse: true);
+            StatusText = "Search by book, chapter, verse, or keyword.";
             return;
         }
 
-        var stopwatch = Stopwatch.StartNew();
         try
         {
             IsSearching = true;
             StatusText = "Searching Bible...";
 
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var bibleSearchService = scope.ServiceProvider.GetRequiredService<IBibleSearchService>();
-            var results = await bibleSearchService.SearchAsync(
-                new BibleSearchQuery(queryText, SelectedBibleTranslation?.Id, 200));
-
-            BibleResults.Clear();
-            foreach (var result in results.Select(result => new BibleVerseResultViewModel(result)))
+            var result = await BuildBibleNavigationAsync(queryText, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentBibleSearch(version))
             {
-                BibleResults.Add(result);
+                return;
             }
 
             IsBibleMode = true;
-            SelectedBibleVerse = BibleResults.FirstOrDefault();
-            StatusText = BibleResults.Count == 0
-                ? $"No Bible results found in {stopwatch.ElapsedMilliseconds:N0} ms."
-                : $"{FormatCount(BibleResults.Count, "Bible result", "Bible results")} found in {stopwatch.ElapsedMilliseconds:N0} ms.";
+            ApplyBibleNavigationResult(result, selectExactOrKeywordVerse);
+            StatusText = result.Items.Count == 0
+                ? "No Bible matches found."
+                : result.StatusText;
+        }
+        catch (OperationCanceledException)
+        {
         }
         catch (Exception ex)
         {
             App.LogStartupError("Bible search failed.", ex);
-            BibleResults.Clear();
-            SelectedBibleVerse = null;
+            ClearBibleNavigation(clearSelectedVerse: true);
             StatusText = $"Bible search failed: {ex.Message}";
         }
         finally
         {
-            IsSearching = false;
-            BibleSearchCommand.RaiseCanExecuteChanged();
+            if (IsCurrentBibleSearch(version))
+            {
+                IsSearching = false;
+                BibleSearchCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    private async Task<BibleNavigationResult> BuildBibleNavigationAsync(
+        string queryText,
+        CancellationToken cancellationToken)
+    {
+        if (TryCreateReferenceFromCurrentBook(queryText, out var selectedBookReference))
+        {
+            return await BuildReferenceNavigationAsync(selectedBookReference, cancellationToken);
+        }
+
+        if (BibleReferenceParser.TryParse(queryText, out var reference) && reference.IsValid)
+        {
+            return await BuildReferenceNavigationAsync(reference, cancellationToken);
+        }
+
+        var bookMatches = BibleReferenceParser.FindMatchingBooks(queryText, 16);
+        if (bookMatches.Count > 0)
+        {
+            return new BibleNavigationResult(
+                bookMatches
+                    .Select(book => BibleNavigationItemViewModel.ForBook(book.Id, book.Name, book.ShortName, book.BookOrder))
+                    .ToList(),
+                [],
+                $"{FormatCount(bookMatches.Count, "Bible book", "Bible books")} found.",
+                AutoPreviewFirstVerse: false);
+        }
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var bibleSearchService = scope.ServiceProvider.GetRequiredService<IBibleSearchService>();
+        var results = await bibleSearchService.SearchAsync(
+            new BibleSearchQuery(queryText, SelectedBibleTranslation?.Id, 200),
+            cancellationToken);
+        var verses = results.Select(result => new BibleVerseResultViewModel(result)).ToList();
+        return new BibleNavigationResult(
+            verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
+            verses,
+            $"{FormatCount(verses.Count, "Bible result", "Bible results")} found.",
+            AutoPreviewFirstVerse: true);
+    }
+
+    private async Task<BibleNavigationResult> BuildReferenceNavigationAsync(
+        BibleReference reference,
+        CancellationToken cancellationToken)
+    {
+        if (reference.Verse is null)
+        {
+            var verses = await LoadBibleVersesForReferenceAsync(reference, 200, cancellationToken);
+            return new BibleNavigationResult(
+                verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
+                verses,
+                $"{FormatCount(verses.Count, "verse", "verses")} found in {reference.BookName} {reference.Chapter}.",
+                AutoPreviewFirstVerse: false);
+        }
+
+        var exactVerses = await LoadBibleVersesForReferenceAsync(reference, 1, cancellationToken);
+        return new BibleNavigationResult(
+            exactVerses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
+            exactVerses,
+            exactVerses.Count == 0
+                ? $"{reference.BookName} {reference.Chapter}:{reference.Verse} was not found."
+                : $"Selected {reference.BookName} {reference.Chapter}:{reference.Verse}.",
+            AutoPreviewFirstVerse: true);
+    }
+
+    private async Task<IReadOnlyList<BibleVerseResultViewModel>> LoadBibleVersesForReferenceAsync(
+        BibleReference reference,
+        int maxResults,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var bibleSearchService = scope.ServiceProvider.GetRequiredService<IBibleSearchService>();
+        var queryText = reference.Verse is null
+            ? $"{reference.BookName} {reference.Chapter}"
+            : $"{reference.BookName} {reference.Chapter}:{reference.Verse}";
+        var results = await bibleSearchService.SearchAsync(
+            new BibleSearchQuery(queryText, SelectedBibleTranslation?.Id, maxResults),
+            cancellationToken);
+        return results.Select(result => new BibleVerseResultViewModel(result)).ToList();
+    }
+
+    private async Task ShowBibleChaptersAsync(BibleNavigationItemViewModel item)
+    {
+        if (!item.IsBook)
+        {
+            return;
+        }
+
+        suppressBibleSearchQueue = true;
+        BibleSearchText = $"{item.BookName} ";
+        suppressBibleSearchQueue = false;
+
+        var chapters = await LoadBibleChapterItemsAsync(item.BookName, CancellationToken.None);
+        BibleResults.Clear();
+        BibleNavigationItems.Clear();
+        foreach (var chapter in chapters)
+        {
+            BibleNavigationItems.Add(chapter);
+        }
+
+        SelectedBibleNavigationItem = null;
+        SelectedBibleVerse = null;
+        StatusText = $"{FormatCount(chapters.Count, "chapter", "chapters")} found for {item.BookName}.";
+    }
+
+    private async Task ShowBibleChapterVersesAsync(BibleNavigationItemViewModel item)
+    {
+        if (!item.IsChapter || item.Chapter is null)
+        {
+            return;
+        }
+
+        suppressBibleSearchQueue = true;
+        BibleSearchText = $"{item.BookName} {item.Chapter}";
+        suppressBibleSearchQueue = false;
+
+        var reference = new BibleReference(item.BookName, item.Chapter.Value, null, true, string.Empty);
+        var verses = await LoadBibleVersesForReferenceAsync(reference, 200, CancellationToken.None);
+        ApplyBibleNavigationResult(
+            new BibleNavigationResult(
+                verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
+                verses,
+                $"{FormatCount(verses.Count, "verse", "verses")} found in {item.BookName} {item.Chapter}.",
+                AutoPreviewFirstVerse: false),
+            selectExactOrKeywordVerse: false);
+    }
+
+    private async Task<IReadOnlyList<BibleNavigationItemViewModel>> LoadBibleChapterItemsAsync(
+        string bookName,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        var chapterRows = await dbContext.BibleVerses
+            .AsNoTracking()
+            .Where(verse =>
+                verse.BibleBook != null &&
+                verse.BibleBook.Name == bookName &&
+                (SelectedBibleTranslation == null || verse.TranslationId == SelectedBibleTranslation.Id))
+            .GroupBy(verse => new
+            {
+                verse.BookId,
+                verse.BibleBook!.Name,
+                verse.BibleBook.BookOrder,
+                verse.Chapter
+            })
+            .Select(group => new
+            {
+                group.Key.BookId,
+                BookName = group.Key.Name,
+                group.Key.BookOrder,
+                group.Key.Chapter,
+                VerseCount = group.Count()
+            })
+            .OrderBy(row => row.Chapter)
+            .ToListAsync(cancellationToken);
+
+        return chapterRows
+            .Select(row => BibleNavigationItemViewModel.ForChapter(
+                row.BookId,
+                row.BookName,
+                row.BookOrder,
+                row.Chapter,
+                row.VerseCount))
+            .ToList();
+    }
+
+    private void ApplyBibleNavigationResult(
+        BibleNavigationResult result,
+        bool selectExactOrKeywordVerse)
+    {
+        BibleResults.Clear();
+        foreach (var verse in result.Verses)
+        {
+            BibleResults.Add(verse);
+        }
+
+        BibleNavigationItems.Clear();
+        foreach (var item in result.Items)
+        {
+            BibleNavigationItems.Add(item);
+        }
+
+        var firstVerseItem = BibleNavigationItems.FirstOrDefault(item => item.IsVerse);
+        if (result.AutoPreviewFirstVerse && (selectExactOrKeywordVerse || result.Items.Count == 1) && firstVerseItem is not null)
+        {
+            SelectedBibleNavigationItem = firstVerseItem;
+            return;
+        }
+
+        SelectedBibleNavigationItem = null;
+        SelectedBibleVerse = null;
+    }
+
+    private void ClearBibleNavigation(bool clearSelectedVerse)
+    {
+        BibleResults.Clear();
+        BibleNavigationItems.Clear();
+        SelectedBibleNavigationItem = null;
+        if (clearSelectedVerse)
+        {
+            SelectedBibleVerse = null;
+        }
+    }
+
+    private bool TryCreateReferenceFromCurrentBook(string queryText, out BibleReference reference)
+    {
+        reference = new BibleReference(string.Empty, 0, null, false, string.Empty);
+        var selectedBook = SelectedBibleNavigationItem?.IsBook == true
+            ? SelectedBibleNavigationItem.BookName
+            : SelectedBibleNavigationItem?.BookName;
+        if (string.IsNullOrWhiteSpace(selectedBook) ||
+            !int.TryParse(queryText.Trim(), out var chapter) ||
+            chapter <= 0)
+        {
+            return false;
+        }
+
+        reference = new BibleReference(selectedBook, chapter, null, true, string.Empty);
+        return true;
+    }
+
+    public async Task ActivateSelectedBibleNavigationItemAsync()
+    {
+        if (!IsBibleMode)
+        {
+            return;
+        }
+
+        if (SelectedBibleNavigationItem is null)
+        {
+            await SearchBibleAsync();
+            if (SelectedBibleNavigationItem is null && BibleNavigationItems.Count > 0)
+            {
+                SelectedBibleNavigationItem = BibleNavigationItems[0];
+            }
+        }
+
+        var item = SelectedBibleNavigationItem;
+        if (item is null)
+        {
+            return;
+        }
+
+        if (item.IsBook)
+        {
+            await ShowBibleChaptersAsync(item);
+            return;
+        }
+
+        if (item.IsChapter)
+        {
+            await ShowBibleChapterVersesAsync(item);
+            return;
+        }
+
+        if (item.Verse is not null)
+        {
+            SelectedBibleVerse = item.Verse;
+            StatusText = $"Selected {item.Verse.ReferenceDisplay}.";
         }
     }
 
@@ -2174,12 +2527,18 @@ public sealed class MainViewModel : ObservableObject
                 return true;
             }
 
+            suppressBibleSearchQueue = true;
             BibleSearchText = queryText;
+            suppressBibleSearchQueue = false;
             BibleResults.Clear();
+            BibleNavigationItems.Clear();
             var verse = new BibleVerseResultViewModel(result);
             BibleResults.Add(verse);
+            var navigationItem = BibleNavigationItemViewModel.ForVerse(verse);
+            BibleNavigationItems.Add(navigationItem);
             IsBibleMode = true;
             SelectedBibleVerse = verse;
+            SelectedBibleNavigationItem = navigationItem;
             await ProjectCurrentBibleSelectionAsync();
             return true;
         }
@@ -2239,7 +2598,9 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var hasFilter = snapshot.AuthorId is not null || snapshot.Year is not null;
+        var hasFilter = snapshot.AuthorId is not null ||
+                        snapshot.ContentSourceId is not null ||
+                        snapshot.Year is not null;
 
         if (string.IsNullOrWhiteSpace(snapshot.QueryText) && !hasFilter)
         {
@@ -2522,6 +2883,14 @@ public sealed class MainViewModel : ObservableObject
                 existing = viewModel;
             }
 
+            var existingNavigationItem = BibleNavigationItems.FirstOrDefault(item => item.Verse?.VerseId == existing.VerseId);
+            if (existingNavigationItem is null)
+            {
+                existingNavigationItem = BibleNavigationItemViewModel.ForVerse(existing);
+                BibleNavigationItems.Add(existingNavigationItem);
+            }
+
+            SelectedBibleNavigationItem = existingNavigationItem;
             SelectedBibleVerse = existing;
             StatusText = $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
         }
@@ -2602,6 +2971,43 @@ public sealed class MainViewModel : ObservableObject
         await ProjectCurrentSelectionAsync(recordHistory: true);
     }
 
+    private async Task RemoveSavedFavoriteAsync(SavedParagraphViewModel? favorite)
+    {
+        if (favorite is null)
+        {
+            StatusText = "Please select a favorite to remove.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            await dbContext.FavoriteParagraphs
+                .Where(row => row.Id == favorite.Id)
+                .ExecuteDeleteAsync();
+
+            await LoadFavoritesAsync();
+            if (SelectedParagraph?.ParagraphId == favorite.ParagraphId)
+            {
+                SelectedParagraph.IsFavorite = false;
+                OnPropertyChanged(nameof(FavoriteButtonText));
+            }
+
+            StatusText = "Favorite removed.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Remove favorite failed.", ex);
+            StatusText = $"Favorite could not be removed: {ex.Message}";
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
     private async Task ProjectCurrentSelectionAsync(bool recordHistory)
     {
         if (SelectedParagraph is null)
@@ -2640,7 +3046,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsBibleMode)
         {
-            StatusText = "Bible favorites are coming soon.";
+            StatusText = "Bible favorites will be added later.";
             return;
         }
 
@@ -2891,6 +3297,7 @@ public sealed class MainViewModel : ObservableObject
         selectedContentSource = null;
         selectedBibleTranslation = null;
         selectedBibleVerse = null;
+        selectedBibleNavigationItem = null;
         selectedSourceFilter = null;
         allParagraphResults = [];
 
@@ -2901,6 +3308,7 @@ public sealed class MainViewModel : ObservableObject
         ContentSources.Clear();
         BibleTranslations.Clear();
         BibleResults.Clear();
+        BibleNavigationItems.Clear();
         SourceFilters.Clear();
         ResultCount = 0;
         IsBibleAvailable = false;
@@ -2914,6 +3322,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedContentSource));
         OnPropertyChanged(nameof(SelectedBibleTranslation));
         OnPropertyChanged(nameof(SelectedBibleVerse));
+        OnPropertyChanged(nameof(SelectedBibleNavigationItem));
         OnPropertyChanged(nameof(SelectedSourceFilter));
         OnPropertyChanged(nameof(SelectedParagraphHeader));
         OnPropertyChanged(nameof(SelectedParagraphMeta));
@@ -2944,8 +3353,34 @@ public sealed class MainViewModel : ObservableObject
         int? preferredSourceId = null,
         int? preferredYear = null)
     {
+        var linkedSourceRows = await dbContext.Sermons
+            .AsNoTracking()
+            .Where(sermon => sermon.ContentSourceId != null)
+            .Select(sermon => new
+            {
+                sermon.ContentSource!.Id,
+                sermon.ContentSource.DisplayName,
+                sermon.ContentSource.Name,
+                sermon.ContentSource.LocalFolderPath
+            })
+            .Distinct()
+            .ToListAsync();
+
+        var linkedSources = linkedSourceRows
+            .Where(source => !LooksLikeTestSource(source.Name, source.DisplayName, source.LocalFolderPath))
+            .OrderBy(source => source.DisplayName)
+            .ThenBy(source => source.Name)
+            .Select(source => new FilterOption(source.Id, source.DisplayName))
+            .ToList();
+
+        var visibleSourceIds = linkedSources
+            .Select(source => source.Value!.Value)
+            .ToArray();
+
         var linkedAuthorIds = await dbContext.Sermons
             .AsNoTracking()
+            .Where(sermon => sermon.ContentSourceId != null &&
+                             visibleSourceIds.Contains(sermon.ContentSourceId.Value))
             .Select(sermon => sermon.AuthorId)
             .Distinct()
             .OrderBy(authorId => authorId)
@@ -2979,31 +3414,14 @@ public sealed class MainViewModel : ObservableObject
 
         var years = await dbContext.Sermons
             .AsNoTracking()
-            .Where(sermon => sermon.Year > 0)
+            .Where(sermon =>
+                sermon.Year > 0 &&
+                sermon.ContentSourceId != null &&
+                visibleSourceIds.Contains(sermon.ContentSourceId.Value))
             .Select(sermon => sermon.Year)
             .Distinct()
             .OrderByDescending(year => year)
             .ToListAsync();
-
-        var linkedSourceRows = await dbContext.Sermons
-            .AsNoTracking()
-            .Where(sermon => sermon.ContentSourceId != null)
-            .Select(sermon => new
-            {
-                sermon.ContentSource!.Id,
-                sermon.ContentSource.DisplayName,
-                sermon.ContentSource.Name,
-                sermon.ContentSource.LocalFolderPath
-            })
-            .Distinct()
-            .ToListAsync();
-
-        var linkedSources = linkedSourceRows
-            .Where(source => !LooksLikeTestSource(source.Name, source.DisplayName, source.LocalFolderPath))
-            .OrderBy(source => source.DisplayName)
-            .ThenBy(source => source.Name)
-            .Select(source => new FilterOption(source.Id, source.DisplayName))
-            .ToList();
 
         AuthorFilters.Clear();
         AuthorFilters.Add(new FilterOption(null, "All authors"));
@@ -3085,6 +3503,8 @@ public sealed class MainViewModel : ObservableObject
         if (!IsBibleAvailable)
         {
             BibleResults.Clear();
+            BibleNavigationItems.Clear();
+            SelectedBibleNavigationItem = null;
             SelectedBibleVerse = null;
         }
 
@@ -3795,6 +4215,9 @@ public sealed class MainViewModel : ObservableObject
         ClearHistoryCommand.RaiseCanExecuteChanged();
         VerifyProductionDataCommand.RaiseCanExecuteChanged();
         CleanupTestDataCommand.RaiseCanExecuteChanged();
+        ProjectFavoriteCommand.RaiseCanExecuteChanged();
+        RemoveFavoriteCommand.RaiseCanExecuteChanged();
+        ProjectHistoryCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(
@@ -3804,6 +4227,12 @@ public sealed class MainViewModel : ObservableObject
         int? Year,
         int Version,
         bool ProjectBestResult);
+
+    private sealed record BibleNavigationResult(
+        IReadOnlyList<BibleNavigationItemViewModel> Items,
+        IReadOnlyList<BibleVerseResultViewModel> Verses,
+        string StatusText,
+        bool AutoPreviewFirstVerse);
 
     private sealed record PdfSourceScanResult(
         List<string> PdfFilePaths,

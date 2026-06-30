@@ -11,6 +11,7 @@ public partial class TestDataCleanupWindow : Window
     public TestDataCleanupWindow(TestDataCleanupPreview preview)
     {
         InitializeComponent();
+        WindowPlacement.FitToWorkArea(this, 940, 700, 760, 540);
         DataContext = preview;
     }
 

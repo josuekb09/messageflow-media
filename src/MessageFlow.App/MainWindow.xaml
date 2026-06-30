@@ -6,9 +6,10 @@
         mc:Ignorable="d"
         Title="MessageFlow"
         Height="820"
-        Width="1380"
-        MinHeight="680"
-        MinWidth="1240"
+        Width="1180"
+        MinHeight="620"
+        MinWidth="1080"
+        WindowState="Maximized"
         Background="{StaticResource WindowBackgroundBrush}"
         Loaded="Window_Loaded"
         PreviewKeyDown="Window_PreviewKeyDown">
@@ -34,24 +35,25 @@
                 BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="190" />
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="210" />
-                    <ColumnDefinition Width="210" />
-                    <ColumnDefinition Width="130" />
-                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0"
                            Text="MessageFlow"
                            FontSize="28"
                            FontWeight="SemiBold"
+                           Margin="0,0,24,8"
                            VerticalAlignment="Center" />
 
+                <WrapPanel Grid.Column="1"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Orientation="Horizontal">
                 <TextBox x:Name="SearchBox"
-                         Grid.Column="1"
-                         Margin="0,0,14,0"
-                         MinWidth="260"
+                         Margin="0,0,12,8"
+                         MinWidth="220"
+                         Width="300"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="Search sermons by title, code, phrase, or paragraph number"
                          VerticalContentAlignment="Center">
@@ -67,12 +69,13 @@
                 </TextBox>
 
                 <ComboBox Grid.Column="2"
-                          Margin="0,0,14,0"
+                          Margin="0,0,12,8"
                           ItemsSource="{Binding AuthorFilters}"
                           SelectedItem="{Binding SelectedAuthor}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="190"
+                          MinWidth="140"
+                          Width="132"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -86,12 +89,13 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="3"
-                          Margin="0,0,14,0"
+                          Margin="0,0,12,8"
                           ItemsSource="{Binding SourceFilters}"
                           SelectedItem="{Binding SelectedSourceFilter}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="190"
+                          MinWidth="140"
+                          Width="132"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -105,11 +109,13 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="4"
+                          Margin="0,0,12,8"
                           ItemsSource="{Binding YearFilters}"
                           SelectedItem="{Binding SelectedYear}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="110"
+                          MinWidth="92"
+                          Width="88"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -123,24 +129,26 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="5"
-                          Margin="14,0,0,0"
+                          Margin="0,0,0,8"
                           ItemsSource="{Binding ProjectionFontSizes}"
                           SelectedItem="{Binding SelectedProjectionFontSize}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
                           MinWidth="150"
+                          Width="132"
                           ToolTip="Projection font size"
                           VerticalContentAlignment="Center" />
+                </WrapPanel>
             </Grid>
         </Border>
 
         <Grid Grid.Row="1" Margin="24">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="360" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="440" />
+                <ColumnDefinition Width="0.95*" MinWidth="260" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="1.45*" MinWidth="360" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="1.05*" MinWidth="360" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
@@ -227,57 +235,29 @@
                             <Grid Margin="0,10,0,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <StackPanel>
-                                    <TextBlock Text="Search Bible by reference or keyword."
+                                    <TextBlock Text="Search by book, chapter, verse, or keyword."
                                                Margin="4,0,4,8"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="13"
                                                TextWrapping="Wrap" />
-                                    <TextBox Text="{Binding BibleSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                    <TextBox x:Name="BibleSearchBox"
+                                             Text="{Binding BibleSearchText, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="Search Bible references or keywords"
                                              VerticalContentAlignment="Center" />
-                                    <ComboBox Margin="0,10,0,0"
-                                              ItemsSource="{Binding BibleTranslations}"
-                                              SelectedItem="{Binding SelectedBibleTranslation}"
-                                              DisplayMemberPath="DisplayName"
-                                              TextSearch.TextPath="DisplayName"
-                                              VerticalContentAlignment="Center" />
-                                    <Button Content="Search Bible"
-                                            Margin="0,10,0,0"
-                                            Command="{Binding BibleSearchCommand}" />
-                                    <TextBlock Text="Examples: John 3:16, Romans 1, Daniel 5:23, Psalm 23"
-                                               Margin="4,10,4,0"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="12"
-                                               LineHeight="17"
-                                               TextWrapping="Wrap" />
                                 </StackPanel>
 
-                                <TextBlock Grid.Row="1"
-                                           Text="No Bible translations imported yet."
-                                           Margin="4,14,4,8"
-                                           Foreground="{StaticResource MutedTextBrush}"
-                                           FontSize="13"
-                                           TextWrapping="Wrap">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-
-                                <Grid Grid.Row="2">
-                                    <ListBox ItemsSource="{Binding BibleResults}"
-                                             SelectedItem="{Binding SelectedBibleVerse}">
+                                <Grid Grid.Row="1">
+                                    <ListBox x:Name="BibleNavigationList"
+                                             MinHeight="180"
+                                             Margin="0,10,0,0"
+                                             ItemsSource="{Binding BibleNavigationItems}"
+                                             SelectedItem="{Binding SelectedBibleNavigationItem}"
+                                             MouseLeftButtonUp="BibleNavigationList_MouseLeftButtonUp">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Padding="{StaticResource CardPadding}"
@@ -291,13 +271,13 @@
                                                             <RowDefinition Height="Auto" />
                                                             <RowDefinition Height="Auto" />
                                                         </Grid.RowDefinitions>
-                                                        <TextBlock Text="{Binding DisplayLine}"
+                                                        <TextBlock Text="{Binding PrimaryText}"
                                                                    FontSize="14"
                                                                    FontWeight="SemiBold"
                                                                    TextWrapping="Wrap" />
                                                         <TextBlock Grid.Row="1"
                                                                    Margin="0,6,0,0"
-                                                                   Text="{Binding MetaLine}"
+                                                                   Text="{Binding SecondaryText}"
                                                                    Foreground="{StaticResource AccentBrush}"
                                                                    FontSize="13"
                                                                    FontWeight="SemiBold" />
@@ -309,7 +289,7 @@
                                                                    LineHeight="18"
                                                                    MaxHeight="54"
                                                                    TextWrapping="Wrap" />
-                                                    </Grid>
+                                                   </Grid>
                                                 </Border>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -336,12 +316,45 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                    <TextBlock Text="Search Bible by reference or keyword."
-                                                   Foreground="{StaticResource MutedTextBrush}"
-                                                   FontSize="14"
-                                                   TextWrapping="Wrap" />
+                                        <StackPanel>
+                                            <TextBlock Text="Ready to search the Bible."
+                                                       Foreground="{StaticResource PrimaryTextBrush}"
+                                                       FontSize="15"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="Search by book, chapter, verse, or keyword."
+                                                       Margin="0,6,0,0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
                                     </Border>
                                 </Grid>
+
+                                <StackPanel Grid.Row="2"
+                                            Margin="0,10,0,0">
+                                    <ComboBox ItemsSource="{Binding BibleTranslations}"
+                                              SelectedItem="{Binding SelectedBibleTranslation}"
+                                              DisplayMemberPath="DisplayName"
+                                              TextSearch.TextPath="DisplayName"
+                                              VerticalContentAlignment="Center" />
+                                    <TextBlock Text="Bible is not available. Open Admin Tools if setup is needed."
+                                               Margin="4,8,4,0"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
                             </Grid>
                         </TabItem>
 
@@ -364,6 +377,7 @@
                                                         <RowDefinition Height="Auto" />
                                                         <RowDefinition Height="Auto" />
                                                         <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
                                                     </Grid.RowDefinitions>
                                                     <TextBlock Text="{Binding SermonTitle}"
                                                                FontSize="14"
@@ -383,6 +397,27 @@
                                                                LineHeight="18"
                                                                MaxHeight="54"
                                                                TextWrapping="Wrap" />
+                                                    <Grid Grid.Row="3" Margin="0,12,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="10" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Button Grid.Column="0"
+                                                                Content="Project"
+                                                                MinHeight="36"
+                                                                Padding="10,6"
+                                                                FontSize="12"
+                                                                Command="{Binding DataContext.ProjectFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                CommandParameter="{Binding}" />
+                                                        <Button Grid.Column="2"
+                                                                Content="Remove"
+                                                                MinHeight="36"
+                                                                Padding="10,6"
+                                                                FontSize="12"
+                                                                Command="{Binding DataContext.RemoveFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                CommandParameter="{Binding}" />
+                                                    </Grid>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -406,10 +441,18 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="No favorites yet."
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="14"
-                                               TextWrapping="Wrap" />
+                                    <StackPanel>
+                                        <TextBlock Text="No favorites yet."
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Text="Save frequently used sermon paragraphs for quick access."
+                                                   Margin="0,6,0,0"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="13"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
                                 </Border>
                             </Grid>
                         </TabItem>
@@ -478,6 +521,14 @@
                                                                LineHeight="18"
                                                                MaxHeight="54"
                                                                TextWrapping="Wrap" />
+                                                    <Button Grid.Row="3"
+                                                            Content="Project"
+                                                            Margin="0,12,0,0"
+                                                            MinHeight="36"
+                                                            Padding="10,6"
+                                                            FontSize="12"
+                                                            Command="{Binding DataContext.ProjectHistoryCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                            CommandParameter="{Binding}" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -502,7 +553,7 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="No history yet."
+                                    <TextBlock Text="No projection history yet."
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="14"
                                                TextWrapping="Wrap" />
@@ -512,6 +563,15 @@
                     </TabControl>
                 </Grid>
             </Border>
+
+            <GridSplitter Grid.Column="1"
+                          Width="8"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="{StaticResource BorderBrush}"
+                          ShowsPreview="True"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext" />
 
             <Border Grid.Column="2"
                     Background="{StaticResource PanelBackgroundBrush}"
@@ -541,7 +601,7 @@
                              ItemsSource="{Binding ParagraphResults}"
                              SelectedItem="{Binding SelectedParagraph}">
                         <ListBox.Style>
-                            <Style TargetType="ListBox">
+                            <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                 <Setter Property="Visibility" Value="Visible" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
@@ -623,7 +683,7 @@
                                   Margin="20,8,20,20"
                                   VerticalScrollBarVisibility="Auto">
                         <ScrollViewer.Style>
-                            <Style TargetType="ScrollViewer">
+                            <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
@@ -682,6 +742,15 @@
                     </Border>
                 </Grid>
             </Border>
+
+            <GridSplitter Grid.Column="3"
+                          Width="8"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="{StaticResource BorderBrush}"
+                          ShowsPreview="True"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext" />
 
             <Border Grid.Column="4"
                     Background="{StaticResource PanelBackgroundBrush}"
@@ -745,11 +814,17 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0"
-                                    Content="{Binding PreviousButtonText}"
-                                    Command="{Binding PreviousParagraphCommand}" />
+                                    Command="{Binding PreviousParagraphCommand}">
+                                <TextBlock Text="{Binding PreviousButtonText}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </Button>
                             <Button Grid.Column="2"
-                                    Content="{Binding NextButtonText}"
-                                    Command="{Binding NextParagraphCommand}" />
+                                    Command="{Binding NextParagraphCommand}">
+                                <TextBlock Text="{Binding NextButtonText}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </Button>
                         </Grid>
 
                         <Button Margin="0,10,0,0"

@@ -8,6 +8,7 @@ public partial class ImportPreviewWindow : Window
     public ImportPreviewWindow(ImportPreviewSummary summary)
     {
         InitializeComponent();
+        WindowPlacement.FitToWorkArea(this, 700, 620, 560, 500);
         DataContext = summary;
     }
 

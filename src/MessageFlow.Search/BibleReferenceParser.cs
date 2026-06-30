@@ -66,6 +66,35 @@ public static partial class BibleReferenceParser
         return BookAliases.TryGetValue(NormalizeBookKey(value), out bookName!);
     }
 
+    public static IReadOnlyList<BibleBook> FindMatchingBooks(string value, int maxResults = 12)
+    {
+        var normalized = NormalizeBookKey(StripNumbers(value));
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return [];
+        }
+
+        var compact = normalized.Replace(" ", string.Empty, StringComparison.Ordinal);
+        var matches = BookAliases
+            .Where(alias =>
+                alias.Key.StartsWith(normalized, StringComparison.OrdinalIgnoreCase) ||
+                alias.Key.Replace(" ", string.Empty, StringComparison.Ordinal)
+                    .StartsWith(compact, StringComparison.OrdinalIgnoreCase))
+            .Select(alias => alias.Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Join(
+                BibleBookSeed.All,
+                bookName => bookName,
+                book => book.Name,
+                (_, book) => book,
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(book => book.BookOrder)
+            .Take(Math.Clamp(maxResults, 1, BibleBookSeed.All.Count))
+            .ToList();
+
+        return matches;
+    }
+
     public static string NormalizeBookKey(string value)
     {
         var withoutPeriods = value.Replace(".", string.Empty, StringComparison.Ordinal);
@@ -140,7 +169,19 @@ public static partial class BibleReferenceParser
         return SpaceRegex().Replace(value.Trim(), " ");
     }
 
-    [GeneratedRegex(@"^(?<book>(?:[1-3]\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)*?)\s+(?<chapter>\d{1,3})(?::(?<verse>\d{1,3}))?$")]
+    private static string StripNumbers(string value)
+    {
+        var normalized = NormalizeSpaces(value);
+        var firstDigit = normalized.IndexOfAny(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
+        if (firstDigit <= 0)
+        {
+            return normalized;
+        }
+
+        return normalized[..firstDigit].Trim();
+    }
+
+    [GeneratedRegex(@"^(?<book>(?:[1-3]\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)*?)\s+(?<chapter>\d{1,3})(?:(?:\s*:\s*|\s+)(?<verse>\d{1,3}))?$")]
     private static partial Regex ReferenceRegex();
 
     [GeneratedRegex(@"\s+")]
