@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using MessageFlow.Importer;
@@ -6,21 +7,12 @@ using MessageFlow.Importer;
 const string circularLettersRoot = @"D:\Ewald Frank\Circular Letters";
 const string booksAndBrochuresRoot = @"D:\Ewald Frank\Books and Brochures";
 const string trackerFolder = @"D:\Ewald Frank\_Download Tracker";
-const string circularDestination = @"D:\Ewald Frank\_Organized\Circular Letters\English";
-const string booksDestination = @"D:\Ewald Frank\_Organized\Books and Brochures\English";
-const string unknownDestination = @"D:\Ewald Frank\_Organized\Unknown";
+const string defaultOutputRoot = @"D:\Ewald Frank\_Organized_Clean";
 const string previewCsvPath = @"D:\Ewald Frank\_Download Tracker\ewald_frank_pdf_metadata_preview.csv";
 const string previewTextPath = @"D:\Ewald Frank\_Download Tracker\ewald_frank_pdf_metadata_preview.txt";
-const string appliedCsvPath = @"D:\Ewald Frank\_Download Tracker\ewald_frank_pdf_metadata_applied.csv";
+const string appliedCsvPath = @"D:\Ewald Frank\_Download Tracker\ewald_frank_pdf_metadata_applied_clean.csv";
 const string MonthPattern =
     "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
-
-var apply = args.Any(argument => string.Equals(argument, "--apply", StringComparison.OrdinalIgnoreCase));
-var unknownArguments = args
-    .Where(argument => !string.Equals(argument, "--apply", StringComparison.OrdinalIgnoreCase) &&
-                       !string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase) &&
-                       !string.Equals(argument, "-h", StringComparison.OrdinalIgnoreCase))
-    .ToList();
 
 if (args.Any(argument => string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase) ||
                          string.Equals(argument, "-h", StringComparison.OrdinalIgnoreCase)))
@@ -29,9 +21,9 @@ if (args.Any(argument => string.Equals(argument, "--help", StringComparison.Ordi
     return 0;
 }
 
-if (unknownArguments.Count > 0)
+if (!TryParseOptions(args, out var options, out var parseError))
 {
-    Console.WriteLine($"Unknown argument: {unknownArguments[0]}");
+    Console.WriteLine(parseError);
     PrintUsage();
     return 2;
 }
@@ -43,7 +35,8 @@ var pdfFiles = EnumerateSourcePdfs()
     .ToList();
 
 Console.WriteLine("MessageFlow Brother Frank PDF Organizer");
-Console.WriteLine(apply ? "Mode: apply copy only" : "Mode: dry run preview only");
+Console.WriteLine(options.Apply ? "Mode: apply copy only" : "Mode: dry run preview only");
+Console.WriteLine($"Output folder: {options.OutputRoot}");
 Console.WriteLine($"PDF files found: {pdfFiles.Count:N0}");
 
 var extractor = new PdfTextExtractor();
@@ -53,28 +46,74 @@ for (var index = 0; index < pdfFiles.Count; index++)
 {
     var filePath = pdfFiles[index];
     Console.WriteLine($"[{index + 1:N0}/{pdfFiles.Count:N0}] Reading {Path.GetFileName(filePath)}");
-    records.Add(AnalyzePdf(filePath, extractor));
+    records.Add(AnalyzePdf(filePath, extractor, options.OutputRoot));
 }
 
 var validation = Validate(records);
 WritePreviewCsv(records, previewCsvPath);
-WriteTextReport(records, validation, previewTextPath, apply);
+WriteTextReport(records, validation, previewTextPath, options.Apply, options.OutputRoot);
 
 AppliedRecord[] appliedRecords = [];
-if (apply)
+if (options.Apply)
 {
     appliedRecords = ApplyCopies(records);
     WriteAppliedCsv(appliedRecords, appliedCsvPath);
 }
 
-PrintSummary(records, validation, apply, appliedRecords.Length);
-return validation.HasBlockingFailures && apply ? 1 : 0;
+PrintSummary(records, validation, options.Apply, options.OutputRoot, appliedRecords);
+return validation.HasBlockingFailures && options.Apply ? 1 : 0;
 
 static void PrintUsage()
 {
     Console.WriteLine("Usage:");
     Console.WriteLine(@"  dotnet run --project tools\OrganizeEwaldFrankPdfs");
-    Console.WriteLine(@"  dotnet run --project tools\OrganizeEwaldFrankPdfs -- --apply");
+    Console.WriteLine(@"  dotnet run --project tools\OrganizeEwaldFrankPdfs -- --output ""D:\Ewald Frank\_Organized_Clean""");
+    Console.WriteLine(@"  dotnet run --project tools\OrganizeEwaldFrankPdfs -- --apply --output ""D:\Ewald Frank\_Organized_Clean""");
+}
+
+static bool TryParseOptions(string[] args, out ToolOptions options, out string error)
+{
+    var apply = false;
+    var outputRoot = defaultOutputRoot;
+
+    for (var index = 0; index < args.Length; index++)
+    {
+        var argument = args[index];
+        if (string.Equals(argument, "--apply", StringComparison.OrdinalIgnoreCase))
+        {
+            apply = true;
+            continue;
+        }
+
+        if (string.Equals(argument, "--output", StringComparison.OrdinalIgnoreCase))
+        {
+            if (index + 1 >= args.Length || string.IsNullOrWhiteSpace(args[index + 1]))
+            {
+                options = new ToolOptions(false, defaultOutputRoot);
+                error = "--output requires a folder path.";
+                return false;
+            }
+
+            outputRoot = Path.GetFullPath(args[++index]);
+            continue;
+        }
+
+        options = new ToolOptions(false, defaultOutputRoot);
+        error = $"Unknown argument: {argument}";
+        return false;
+    }
+
+    outputRoot = Path.GetFullPath(outputRoot);
+    if (IsForbiddenOutputRoot(outputRoot))
+    {
+        options = new ToolOptions(false, defaultOutputRoot);
+        error = $"Refusing output folder because it is reserved for old duplicates or source PDFs: {outputRoot}";
+        return false;
+    }
+
+    options = new ToolOptions(apply, outputRoot);
+    error = string.Empty;
+    return true;
 }
 
 static IEnumerable<string> EnumerateSourcePdfs()
@@ -89,12 +128,17 @@ static IEnumerable<string> EnumerateSourcePdfs()
 
         foreach (var filePath in Directory.EnumerateFiles(root, "*.pdf", SearchOption.AllDirectories))
         {
+            if (IsUnderExcludedOrganizedRoot(filePath))
+            {
+                continue;
+            }
+
             yield return filePath;
         }
     }
 }
 
-static PdfMetadataRecord AnalyzePdf(string filePath, PdfTextExtractor extractor)
+static PdfMetadataRecord AnalyzePdf(string filePath, PdfTextExtractor extractor, string outputRoot)
 {
     var warnings = new List<string>();
     var fileName = Path.GetFileName(filePath);
@@ -130,9 +174,9 @@ static PdfMetadataRecord AnalyzePdf(string filePath, PdfTextExtractor extractor)
     var topicNote = CreateTopicNote(category, titleDetection.Title, firstPagesText);
     var destination = category switch
     {
-        "Circular Letter" => circularDestination,
-        "Book" or "Brochure" => booksDestination,
-        _ => unknownDestination
+        "Circular Letter" => Path.Combine(outputRoot, "Circular Letters", "English"),
+        "Book" or "Brochure" => Path.Combine(outputRoot, "Books and Brochures", "English"),
+        _ => Path.Combine(outputRoot, "Unknown")
     };
     var suggestedFileName = CreateSuggestedFileName(category, titleDetection.Title, date, fileName);
     var confidence = DetermineConfidence(
@@ -633,7 +677,7 @@ static void WritePreviewCsv(IEnumerable<PdfMetadataRecord> records, string path)
 static void WriteAppliedCsv(IEnumerable<AppliedRecord> records, string path)
 {
     var builder = new StringBuilder();
-    builder.AppendLine("original_file,current_folder,detected_category,detected_language,detected_date,official_display_title,topic_note,suggested_filename,suggested_destination,applied_file,confidence,warnings");
+    builder.AppendLine("original_file,current_folder,detected_category,detected_language,detected_date,official_display_title,topic_note,suggested_filename,suggested_destination,applied_file,apply_action,duplicate_renamed,confidence,warnings");
     foreach (var record in records)
     {
         builder.AppendLine(string.Join(
@@ -648,6 +692,8 @@ static void WriteAppliedCsv(IEnumerable<AppliedRecord> records, string path)
             Csv(record.Metadata.SuggestedFileName),
             Csv(record.Metadata.SuggestedDestination),
             Csv(record.AppliedFile),
+            Csv(record.ApplyAction),
+            Csv(record.DuplicateRenamed ? "Yes" : "No"),
             Csv(record.Metadata.Confidence),
             Csv(record.Metadata.Warnings)));
     }
@@ -659,7 +705,8 @@ static void WriteTextReport(
     IReadOnlyList<PdfMetadataRecord> records,
     ValidationSummary validation,
     string path,
-    bool apply)
+    bool apply,
+    string outputRoot)
 {
     var circularCount = records.Count(record => record.DetectedCategory == "Circular Letter");
     var bookBrochureCount = records.Count(record => record.DetectedCategory is "Book" or "Brochure");
@@ -670,6 +717,7 @@ static void WriteTextReport(
     builder.AppendLine("Brother Frank PDF Metadata Preview");
     builder.AppendLine();
     builder.AppendLine($"Mode: {(apply ? "Apply copy only" : "Dry run preview only")}");
+    builder.AppendLine($"Output folder: {outputRoot}");
     builder.AppendLine($"Total PDFs scanned: {records.Count:N0}");
     builder.AppendLine($"Circular letters found: {circularCount:N0}");
     builder.AppendLine($"Books/brochures found: {bookBrochureCount:N0}");
@@ -717,41 +765,88 @@ static AppliedRecord[] ApplyCopies(IEnumerable<PdfMetadataRecord> records)
     foreach (var record in records)
     {
         Directory.CreateDirectory(record.SuggestedDestination);
-        var destinationPath = GetAvailableDestinationPath(record.SuggestedDestination, record.SuggestedFileName);
-        File.Copy(record.SourceFilePath, destinationPath, overwrite: false);
-        applied.Add(new AppliedRecord(record, destinationPath));
+        var copyAction = ResolveCopyAction(
+            record.SourceFilePath,
+            record.SuggestedDestination,
+            record.SuggestedFileName);
+
+        if (copyAction.ShouldCopy)
+        {
+            File.Copy(record.SourceFilePath, copyAction.DestinationPath, overwrite: false);
+        }
+
+        applied.Add(new AppliedRecord(
+            record,
+            copyAction.DestinationPath,
+            copyAction.ApplyAction,
+            copyAction.DuplicateRenamed));
     }
 
     return applied.ToArray();
 }
 
-static string GetAvailableDestinationPath(string destinationFolder, string suggestedFileName)
+static CopyAction ResolveCopyAction(
+    string sourceFilePath,
+    string destinationFolder,
+    string suggestedFileName)
 {
-    var destinationPath = Path.Combine(destinationFolder, suggestedFileName);
-    if (!File.Exists(destinationPath))
-    {
-        return destinationPath;
-    }
-
     var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(suggestedFileName);
     var extension = Path.GetExtension(suggestedFileName);
-    for (var suffix = 2; suffix < 10_000; suffix++)
+
+    for (var suffix = 1; suffix < 10_000; suffix++)
     {
-        destinationPath = Path.Combine(destinationFolder, $"{fileNameWithoutExtension}-{suffix}{extension}");
-        if (!File.Exists(destinationPath))
+        var candidateFileName = suffix == 1
+            ? suggestedFileName
+            : $"{fileNameWithoutExtension}-{suffix}{extension}";
+        var candidatePath = Path.Combine(destinationFolder, candidateFileName);
+
+        if (!File.Exists(candidatePath))
         {
-            return destinationPath;
+            return new CopyAction(
+                candidatePath,
+                ShouldCopy: true,
+                ApplyAction: suffix == 1 ? "Copied" : "Copied with duplicate filename",
+                DuplicateRenamed: suffix > 1);
+        }
+
+        if (FilesAreIdentical(sourceFilePath, candidatePath))
+        {
+            return new CopyAction(
+                candidatePath,
+                ShouldCopy: false,
+                ApplyAction: "Skipped identical",
+                DuplicateRenamed: false);
         }
     }
 
     throw new InvalidOperationException($"Could not find an available filename for {suggestedFileName}.");
 }
 
+static bool FilesAreIdentical(string firstPath, string secondPath)
+{
+    var firstInfo = new FileInfo(firstPath);
+    var secondInfo = new FileInfo(secondPath);
+    if (firstInfo.Length != secondInfo.Length)
+    {
+        return false;
+    }
+
+    return Convert.ToHexString(ComputeSha256(firstPath))
+        .Equals(Convert.ToHexString(ComputeSha256(secondPath)), StringComparison.OrdinalIgnoreCase);
+}
+
+static byte[] ComputeSha256(string path)
+{
+    using var stream = File.OpenRead(path);
+    return SHA256.HashData(stream);
+}
+
 static void PrintSummary(
     IReadOnlyList<PdfMetadataRecord> records,
     ValidationSummary validation,
     bool apply,
-    int appliedCount)
+    string outputRoot,
+    IReadOnlyList<AppliedRecord> appliedRecords)
 {
     Console.WriteLine();
     Console.WriteLine("Summary");
@@ -760,16 +855,19 @@ static void PrintSummary(
     Console.WriteLine($"Books/brochures found: {records.Count(record => record.DetectedCategory is "Book" or "Brochure"):N0}");
     Console.WriteLine($"Unknown files: {records.Count(record => record.DetectedCategory == "Unknown"):N0}");
     Console.WriteLine($"Low confidence files: {records.Count(record => record.Confidence == "Low"):N0}");
+    Console.WriteLine($"Output folder: {outputRoot}");
     Console.WriteLine($"Preview CSV: {previewCsvPath}");
     Console.WriteLine($"Preview report: {previewTextPath}");
     if (apply)
     {
-        Console.WriteLine($"Copied files: {appliedCount:N0}");
+        Console.WriteLine($"Copied: {appliedRecords.Count(record => record.ApplyAction is "Copied" or "Copied with duplicate filename"):N0}");
+        Console.WriteLine($"Skipped identical: {appliedRecords.Count(record => record.ApplyAction == "Skipped identical"):N0}");
+        Console.WriteLine($"Duplicate renamed: {appliedRecords.Count(record => record.DuplicateRenamed):N0}");
         Console.WriteLine($"Applied CSV: {appliedCsvPath}");
     }
     else
     {
-        Console.WriteLine(@"Apply later with: dotnet run --project tools\OrganizeEwaldFrankPdfs -- --apply");
+        Console.WriteLine($@"Apply later with: dotnet run --project tools\OrganizeEwaldFrankPdfs -- --apply --output ""{outputRoot}""");
     }
 
     if (validation.Issues.Count > 0)
@@ -786,6 +884,45 @@ static void PrintSummary(
             Console.WriteLine($"- plus {validation.Issues.Count - 10:N0} more");
         }
     }
+}
+
+static bool IsUnderExcludedOrganizedRoot(string filePath)
+{
+    var fullPath = Path.GetFullPath(filePath);
+    var excludedRoots = new[]
+    {
+        @"D:\Ewald Frank\_Organized",
+        @"D:\Ewald Frank\_Organized_Clean",
+        @"D:\Ewald Frank\_Organized_Duplicates_Backup"
+    };
+
+    return excludedRoots.Any(root =>
+        fullPath.StartsWith(
+            Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase));
+}
+
+static bool IsForbiddenOutputRoot(string outputRoot)
+{
+    var normalizedOutput = Path.GetFullPath(outputRoot)
+        .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    var forbiddenRoots = new[]
+    {
+        @"D:\Ewald Frank\_Organized",
+        @"D:\Ewald Frank\_Organized_Duplicates_Backup",
+        circularLettersRoot,
+        booksAndBrochuresRoot
+    };
+
+    return forbiddenRoots.Any(root =>
+    {
+        var normalizedRoot = Path.GetFullPath(root)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalizedOutput.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase) ||
+               normalizedOutput.StartsWith(
+                   normalizedRoot + Path.DirectorySeparatorChar,
+                   StringComparison.OrdinalIgnoreCase);
+    });
 }
 
 static bool TextContainsTitle(string firstPagesText, string title)
@@ -966,7 +1103,19 @@ sealed record PdfMetadataRecord(
     string Confidence,
     string Warnings);
 
-sealed record AppliedRecord(PdfMetadataRecord Metadata, string AppliedFile);
+sealed record ToolOptions(bool Apply, string OutputRoot);
+
+sealed record CopyAction(
+    string DestinationPath,
+    bool ShouldCopy,
+    string ApplyAction,
+    bool DuplicateRenamed);
+
+sealed record AppliedRecord(
+    PdfMetadataRecord Metadata,
+    string AppliedFile,
+    string ApplyAction,
+    bool DuplicateRenamed);
 
 sealed record ValidationSummary(IReadOnlyList<string> Issues)
 {
