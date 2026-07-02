@@ -2,8 +2,22 @@ namespace MessageFlow.Data;
 
 public static class MessageFlowDatabase
 {
+    public const string DatabaseFolderName = "database";
+    public const string DatabaseFileName = "messageflow.db";
+
     public static string DefaultDatabasePath =>
-        Path.Combine(FindSolutionRoot(), "database", "messageflow.db");
+        ResolveDefaultDatabasePath();
+
+    public static string ExecutableDatabasePath =>
+        Path.Combine(AppContext.BaseDirectory, DatabaseFolderName, DatabaseFileName);
+
+    public static string CreateMissingDatabaseMessage(string databasePath)
+    {
+        return
+            $"The MessageFlow database file is missing:{Environment.NewLine}{Environment.NewLine}" +
+            $"{databasePath}{Environment.NewLine}{Environment.NewLine}" +
+            "For a church release, copy the whole MessageFlow folder together and make sure the database folder contains messageflow.db.";
+    }
 
     public static void EnsureDatabaseDirectory(string databasePath)
     {
@@ -14,28 +28,36 @@ public static class MessageFlowDatabase
         }
     }
 
-    private static string FindSolutionRoot()
+    private static string ResolveDefaultDatabasePath()
     {
-        var candidates = new[]
+        var executableDatabasePath = ExecutableDatabasePath;
+        if (File.Exists(executableDatabasePath))
         {
-            Directory.GetCurrentDirectory(),
-            AppContext.BaseDirectory
-        };
-
-        foreach (var candidate in candidates)
-        {
-            var directory = new DirectoryInfo(candidate);
-            while (directory is not null)
-            {
-                if (File.Exists(Path.Combine(directory.FullName, "MessageFlow.sln")))
-                {
-                    return directory.FullName;
-                }
-
-                directory = directory.Parent;
-            }
+            return executableDatabasePath;
         }
 
-        return Directory.GetCurrentDirectory();
+        var solutionRoot = FindSolutionRoot();
+        if (!string.IsNullOrWhiteSpace(solutionRoot))
+        {
+            return Path.Combine(solutionRoot, DatabaseFolderName, DatabaseFileName);
+        }
+
+        return executableDatabasePath;
+    }
+
+    private static string? FindSolutionRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "MessageFlow.sln")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        return null;
     }
 }

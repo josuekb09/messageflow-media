@@ -35,13 +35,20 @@ public partial class App : System.Windows.Application
 
             var databasePath = MessageFlowDatabase.DefaultDatabasePath;
             LogStartupMessage($"MessageFlow database path: {databasePath}");
+            if (!File.Exists(databasePath))
+            {
+                throw new FileNotFoundException(
+                    MessageFlowDatabase.CreateMissingDatabaseMessage(databasePath),
+                    databasePath);
+            }
+
             MessageFlowDatabaseRepair
                 .RepairAsync(databasePath, LogStartupMessage)
                 .GetAwaiter()
                 .GetResult();
 
             serviceProvider = new ServiceCollection()
-                .AddMessageFlowData()
+                .AddMessageFlowData(databasePath)
                 .AddMessageFlowSearch()
                 .AddSingleton<MainViewModel>()
                 .AddSingleton<MainWindow>()
