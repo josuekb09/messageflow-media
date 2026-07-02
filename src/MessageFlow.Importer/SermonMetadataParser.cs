@@ -92,6 +92,12 @@ public static partial class SermonMetadataParser
         string sourceRoot,
         SourceMetadataContext? sourceContext)
     {
+        if (IsEwaldFrankSource(sourceContext) &&
+            EwaldFrankMetadataCatalog.TryFind(filePath, out var catalogMetadata))
+        {
+            return BuildEwaldFrankCatalogMetadata(filePath, sourceRoot, catalogMetadata);
+        }
+
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         var monthYear = TryFindMonthYear(fileName);
         var yearFromFile = monthYear?.Year ?? TryFindYearFromFileName(fileName);
@@ -118,6 +124,30 @@ public static partial class SermonMetadataParser
             date,
             Location: null,
             Language: "en");
+    }
+
+    private static SermonMetadata BuildEwaldFrankCatalogMetadata(
+        string filePath,
+        string sourceRoot,
+        EwaldFrankCatalogMetadata catalogMetadata)
+    {
+        var date = catalogMetadata.TryCreateDate();
+        var year = date?.Year ??
+                   catalogMetadata.TryFindYear() ??
+                   TryFindYearFromPath(filePath, sourceRoot) ??
+                   0;
+        var title = catalogMetadata.OfficialDisplayTitle;
+        var code = catalogMetadata.IsCircularLetter
+            ? BuildCircularLetterCode(year, date)
+            : SafeCodeFromFileName(Path.GetFileNameWithoutExtension(filePath));
+
+        return new SermonMetadata(
+            TrimTo(title, 300),
+            TrimTo(code, 80),
+            year,
+            date,
+            Location: null,
+            Language: NormalizeCatalogLanguage(catalogMetadata.Language));
     }
 
     private static string BuildTitle(string fileName)
@@ -274,6 +304,29 @@ public static partial class SermonMetadataParser
         }
 
         return SafeCodeFromFileName(fileName);
+    }
+
+    private static string BuildCircularLetterCode(int year, DateTime? date)
+    {
+        if (year <= 0)
+        {
+            return "CL-UNDATED";
+        }
+
+        return date is null
+            ? $"CL-{year:D4}"
+            : $"CL-{year:D4}-{date.Value.Month:D2}";
+    }
+
+    private static string NormalizeCatalogLanguage(string language)
+    {
+        if (language.Equals("English", StringComparison.OrdinalIgnoreCase) ||
+            language.Equals("en", StringComparison.OrdinalIgnoreCase))
+        {
+            return "en";
+        }
+
+        return string.IsNullOrWhiteSpace(language) ? "en" : TrimTo(language, 20);
     }
 
     private static string RemoveGenericMetadataTokens(string fileName)

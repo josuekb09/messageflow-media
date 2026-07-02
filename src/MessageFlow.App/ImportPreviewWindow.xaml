@@ -163,6 +163,111 @@
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="6">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsQualityPreviewAvailable, Mode=OneWay}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="Brother Frank paragraph quality preview"
+                                   FontSize="14"
+                                   FontWeight="SemiBold" />
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Total extracted paragraphs"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13" />
+                            <TextBlock Grid.Row="1"
+                                       Text="{Binding QualitySummary.TotalExtractedParagraphs, StringFormat={}{0:N0}, Mode=OneWay}"
+                                       Margin="0,6,0,0"
+                                       FontSize="22"
+                                       FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Column="1"
+                                       Text="Accepted paragraphs"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="1"
+                                       Text="{Binding QualitySummary.AcceptedParagraphs, StringFormat={}{0:N0}, Mode=OneWay}"
+                                       Margin="0,6,0,0"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="22"
+                                       FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Column="2"
+                                       Text="Rejected page numbers"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="2"
+                                       Text="{Binding QualitySummary.RejectedPageNumbers, StringFormat={}{0:N0}, Mode=OneWay}"
+                                       Margin="0,6,0,0"
+                                       FontSize="22"
+                                       FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Row="2"
+                                       Text="Rejected corrupted text"
+                                       Margin="0,16,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13" />
+                            <TextBlock Grid.Row="3"
+                                       Text="{Binding QualitySummary.RejectedCorruptedText, StringFormat={}{0:N0}, Mode=OneWay}"
+                                       Margin="0,6,0,0"
+                                       FontSize="22"
+                                       FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="Rejected headers/footers"
+                                       Margin="0,16,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13" />
+                            <TextBlock Grid.Row="3"
+                                       Grid.Column="1"
+                                       Text="{Binding QualitySummary.RejectedHeadersFooters, StringFormat={}{0:N0}, Mode=OneWay}"
+                                       Margin="0,6,0,0"
+                                       FontSize="22"
+                                       FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Row="2"
+                                       Grid.Column="2"
+                                       Text="Rejected too short"
+                                       Margin="0,16,0,0"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13" />
+                            <TextBlock Grid.Row="3"
+                                       Grid.Column="2"
+                                       Text="{Binding QualitySummary.RejectedTooShort, StringFormat={}{0:N0}, Mode=OneWay}"
+                                       Margin="0,6,0,0"
+                                       FontSize="22"
+                                       FontWeight="SemiBold" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Padding="16"
+                        Margin="0,16,0,0"
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
                     <StackPanel>
                         <TextBlock Text="Sample parsed metadata"
                                    FontSize="14"

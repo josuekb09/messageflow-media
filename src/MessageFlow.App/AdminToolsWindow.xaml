@@ -132,10 +132,43 @@
                         <Button Content="Repair Source Metadata"
                                 Margin="0,10,0,0"
                                 Command="{Binding RepairSourceMetadataCommand}" />
+                        <Button Content="Cleanup Brother Frank Circular Letters"
+                                Margin="0,10,0,0"
+                                Command="{Binding CleanupBrotherFrankCircularLettersCommand}" />
                     </StackPanel>
                 </Border>
 
                 <Border Margin="0,14,14,0"
+                        Padding="{StaticResource CardPadding}"
+                        Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource BorderRadius}">
+                    <StackPanel>
+                        <TextBlock Text="Projection Display"
+                                   FontSize="18"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ProjectionStatusText}"
+                                   Margin="0,7,0,16"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   FontSize="13"
+                                   TextWrapping="Wrap" />
+                        <ComboBox ItemsSource="{Binding ProjectionDisplayOptions}"
+                                  SelectedItem="{Binding SelectedProjectionDisplayOption}"
+                                  DisplayMemberPath="Label"
+                                  TextSearch.TextPath="Label"
+                                  MinHeight="36"
+                                  VerticalContentAlignment="Center" />
+                        <Button Content="Test Projection Display"
+                                Margin="0,10,0,0"
+                                Command="{Binding TestProjectionDisplayCommand}" />
+                        <Button Content="Refresh Displays"
+                                Margin="0,10,0,0"
+                                Command="{Binding RefreshProjectionDisplaysCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="14,14,0,0"
                         Padding="{StaticResource CardPadding}"
                         Background="{StaticResource CardBackgroundBrush}"
                         BorderBrush="{StaticResource BorderBrush}"

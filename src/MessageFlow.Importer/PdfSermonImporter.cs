@@ -126,8 +126,17 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         }
 
         var pages = textExtractor.ExtractPages(filePath);
-        var paragraphs = ParagraphSplitter.Split(pages);
+        var extractedParagraphs = ParagraphSplitter.Split(pages);
         var metadata = SermonMetadataParser.Parse(filePath, options.SourceRoot, sourceContext);
+        var qualitySummary = ParagraphQualitySummary.Empty;
+        var paragraphs = extractedParagraphs;
+        if (ShouldApplyCircularLetterQualityFilter(sourceContext, metadata))
+        {
+            var filtered = CircularLetterParagraphQualityFilter.Apply(extractedParagraphs);
+            paragraphs = filtered.Paragraphs;
+            qualitySummary = filtered.Summary;
+        }
+
         var extractedCharacterCount = pages.Sum(page => page.Text.Length);
         var detectedParagraphNumbers = paragraphs.Count(paragraph => paragraph.HasDetectedParagraphNumber);
         var fallbackParagraphNumbers = paragraphs.Count - detectedParagraphNumbers;
@@ -135,9 +144,22 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
         Console.WriteLine($"  file: {Path.GetFileName(filePath)}");
         Console.WriteLine($"  extracted characters: {extractedCharacterCount:N0}");
-        Console.WriteLine($"  paragraph count: {paragraphs.Count:N0}");
+        Console.WriteLine($"  extracted paragraph count: {extractedParagraphs.Count:N0}");
+        Console.WriteLine($"  imported paragraph count: {paragraphs.Count:N0}");
         Console.WriteLine($"  detected paragraph numbers: {detectedParagraphNumbers:N0}");
         Console.WriteLine($"  fallback paragraph numbers: {fallbackParagraphNumbers:N0}");
+        if (qualitySummary.TotalExtractedParagraphs > 0)
+        {
+            Console.WriteLine(
+                "  quality filter: " +
+                $"{qualitySummary.AcceptedParagraphs:N0} accepted, " +
+                $"{qualitySummary.TotalRejected:N0} rejected " +
+                $"(page numbers {qualitySummary.RejectedPageNumbers:N0}, " +
+                $"corrupted {qualitySummary.RejectedCorruptedText:N0}, " +
+                $"headers/footers {qualitySummary.RejectedHeadersFooters:N0}, " +
+                $"too short {qualitySummary.RejectedTooShort:N0})");
+        }
+
         Console.WriteLine($"  preview: {preview}");
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -175,7 +197,11 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         {
             FilePath = filePath,
             Status = existingSermon is null ? "Imported" : "Reimported",
-            Message = $"Imported {paragraphs.Count} paragraphs. Detected numbers: {detectedParagraphNumbers}. Fallback numbers: {fallbackParagraphNumbers}.",
+            Message = BuildImportLogMessage(
+                paragraphs.Count,
+                detectedParagraphNumbers,
+                fallbackParagraphNumbers,
+                qualitySummary),
             ImportedAt = DateTime.UtcNow
         });
 
@@ -208,6 +234,40 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         Console.WriteLine($"  cleared sermons: {sermonCount:N0}");
         Console.WriteLine($"  cleared paragraphs: {paragraphCount:N0}");
         Console.WriteLine();
+    }
+
+    private static bool ShouldApplyCircularLetterQualityFilter(
+        SourceMetadataContext? sourceContext,
+        SermonMetadata metadata)
+    {
+        if (!SermonMetadataParser.IsEwaldFrankSource(sourceContext))
+        {
+            return false;
+        }
+
+        return string.Equals(sourceContext?.SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase) ||
+               metadata.Title.StartsWith("Circular Letter", StringComparison.OrdinalIgnoreCase) ||
+               metadata.SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildImportLogMessage(
+        int paragraphCount,
+        int detectedParagraphNumbers,
+        int fallbackParagraphNumbers,
+        ParagraphQualitySummary qualitySummary)
+    {
+        var message =
+            $"Imported {paragraphCount} paragraphs. Detected numbers: {detectedParagraphNumbers}. Fallback numbers: {fallbackParagraphNumbers}.";
+
+        if (qualitySummary.TotalExtractedParagraphs == 0)
+        {
+            return message;
+        }
+
+        return message +
+               $" Quality filter: {qualitySummary.AcceptedParagraphs} accepted, {qualitySummary.TotalRejected} rejected " +
+               $"({qualitySummary.RejectedPageNumbers} page numbers, {qualitySummary.RejectedCorruptedText} corrupted, " +
+               $"{qualitySummary.RejectedHeadersFooters} headers/footers, {qualitySummary.RejectedTooShort} too short).";
     }
 
     private async Task<SourceMetadataContext?> LoadSourceMetadataContextAsync(

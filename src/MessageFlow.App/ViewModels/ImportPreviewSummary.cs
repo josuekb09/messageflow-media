@@ -12,7 +12,8 @@ public sealed class ImportPreviewSummary
         IReadOnlyList<string> invalidOrMissingFiles,
         string estimatedAuthorName,
         IReadOnlyList<string> readyFilePaths,
-        IReadOnlyList<ImportPreviewMetadataSample> metadataSamples)
+        IReadOnlyList<ImportPreviewMetadataSample> metadataSamples,
+        ImportPreviewQualitySummary? qualitySummary = null)
     {
         SourceDisplayName = sourceDisplayName;
         SourceTypeDisplay = sourceTypeDisplay;
@@ -24,6 +25,7 @@ public sealed class ImportPreviewSummary
         EstimatedAuthorName = estimatedAuthorName;
         ReadyFilePaths = readyFilePaths;
         MetadataSamples = metadataSamples;
+        QualitySummary = qualitySummary ?? ImportPreviewQualitySummary.Empty;
     }
 
     public string SourceDisplayName { get; }
@@ -52,6 +54,10 @@ public sealed class ImportPreviewSummary
     public IReadOnlyList<string> ReadyFilePaths { get; }
 
     public IReadOnlyList<ImportPreviewMetadataSample> MetadataSamples { get; }
+
+    public ImportPreviewQualitySummary QualitySummary { get; }
+
+    public bool IsQualityPreviewAvailable => QualitySummary.HasCounts;
 
     public bool CanStartImport => ReadyToImportFiles > 0;
 

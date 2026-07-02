@@ -2,7 +2,11 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using MessageFlow.App.ViewModels;
+using Forms = System.Windows.Forms;
+using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfSize = System.Windows.Size;
 
 namespace MessageFlow.App;
 
@@ -11,8 +15,11 @@ public partial class ProjectWindow : Window
     private const double MinimumParagraphFontSize = 34;
     private const double MaximumParagraphFontSize = 72;
     private const double FontStep = 2;
+    private const string ProjectionTestTitle = "MessageFlow Projection Test";
+    private const string ProjectionTestText = "If you can see this on the TV, projection is ready.";
 
     private readonly MainViewModel viewModel;
+    private readonly bool isTestProjection;
     private readonly List<string> projectionPages = [];
     private bool isFullscreen;
     private bool updateQueued;
@@ -25,13 +32,30 @@ public partial class ProjectWindow : Window
     private ResizeMode restoreResizeMode;
 
     public ProjectWindow(MainViewModel viewModel)
+        : this(viewModel, isTestProjection: false)
+    {
+    }
+
+    private ProjectWindow(MainViewModel viewModel, bool isTestProjection)
     {
         this.viewModel = viewModel;
+        this.isTestProjection = isTestProjection;
         DataContext = viewModel;
         InitializeComponent();
-        WindowPlacement.FitToWorkArea(this, 1100, 720, 800, 520);
+
+        if (isTestProjection)
+        {
+            Title = ProjectionTestTitle;
+            TitleTextBlock.Text = ProjectionTestTitle;
+            ParagraphNumberTextBlock.Text = string.Empty;
+        }
 
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+    }
+
+    public static ProjectWindow CreateTestWindow(MainViewModel viewModel)
+    {
+        return new ProjectWindow(viewModel, isTestProjection: true);
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -44,7 +68,7 @@ public partial class ProjectWindow : Window
         QueueProjectionUpdate(resetPage: false);
     }
 
-    private void Window_KeyDown(object sender, KeyEventArgs e)
+    private void Window_KeyDown(object sender, WpfKeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
@@ -76,7 +100,7 @@ public partial class ProjectWindow : Window
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (!isFullscreen && e.ButtonState == MouseButtonState.Pressed)
+        if (!IsFullscreen && e.ButtonState == MouseButtonState.Pressed)
         {
             try
             {
@@ -90,6 +114,17 @@ public partial class ProjectWindow : Window
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (isTestProjection)
+        {
+            if (e.PropertyName == nameof(MainViewModel.ProjectionFontSize) ||
+                e.PropertyName == nameof(MainViewModel.ProjectionLineHeight))
+            {
+                QueueProjectionUpdate(resetPage: false);
+            }
+
+            return;
+        }
+
         if (e.PropertyName == nameof(MainViewModel.SelectedParagraphText))
         {
             QueueProjectionUpdate(resetPage: true);
@@ -127,7 +162,7 @@ public partial class ProjectWindow : Window
 
     private void UpdateProjectionLayout()
     {
-        var text = NormalizeProjectionText(viewModel.SelectedParagraphText);
+        var text = NormalizeProjectionText(GetProjectionText());
         if (string.IsNullOrWhiteSpace(text) ||
             ParagraphStage.ActualWidth <= 0 ||
             ParagraphStage.ActualHeight <= 0)
@@ -138,7 +173,7 @@ public partial class ProjectWindow : Window
             return;
         }
 
-        var availableSize = new Size(ParagraphStage.ActualWidth, ParagraphStage.ActualHeight);
+        var availableSize = new WpfSize(ParagraphStage.ActualWidth, ParagraphStage.ActualHeight);
         var preferredFontSize = Math.Clamp(viewModel.ProjectionFontSize, MinimumParagraphFontSize, MaximumParagraphFontSize);
         var fontSize = FindLargestFittingFontSize(text, availableSize, preferredFontSize);
 
@@ -172,7 +207,7 @@ public partial class ProjectWindow : Window
             : string.Empty;
     }
 
-    private double FindLargestFittingFontSize(string text, Size availableSize, double preferredFontSize)
+    private double FindLargestFittingFontSize(string text, WpfSize availableSize, double preferredFontSize)
     {
         for (var fontSize = preferredFontSize; fontSize >= MinimumParagraphFontSize; fontSize -= FontStep)
         {
@@ -185,7 +220,7 @@ public partial class ProjectWindow : Window
         return 0;
     }
 
-    private IReadOnlyList<string> SplitIntoProjectionPages(string text, Size availableSize, double fontSize)
+    private IReadOnlyList<string> SplitIntoProjectionPages(string text, WpfSize availableSize, double fontSize)
     {
         var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var pages = new List<string>();
@@ -211,7 +246,7 @@ public partial class ProjectWindow : Window
     private int FindLargestFittingWordEnd(
         string[] words,
         int start,
-        Size availableSize,
+        WpfSize availableSize,
         double fontSize)
     {
         var low = start + 1;
@@ -252,7 +287,7 @@ public partial class ProjectWindow : Window
         return end;
     }
 
-    private bool DoesTextFit(string text, Size availableSize, double fontSize)
+    private bool DoesTextFit(string text, WpfSize availableSize, double fontSize)
     {
         var measuringBlock = new TextBlock
         {
@@ -268,7 +303,7 @@ public partial class ProjectWindow : Window
             Width = availableSize.Width
         };
 
-        measuringBlock.Measure(new Size(availableSize.Width, double.PositiveInfinity));
+        measuringBlock.Measure(new WpfSize(availableSize.Width, double.PositiveInfinity));
 
         return measuringBlock.DesiredSize.Width <= availableSize.Width + 1 &&
                measuringBlock.DesiredSize.Height <= availableSize.Height + 1;
@@ -285,6 +320,11 @@ public partial class ProjectWindow : Window
 
     private void ShowNextProjectionItem()
     {
+        if (isTestProjection)
+        {
+            return;
+        }
+
         if (projectionPages.Count > 1 && currentPageIndex < projectionPages.Count - 1)
         {
             currentPageIndex++;
@@ -300,6 +340,11 @@ public partial class ProjectWindow : Window
 
     private void ShowPreviousProjectionItem()
     {
+        if (isTestProjection)
+        {
+            return;
+        }
+
         if (projectionPages.Count > 1 && currentPageIndex > 0)
         {
             currentPageIndex--;
@@ -328,9 +373,14 @@ public partial class ProjectWindow : Window
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
+    private string GetProjectionText()
+    {
+        return isTestProjection ? ProjectionTestText : viewModel.SelectedParagraphText;
+    }
+
     private void ToggleFullscreen()
     {
-        if (!isFullscreen)
+        if (!IsFullscreen)
         {
             restoreLeft = Left;
             restoreTop = Top;
@@ -346,6 +396,7 @@ public partial class ProjectWindow : Window
             return;
         }
 
+        EnsureRestoreBounds();
         WindowState = WindowState.Normal;
         Left = restoreLeft;
         Top = restoreTop;
@@ -355,6 +406,28 @@ public partial class ProjectWindow : Window
         WindowState = restoreWindowState == WindowState.Maximized ? WindowState.Normal : restoreWindowState;
         isFullscreen = false;
         QueueProjectionUpdate(resetPage: false);
+    }
+
+    private bool IsFullscreen => isFullscreen || WindowState == WindowState.Maximized;
+
+    private void EnsureRestoreBounds()
+    {
+        if (restoreWidth > 0 && restoreHeight > 0)
+        {
+            return;
+        }
+
+        var screen = Forms.Screen.FromHandle(new WindowInteropHelper(this).Handle);
+        var workArea = screen.WorkingArea;
+        var availableWidth = Math.Max(360, workArea.Width - 96);
+        var availableHeight = Math.Max(320, workArea.Height - 96);
+
+        restoreWidth = Math.Min(1100, availableWidth);
+        restoreHeight = Math.Min(720, availableHeight);
+        restoreLeft = workArea.Left + ((workArea.Width - restoreWidth) / 2);
+        restoreTop = workArea.Top + ((workArea.Height - restoreHeight) / 2);
+        restoreWindowState = WindowState.Normal;
+        restoreResizeMode = ResizeMode.NoResize;
     }
 
     protected override void OnClosed(EventArgs e)

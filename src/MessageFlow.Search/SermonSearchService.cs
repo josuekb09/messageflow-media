@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using MessageFlow.Data;
@@ -36,6 +37,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         var like = BuildContainsLike(normalized);
         var searchLike = BuildContainsLike(normalized.ToUpperInvariant());
         var ftsQuery = BuildFtsPrefixQuery(normalized);
+        var dateIntent = SearchDateIntent.TryCreate(normalized);
         var parameters = new List<SearchParameter>
         {
             new("$like", like),
@@ -46,6 +48,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             new("$searchPrefix", BuildStartsWithLike(normalized.ToUpperInvariant())),
             new("$limit", limit)
         };
+        AddDateIntentParameters(parameters, dateIntent);
 
         var numeric = int.TryParse(normalized, out var number);
         if (numeric)
@@ -118,6 +121,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         if (!string.IsNullOrWhiteSpace(generalText))
         {
             hasGeneralText = true;
+            var dateIntent = SearchDateIntent.TryCreate(generalText);
 
             generalClauses = BuildGeneralLikeClauses();
             parameters.Add(new("$generalLike", BuildContainsLike(generalText)));
@@ -126,6 +130,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             parameters.Add(new("$generalPrefix", BuildStartsWithLike(generalText)));
             parameters.Add(new("$generalSearchExact", generalText.ToUpperInvariant()));
             parameters.Add(new("$generalSearchPrefix", BuildStartsWithLike(generalText.ToUpperInvariant())));
+            AddDateIntentParameters(parameters, dateIntent);
 
             if (int.TryParse(generalText, out var generalNumber))
             {
@@ -418,6 +423,29 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         command.Parameters.Add(parameter);
     }
 
+    private static void AddDateIntentParameters(
+        ICollection<SearchParameter> parameters,
+        SearchDateIntent? dateIntent)
+    {
+        if (dateIntent is null)
+        {
+            parameters.Add(new("$hasDateIntent", 0));
+            parameters.Add(new("$dateExactTitle", string.Empty));
+            parameters.Add(new("$dateTitleLike", string.Empty));
+            parameters.Add(new("$dateMonthLike", string.Empty));
+            parameters.Add(new("$dateYearMin", 0));
+            parameters.Add(new("$dateYearMax", 0));
+            return;
+        }
+
+        parameters.Add(new("$hasDateIntent", 1));
+        parameters.Add(new("$dateExactTitle", dateIntent.ExactCircularLetterTitle));
+        parameters.Add(new("$dateTitleLike", BuildContainsLike(dateIntent.DateText)));
+        parameters.Add(new("$dateMonthLike", BuildContainsLike(dateIntent.MonthName)));
+        parameters.Add(new("$dateYearMin", dateIntent.YearMin));
+        parameters.Add(new("$dateYearMax", dateIntent.YearMax));
+    }
+
     private static int ClampLimit(int maxResults)
     {
         return Math.Clamp(maxResults, 1, 250);
@@ -484,16 +512,19 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         CASE
             WHEN s.SermonCode COLLATE NOCASE = $exact THEN 0
             WHEN s.Title COLLATE NOCASE = $exact THEN 1
-            WHEN s.SermonCode LIKE $prefix ESCAPE '\' THEN 2
-            WHEN s.Title LIKE $prefix ESCAPE '\' THEN 3
-            WHEN s.SermonCode LIKE $like ESCAPE '\' THEN 4
-            WHEN s.Title LIKE $like ESCAPE '\' THEN 5
-            WHEN a.DisplayName LIKE $prefix ESCAPE '\' THEN 6
-            WHEN a.FullName LIKE $prefix ESCAPE '\' THEN 7
-            WHEN cs.DisplayName LIKE $prefix ESCAPE '\' THEN 8
-            WHEN p.SearchText = $searchExact THEN 9
-            WHEN p.SearchText LIKE $searchPrefix ESCAPE '\' THEN 10
-            ELSE 11
+            WHEN $hasDateIntent = 1 AND s.Title COLLATE NOCASE = $dateExactTitle THEN 2
+            WHEN $hasDateIntent = 1 AND s.Title LIKE $dateTitleLike ESCAPE '\' AND s.Year BETWEEN $dateYearMin AND $dateYearMax THEN 3
+            WHEN $hasDateIntent = 1 AND s.Title LIKE $dateMonthLike ESCAPE '\' AND s.Year BETWEEN $dateYearMin AND $dateYearMax THEN 4
+            WHEN s.SermonCode LIKE $prefix ESCAPE '\' THEN 5
+            WHEN s.Title LIKE $prefix ESCAPE '\' THEN 6
+            WHEN s.SermonCode LIKE $like ESCAPE '\' THEN 7
+            WHEN s.Title LIKE $like ESCAPE '\' THEN 8
+            WHEN a.DisplayName LIKE $prefix ESCAPE '\' THEN 9
+            WHEN a.FullName LIKE $prefix ESCAPE '\' THEN 10
+            WHEN cs.DisplayName LIKE $prefix ESCAPE '\' THEN 11
+            WHEN p.SearchText = $searchExact THEN 12
+            WHEN p.SearchText LIKE $searchPrefix ESCAPE '\' THEN 13
+            ELSE 14
         END
         """;
 
@@ -539,6 +570,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (hasGeneralText)
         {
+            cases.Add($"WHEN $hasDateIntent = 1 AND s.Title COLLATE NOCASE = $dateExactTitle THEN {rank++}");
+            cases.Add($"WHEN $hasDateIntent = 1 AND s.Title LIKE $dateTitleLike ESCAPE '\\' AND s.Year BETWEEN $dateYearMin AND $dateYearMax THEN {rank++}");
+            cases.Add($"WHEN $hasDateIntent = 1 AND s.Title LIKE $dateMonthLike ESCAPE '\\' AND s.Year BETWEEN $dateYearMin AND $dateYearMax THEN {rank++}");
             cases.Add($"WHEN s.SermonCode COLLATE NOCASE = $generalExact THEN {rank++}");
             cases.Add($"WHEN s.SermonCode LIKE $generalPrefix ESCAPE '\\' THEN {rank++}");
             cases.Add($"WHEN s.SermonCode LIKE $generalLike ESCAPE '\\' THEN {rank++}");
@@ -607,7 +641,97 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     [GeneratedRegex(@"^(?<searchText>.+?)\s+(?<paragraphNumber>\d{1,4})$")]
     private static partial Regex ParagraphLookupRegex();
 
+    [GeneratedRegex(@"\b(?<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+(?<year>\d{2,4})\b", RegexOptions.IgnoreCase)]
+    private static partial Regex MonthYearPrefixRegex();
+
     private sealed record SearchParameter(string Name, object Value);
 
     private readonly record struct ParagraphLookup(string SearchText, int ParagraphNumber);
+
+    private sealed record SearchDateIntent(
+        string MonthName,
+        string YearPrefix,
+        int YearMin,
+        int YearMax)
+    {
+        public string DateText => $"{MonthName} {YearPrefix}";
+
+        public string ExactCircularLetterTitle =>
+            YearPrefix.Length == 4
+                ? $"Circular Letter - {MonthName} {YearPrefix}"
+                : string.Empty;
+
+        public static SearchDateIntent? TryCreate(string value)
+        {
+            var match = SermonSearchService.MonthYearPrefixRegex().Match(value);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var yearPrefix = match.Groups["year"].Value;
+            if (!TryNormalizeMonth(match.Groups["month"].Value, out var monthName) ||
+                !TryCreateYearRange(yearPrefix, out var yearMin, out var yearMax))
+            {
+                return null;
+            }
+
+            return new SearchDateIntent(monthName, yearPrefix, yearMin, yearMax);
+        }
+
+        private static bool TryNormalizeMonth(string value, out string monthName)
+        {
+            for (var index = 1; index <= 12; index++)
+            {
+                var fullName = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(index);
+                var abbreviatedName = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(index);
+                if (value.Equals(fullName, StringComparison.OrdinalIgnoreCase) ||
+                    value.Equals(abbreviatedName, StringComparison.OrdinalIgnoreCase) ||
+                    (index == 9 && value.Equals("Sept", StringComparison.OrdinalIgnoreCase)))
+                {
+                    monthName = fullName;
+                    return true;
+                }
+            }
+
+            monthName = string.Empty;
+            return false;
+        }
+
+        private static bool TryCreateYearRange(
+            string yearPrefix,
+            out int yearMin,
+            out int yearMax)
+        {
+            yearMin = 0;
+            yearMax = 0;
+
+            if (!int.TryParse(yearPrefix, out var prefix))
+            {
+                return false;
+            }
+
+            switch (yearPrefix.Length)
+            {
+                case 4:
+                    yearMin = prefix;
+                    yearMax = prefix;
+                    return true;
+                case 3:
+                    yearMin = prefix * 10;
+                    yearMax = yearMin + 9;
+                    return true;
+                case 2 when yearPrefix == "20":
+                    yearMin = 2000;
+                    yearMax = 2029;
+                    return true;
+                case 2 when yearPrefix == "19":
+                    yearMin = 1900;
+                    yearMax = 1999;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
 }

@@ -37,6 +37,7 @@ public sealed class MainViewModel : ObservableObject
     private BibleFavoriteVerseViewModel? selectedBibleFavoriteVerse;
     private SavedParagraphViewModel? selectedHistoryParagraph;
     private ContentSourceViewModel? selectedContentSource;
+    private ProjectionDisplayOption? selectedProjectionDisplayOption;
     private BibleTranslationOption? selectedBibleTranslation;
     private BibleVerseResultViewModel? selectedBibleVerse;
     private BibleNavigationItemViewModel? selectedBibleNavigationItem;
@@ -54,8 +55,11 @@ public sealed class MainViewModel : ObservableObject
     private bool selectedBibleVerseIsFavorite;
     private bool showTestSourcesInManageSources;
     private bool suppressBibleSearchQueue;
+    private bool isApplyingSearchResults;
+    private bool suppressProjectionDisplayPreferenceSave;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
+    private string projectionOpenDisplayText = "Primary Display";
 
     public MainViewModel(IServiceScopeFactory scopeFactory)
     {
@@ -128,12 +132,20 @@ public sealed class MainViewModel : ObservableObject
         CleanupTestDataCommand = new RelayCommand(
             () => _ = CleanupTestDataAsync(),
             () => !IsDatabaseOperationRunning);
+        CleanupBrotherFrankCircularLettersCommand = new RelayCommand(
+            () => _ = CleanupBrotherFrankCircularLettersAsync(),
+            () => !IsDatabaseOperationRunning);
+        TestProjectionDisplayCommand = new RelayCommand(
+            RequestProjectionDisplayTest,
+            () => !IsDatabaseOperationRunning);
+        RefreshProjectionDisplaysCommand = new RelayCommand(RefreshProjectionDisplayOptions);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 60, 78));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 76, 98));
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
+        RefreshProjectionDisplayOptions();
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
         FavoriteParagraphs.CollectionChanged += (_, _) =>
@@ -166,6 +178,8 @@ public sealed class MainViewModel : ObservableObject
 
     public event Action? ProjectRequested;
 
+    public event Action? ProjectionTestRequested;
+
     public ObservableCollection<FilterOption> AuthorFilters { get; } = [];
 
     public ObservableCollection<FilterOption> SourceFilters { get; } = [];
@@ -185,6 +199,8 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<ContentSourceViewModel> ContentSources { get; } = [];
 
     public ObservableCollection<ContentSourceViewModel> ManageableContentSources { get; } = [];
+
+    public ObservableCollection<ProjectionDisplayOption> ProjectionDisplayOptions { get; } = [];
 
     public ObservableCollection<BibleTranslationOption> BibleTranslations { get; } = [];
 
@@ -242,6 +258,12 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand CleanupTestDataCommand { get; }
 
+    public RelayCommand CleanupBrotherFrankCircularLettersCommand { get; }
+
+    public RelayCommand TestProjectionDisplayCommand { get; }
+
+    public RelayCommand RefreshProjectionDisplaysCommand { get; }
+
     public string SearchText
     {
         get => searchText;
@@ -273,6 +295,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref selectedSourceFilter, value))
             {
+                OnPropertyChanged(nameof(CenterPanelTitle));
                 QueueSearch();
             }
         }
@@ -297,7 +320,14 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref selectedSermon, value))
             {
-                RefreshParagraphResultsForSelectedSermon();
+                if (isApplyingSearchResults)
+                {
+                    RefreshParagraphResultsForSelectedSermon();
+                }
+                else
+                {
+                    _ = SelectSermonDocumentAsync(value);
+                }
             }
         }
     }
@@ -387,6 +417,22 @@ public sealed class MainViewModel : ObservableObject
                 ImportSourceCommand.RaiseCanExecuteChanged();
                 RepairSourceMetadataCommand.RaiseCanExecuteChanged();
                 _ = LoadSelectedSourceDiagnosticsAsync(value);
+            }
+        }
+    }
+
+    public ProjectionDisplayOption? SelectedProjectionDisplayOption
+    {
+        get => selectedProjectionDisplayOption;
+        set
+        {
+            if (SetProperty(ref selectedProjectionDisplayOption, value))
+            {
+                if (!suppressProjectionDisplayPreferenceSave && value is not null)
+                {
+                    ProjectionDisplayService.SavePreference(value.PreferenceKey);
+                    StatusText = $"Projection display set to {value.Label}.";
+                }
             }
         }
     }
@@ -540,6 +586,8 @@ public sealed class MainViewModel : ObservableObject
                 ClearHistoryCommand.RaiseCanExecuteChanged();
                 VerifyProductionDataCommand.RaiseCanExecuteChanged();
                 CleanupTestDataCommand.RaiseCanExecuteChanged();
+                CleanupBrotherFrankCircularLettersCommand.RaiseCanExecuteChanged();
+                TestProjectionDisplayCommand.RaiseCanExecuteChanged();
                 RemoveFavoriteCommand.RaiseCanExecuteChanged();
                 RemoveBibleFavoriteCommand.RaiseCanExecuteChanged();
             }
@@ -603,12 +651,13 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref resultCount, value))
             {
                 OnPropertyChanged(nameof(LibraryCountText));
+                OnPropertyChanged(nameof(CenterPanelTitle));
             }
         }
     }
 
     public string ProjectionStatusText =>
-        IsProjectionOpen ? "Projection: Open" : "Projection: Closed";
+        IsProjectionOpen ? $"Projection: Open on {projectionOpenDisplayText}" : "Projection: Closed";
 
     public bool IsBibleMode
     {
@@ -634,7 +683,7 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsNotBibleMode => !IsBibleMode;
 
-    public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : "Sermon Results";
+    public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : GetSearchResultsPanelTitle();
 
     public string RightPanelTitle => "Live / Projection";
 
@@ -856,7 +905,7 @@ public sealed class MainViewModel : ObservableObject
             var report = await BuildProductionVerificationReportAsync();
             var window = new MessageFlow.App.ProductionVerificationWindow(report)
             {
-                Owner = Application.Current.MainWindow,
+                Owner = System.Windows.Application.Current.MainWindow,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
 
@@ -1040,7 +1089,7 @@ public sealed class MainViewModel : ObservableObject
 
             var confirmationWindow = new MessageFlow.App.TestDataCleanupWindow(preview)
             {
-                Owner = Application.Current.MainWindow,
+                Owner = System.Windows.Application.Current.MainWindow,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
 
@@ -1166,6 +1215,231 @@ public sealed class MainViewModel : ObservableObject
             .ExecuteDeleteAsync();
 
         await transaction.CommitAsync();
+    }
+
+    private async Task CleanupBrotherFrankCircularLettersAsync()
+    {
+        BrotherFrankCircularLetterCleanupPreview preview;
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Checking Brother Frank Circular Letter imports...";
+            preview = await BuildBrotherFrankCircularLetterCleanupPreviewAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Brother Frank cleanup preview failed.", ex);
+            StatusText = $"Brother Frank cleanup preview failed: {ex.Message}";
+            MessageBox.Show(
+                $"Brother Frank cleanup preview failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Cleanup Brother Frank Circular Letters",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+
+        if (preview.DocumentCount == 0)
+        {
+            StatusText = "No Brother Frank Circular Letter imports were found.";
+            MessageBox.Show(
+                "No Brother Frank Circular Letter imports were found.",
+                "Cleanup Brother Frank Circular Letters",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var sampleText = preview.SampleTitles.Count == 0
+            ? "No sample titles available."
+            : string.Join(Environment.NewLine, preview.SampleTitles.Select(title => $"- {title}"));
+        var confirmation = MessageBox.Show(
+            "Preview of Brother Frank Circular Letter data to remove:" +
+            $"{Environment.NewLine}{Environment.NewLine}" +
+            $"Documents: {preview.DocumentCount:N0}{Environment.NewLine}" +
+            $"Paragraphs: {preview.ParagraphCount:N0}{Environment.NewLine}" +
+            $"Linked favorites: {preview.FavoriteCount:N0}{Environment.NewLine}" +
+            $"Linked projection history: {preview.HistoryCount:N0}{Environment.NewLine}{Environment.NewLine}" +
+            "Sample documents:" +
+            $"{Environment.NewLine}{sampleText}{Environment.NewLine}{Environment.NewLine}" +
+            "This will not remove Brother Branham data, KJV Bible data, unrelated favorites, or the content source configuration.",
+            "Confirm Brother Frank Cleanup",
+            MessageBoxButton.OKCancel,
+            MessageBoxImage.Warning);
+
+        if (confirmation != MessageBoxResult.OK)
+        {
+            StatusText = "Brother Frank cleanup canceled.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Removing Brother Frank Circular Letter imports...";
+
+            var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+            var backupPath = Path.Combine(
+                Path.GetDirectoryName(databasePath) ?? Directory.GetCurrentDirectory(),
+                "backups",
+                $"messageflow_before_brother_frank_cleanup_{DateTime.Now:yyyyMMdd_HHmmss}.db");
+            BackupDatabaseFile(databasePath, backupPath);
+            LatestBackupPath = backupPath;
+
+            var removed = await DeleteBrotherFrankCircularLettersAsync();
+            await MessageFlowDatabaseRepair.RebuildSearchIndexAsync(databasePath, App.LogStartupMessage);
+            await RefreshFilterOptionsPreservingSelectionAsync();
+            await LoadContentSourcesAsync(SelectedContentSource?.Id);
+            await LoadFavoritesAsync();
+            await LoadProjectionHistoryAsync();
+
+            if (SelectedParagraph?.IsCircularLetter == true)
+            {
+                SetResults([]);
+            }
+
+            StatusText =
+                $"Brother Frank cleanup completed: {removed.DocumentCount:N0} documents and {removed.ParagraphCount:N0} paragraphs removed.";
+            MessageBox.Show(
+                $"Brother Frank cleanup completed.{Environment.NewLine}{Environment.NewLine}" +
+                $"Removed {removed.DocumentCount:N0} document(s), {removed.ParagraphCount:N0} paragraph(s), " +
+                $"{removed.FavoriteCount:N0} linked favorite(s), and {removed.HistoryCount:N0} linked history item(s)." +
+                $"{Environment.NewLine}{Environment.NewLine}Backup created:{Environment.NewLine}{backupPath}",
+                "Cleanup Brother Frank Circular Letters",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Brother Frank cleanup failed.", ex);
+            StatusText = $"Brother Frank cleanup failed: {ex.Message}";
+            MessageBox.Show(
+                $"Brother Frank cleanup failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Cleanup Brother Frank Circular Letters",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
+    }
+
+    private async Task<BrotherFrankCircularLetterCleanupPreview> BuildBrotherFrankCircularLetterCleanupPreviewAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+
+        var targetSermonIds = await BrotherFrankCircularLetterSermons(dbContext)
+            .Select(sermon => sermon.Id)
+            .ToListAsync();
+
+        if (targetSermonIds.Count == 0)
+        {
+            return BrotherFrankCircularLetterCleanupPreview.Empty;
+        }
+
+        var paragraphIds = dbContext.SermonParagraphs
+            .Where(paragraph => targetSermonIds.Contains(paragraph.SermonId))
+            .Select(paragraph => paragraph.Id);
+
+        var documentCount = targetSermonIds.Count;
+        var paragraphCount = await dbContext.SermonParagraphs
+            .AsNoTracking()
+            .CountAsync(paragraph => targetSermonIds.Contains(paragraph.SermonId));
+        var favoriteCount = await dbContext.FavoriteParagraphs
+            .AsNoTracking()
+            .CountAsync(favorite => paragraphIds.Contains(favorite.SermonParagraphId));
+        var historyCount = await dbContext.ProjectionHistories
+            .AsNoTracking()
+            .CountAsync(history => paragraphIds.Contains(history.SermonParagraphId));
+        var sampleTitles = await BrotherFrankCircularLetterSermons(dbContext)
+            .OrderBy(sermon => sermon.Year)
+            .ThenBy(sermon => sermon.Title)
+            .Select(sermon => sermon.Title)
+            .Take(8)
+            .ToListAsync();
+
+        return new BrotherFrankCircularLetterCleanupPreview(
+            documentCount,
+            paragraphCount,
+            favoriteCount,
+            historyCount,
+            sampleTitles);
+    }
+
+    private async Task<BrotherFrankCircularLetterCleanupPreview> DeleteBrotherFrankCircularLettersAsync()
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        var targetSermonIds = await BrotherFrankCircularLetterSermons(dbContext)
+            .Select(sermon => sermon.Id)
+            .ToListAsync();
+
+        if (targetSermonIds.Count == 0)
+        {
+            return BrotherFrankCircularLetterCleanupPreview.Empty;
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        var targetParagraphIds = dbContext.SermonParagraphs
+            .Where(paragraph => targetSermonIds.Contains(paragraph.SermonId))
+            .Select(paragraph => paragraph.Id);
+
+        var favoriteCount = await dbContext.FavoriteParagraphs
+            .Where(favorite => targetParagraphIds.Contains(favorite.SermonParagraphId))
+            .ExecuteDeleteAsync();
+        var historyCount = await dbContext.ProjectionHistories
+            .Where(history => targetParagraphIds.Contains(history.SermonParagraphId))
+            .ExecuteDeleteAsync();
+        var paragraphCount = await dbContext.SermonParagraphs
+            .Where(paragraph => targetSermonIds.Contains(paragraph.SermonId))
+            .ExecuteDeleteAsync();
+        var documentCount = await dbContext.Sermons
+            .Where(sermon => targetSermonIds.Contains(sermon.Id))
+            .ExecuteDeleteAsync();
+
+        dbContext.ImportLogs.Add(new ImportLog
+        {
+            FilePath = "Brother Frank Circular Letter cleanup",
+            Status = "Cleanup",
+            Message =
+                $"Removed {documentCount} Brother Frank Circular Letter documents, {paragraphCount} paragraphs, " +
+                $"{favoriteCount} linked favorites, and {historyCount} linked history items.",
+            ImportedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return new BrotherFrankCircularLetterCleanupPreview(
+            documentCount,
+            paragraphCount,
+            favoriteCount,
+            historyCount,
+            []);
+    }
+
+    private static IQueryable<Sermon> BrotherFrankCircularLetterSermons(MessageFlowDbContext dbContext)
+    {
+        return dbContext.Sermons
+            .Where(sermon =>
+                sermon.ContentSource != null &&
+                sermon.ContentSource.SourceType == "CircularLetter" &&
+                (
+                    (sermon.Author != null &&
+                     (sermon.Author.DisplayName == "Brother Frank" ||
+                      sermon.Author.FullName == "Ewald Frank")) ||
+                    EF.Functions.Like(sermon.ContentSource.Name, "%ewald%") ||
+                    EF.Functions.Like(sermon.ContentSource.DisplayName, "%Ewald Frank%") ||
+                    EF.Functions.Like(sermon.ContentSource.DisplayName, "%Brother Frank%")
+                ) &&
+                (EF.Functions.Like(sermon.Title, "Circular Letter%") ||
+                 EF.Functions.Like(sermon.SermonCode, "CL-%")));
     }
 
     public void SetBibleMode(bool enabled)
@@ -1303,7 +1577,7 @@ public sealed class MainViewModel : ObservableObject
     {
         var dialog = new AddContentSourceWindow
         {
-            Owner = Application.Current.MainWindow
+            Owner = System.Windows.Application.Current.MainWindow
         };
 
         if (dialog.ShowDialog() != true)
@@ -1377,7 +1651,7 @@ public sealed class MainViewModel : ObservableObject
     {
         var dialog = new ManageSourcesWindow(this)
         {
-            Owner = Application.Current.MainWindow,
+            Owner = System.Windows.Application.Current.MainWindow,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
 
@@ -1388,7 +1662,7 @@ public sealed class MainViewModel : ObservableObject
     {
         var dialog = new ImportBibleWindow
         {
-            Owner = Application.Current.MainWindow,
+            Owner = System.Windows.Application.Current.MainWindow,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
 
@@ -1597,7 +1871,7 @@ public sealed class MainViewModel : ObservableObject
         {
             var previewWindow = new ImportPreviewWindow(preview)
             {
-                Owner = Application.Current.MainWindow,
+                Owner = System.Windows.Application.Current.MainWindow,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ShowInTaskbar = false,
                 ShowActivated = true
@@ -1704,6 +1978,9 @@ public sealed class MainViewModel : ObservableObject
             $"{Environment.NewLine}Already imported: {preview.AlreadyImportedFiles:N0}" +
             $"{Environment.NewLine}Ready to import: {preview.ReadyToImportFiles:N0}" +
             $"{Environment.NewLine}Invalid or missing: {preview.InvalidOrMissingFilesCount:N0}" +
+            $"{Environment.NewLine}Quality extracted paragraphs: {preview.QualitySummary.TotalExtractedParagraphs:N0}" +
+            $"{Environment.NewLine}Quality accepted paragraphs: {preview.QualitySummary.AcceptedParagraphs:N0}" +
+            $"{Environment.NewLine}Quality rejected paragraphs: {preview.QualitySummary.TotalRejected:N0}" +
             $"{Environment.NewLine}Scan elapsed ms: {elapsedMilliseconds:N0}");
     }
 
@@ -2026,6 +2303,9 @@ public sealed class MainViewModel : ObservableObject
                     authorName,
                     importedSet))
                 .ToList();
+            var qualitySummary = ShouldPreviewCircularLetterQuality(sourceContext)
+                ? BuildImportPreviewQualitySummary(readyFiles)
+                : ImportPreviewQualitySummary.Empty;
 
             return new ImportPreviewSummary(
                 source.DisplayName,
@@ -2037,8 +2317,44 @@ public sealed class MainViewModel : ObservableObject
                 scan.InvalidOrMissingFiles,
                 authorName,
                 readyFiles,
-                metadataSamples);
+                metadataSamples,
+                qualitySummary);
         });
+    }
+
+    private static bool ShouldPreviewCircularLetterQuality(SourceMetadataContext sourceContext)
+    {
+        return SermonMetadataParser.IsEwaldFrankSource(sourceContext) &&
+               string.Equals(sourceContext.SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ImportPreviewQualitySummary BuildImportPreviewQualitySummary(IReadOnlyList<string> readyFiles)
+    {
+        if (readyFiles.Count == 0)
+        {
+            return ImportPreviewQualitySummary.Empty;
+        }
+
+        var extractor = new PdfTextExtractor();
+        var total = ParagraphQualitySummary.Empty;
+
+        foreach (var filePath in readyFiles)
+        {
+            try
+            {
+                var pages = extractor.ExtractPages(filePath);
+                var paragraphs = ParagraphSplitter.Split(pages);
+                var filtered = CircularLetterParagraphQualityFilter.Apply(paragraphs);
+                total = total.Add(filtered.Summary);
+            }
+            catch (Exception ex)
+            {
+                App.LogStartupMessage(
+                    $"Brother Frank quality preview skipped {Path.GetFileName(filePath)}: {ex.Message}");
+            }
+        }
+
+        return new ImportPreviewQualitySummary(total);
     }
 
     private static ImportPreviewMetadataSample CreateImportPreviewMetadataSample(
@@ -2231,7 +2547,7 @@ public sealed class MainViewModel : ObservableObject
             try
             {
                 await Task.Delay(180, cancellationToken);
-                var operation = Application.Current.Dispatcher.InvokeAsync(
+                var operation = System.Windows.Application.Current.Dispatcher.InvokeAsync(
                     () => UpdateBibleNavigationAsync(queryText, selectExactOrKeywordVerse: false, cancellationToken, version));
 
                 await operation.Task.Unwrap();
@@ -2624,7 +2940,7 @@ public sealed class MainViewModel : ObservableObject
             try
             {
                 await Task.Delay(SearchDebounceMilliseconds, cancellationToken);
-                var operation = Application.Current.Dispatcher.InvokeAsync(
+                var operation = System.Windows.Application.Current.Dispatcher.InvokeAsync(
                     () => ExecuteSearchAsync(snapshot, cancellationToken));
 
                 await operation.Task.Unwrap();
@@ -2795,16 +3111,24 @@ public sealed class MainViewModel : ObservableObject
             ? SermonResults.FirstOrDefault()
             : SermonResults.FirstOrDefault(sermon => sermon.SermonId == preferredParagraph.SermonId);
 
-        if (SelectedSermon == nextSermon)
+        isApplyingSearchResults = true;
+        try
         {
-            RefreshParagraphResultsForSelectedSermon(preferredParagraphId);
-            return;
-        }
+            if (SelectedSermon == nextSermon)
+            {
+                RefreshParagraphResultsForSelectedSermon(preferredParagraphId);
+                return;
+            }
 
-        SelectedSermon = nextSermon;
-        if (preferredParagraphId is not null)
+            SelectedSermon = nextSermon;
+            if (preferredParagraphId is not null)
+            {
+                RefreshParagraphResultsForSelectedSermon(preferredParagraphId);
+            }
+        }
+        finally
         {
-            RefreshParagraphResultsForSelectedSermon(preferredParagraphId);
+            isApplyingSearchResults = false;
         }
     }
 
@@ -2825,6 +3149,40 @@ public sealed class MainViewModel : ObservableObject
             ? ParagraphResults.FirstOrDefault()
             : ParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value) ??
               ParagraphResults.FirstOrDefault();
+    }
+
+    private async Task SelectSermonDocumentAsync(SermonResultViewModel? sermon)
+    {
+        if (sermon is null)
+        {
+            ParagraphResults.Clear();
+            SelectedParagraph = null;
+            return;
+        }
+
+        try
+        {
+            var sermonParagraphs = await LoadSermonParagraphsAsync(sermon.SermonId);
+            if (SelectedSermon?.SermonId != sermon.SermonId)
+            {
+                return;
+            }
+
+            ParagraphResults.Clear();
+            foreach (var paragraph in sermonParagraphs)
+            {
+                ParagraphResults.Add(paragraph);
+            }
+
+            SelectedParagraph = ParagraphResults.FirstOrDefault();
+            StatusText = SelectedParagraph is null
+                ? "No paragraphs found for this document."
+                : $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Could not load document paragraphs: {ex.Message}";
+        }
     }
 
     private async void SelectPreviousParagraph()
@@ -3005,9 +3363,38 @@ public sealed class MainViewModel : ObservableObject
         await ProjectCurrentSelectionAsync(recordHistory: true);
     }
 
-    public void SetProjectionOpen(bool isOpen)
+    public void SetProjectionOpen(bool isOpen, ProjectionDisplayTarget? displayTarget = null)
     {
+        if (displayTarget is not null &&
+            !string.Equals(projectionOpenDisplayText, displayTarget.StatusDisplayName, StringComparison.Ordinal))
+        {
+            projectionOpenDisplayText = displayTarget.StatusDisplayName;
+            OnPropertyChanged(nameof(ProjectionStatusText));
+        }
+
         IsProjectionOpen = isOpen;
+    }
+
+    public void ReportProjectionOpened(ProjectionDisplayTarget displayTarget, bool isTest)
+    {
+        SetProjectionOpen(true, displayTarget);
+
+        var messagePrefix = isTest ? "Projection test opened" : "Projection opened";
+        StatusText =
+            $"{messagePrefix} on {displayTarget.StatusDisplayName}. Screens detected: {displayTarget.ScreenCount:N0}. Bounds: {displayTarget.BoundsDisplay}.";
+
+        App.LogStartupMessage(
+            $"{messagePrefix}." +
+            $"{Environment.NewLine}Screens detected: {displayTarget.ScreenCount:N0}" +
+            $"{Environment.NewLine}Selected display: {displayTarget.StatusDisplayName}" +
+            $"{Environment.NewLine}Device: {displayTarget.DeviceName}" +
+            $"{Environment.NewLine}Bounds: {displayTarget.BoundsDisplay}" +
+            $"{Environment.NewLine}Preference: {SelectedProjectionDisplayOption?.Label ?? "Auto"}");
+    }
+
+    public ProjectionDisplayTarget ResolveProjectionDisplayTarget()
+    {
+        return ProjectionDisplayService.ResolveTarget(SelectedProjectionDisplayOption?.PreferenceKey);
     }
 
     public async Task ProjectSelectedSavedParagraphAsync()
@@ -3844,6 +4231,42 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public void RefreshProjectionDisplayOptions()
+    {
+        var savedPreference = ProjectionDisplayService.LoadPreference();
+        var currentPreference = SelectedProjectionDisplayOption?.PreferenceKey;
+        var preferredKey = string.IsNullOrWhiteSpace(currentPreference)
+            ? savedPreference
+            : currentPreference;
+
+        var options = ProjectionDisplayService.GetDisplayOptions();
+        ProjectionDisplayOptions.Clear();
+        foreach (var option in options)
+        {
+            ProjectionDisplayOptions.Add(option);
+        }
+
+        var selectedOption = ProjectionDisplayOptions.FirstOrDefault(option =>
+                                 string.Equals(option.PreferenceKey, preferredKey, StringComparison.OrdinalIgnoreCase)) ??
+                             ProjectionDisplayOptions.FirstOrDefault(option => option.IsAuto) ??
+                             ProjectionDisplayOptions.FirstOrDefault();
+
+        suppressProjectionDisplayPreferenceSave = true;
+        try
+        {
+            SelectedProjectionDisplayOption = selectedOption;
+        }
+        finally
+        {
+            suppressProjectionDisplayPreferenceSave = false;
+        }
+    }
+
+    private void RequestProjectionDisplayTest()
+    {
+        ProjectionTestRequested?.Invoke();
+    }
+
     private async Task LoadSelectedSourceDiagnosticsAsync(ContentSourceViewModel? source)
     {
         var version = Interlocked.Increment(ref sourceDetailsRequestVersion);
@@ -4248,6 +4671,45 @@ public sealed class MainViewModel : ObservableObject
         return count == 1 ? $"1 {singular}" : $"{count:N0} {plural}";
     }
 
+    private string GetSearchResultsPanelTitle()
+    {
+        var selectedSourceType = SelectedSourceFilter?.Value is { } sourceId
+            ? ContentSources.FirstOrDefault(source => source.Id == sourceId)?.SourceType
+            : null;
+
+        if (!string.IsNullOrWhiteSpace(selectedSourceType))
+        {
+            return GetSearchResultsPanelTitleForSourceTypes([selectedSourceType]);
+        }
+
+        var resultSourceTypes = allParagraphResults
+            .Select(result => result.SourceType)
+            .Where(type => !string.IsNullOrWhiteSpace(type))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return GetSearchResultsPanelTitleForSourceTypes(resultSourceTypes);
+    }
+
+    private static string GetSearchResultsPanelTitleForSourceTypes(IReadOnlyCollection<string> sourceTypes)
+    {
+        if (sourceTypes.Count == 1)
+        {
+            var sourceType = sourceTypes.First();
+            if (string.Equals(sourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Circular Letter Results";
+            }
+
+            if (string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Sermon Results";
+            }
+        }
+
+        return "Search Results";
+    }
+
     private static string TrimTo(string value, int maxLength)
     {
         return value.Length <= maxLength ? value : value[..maxLength];
@@ -4506,6 +4968,8 @@ public sealed class MainViewModel : ObservableObject
         ClearHistoryCommand.RaiseCanExecuteChanged();
         VerifyProductionDataCommand.RaiseCanExecuteChanged();
         CleanupTestDataCommand.RaiseCanExecuteChanged();
+        CleanupBrotherFrankCircularLettersCommand.RaiseCanExecuteChanged();
+        TestProjectionDisplayCommand.RaiseCanExecuteChanged();
         ProjectFavoriteCommand.RaiseCanExecuteChanged();
         RemoveFavoriteCommand.RaiseCanExecuteChanged();
         ProjectBibleFavoriteCommand.RaiseCanExecuteChanged();
@@ -4551,6 +5015,16 @@ public sealed class MainViewModel : ObservableObject
         int DocumentCount,
         int DocumentsToRepairCount,
         bool WouldChangeSourceType);
+
+    private sealed record BrotherFrankCircularLetterCleanupPreview(
+        int DocumentCount,
+        int ParagraphCount,
+        int FavoriteCount,
+        int HistoryCount,
+        IReadOnlyList<string> SampleTitles)
+    {
+        public static BrotherFrankCircularLetterCleanupPreview Empty { get; } = new(0, 0, 0, 0, []);
+    }
 
     private readonly record struct FilterLoadResult(int LinkedAuthorCount, int LinkedSourceCount, int YearCount);
 }

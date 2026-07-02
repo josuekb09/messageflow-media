@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using MessageFlow.App.ViewModels;
+using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace MessageFlow.App;
 
@@ -9,6 +10,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel viewModel;
     private ProjectWindow? projectWindow;
+    private ProjectWindow? testProjectionWindow;
     private AdminToolsWindow? adminToolsWindow;
 
     public MainWindow(MainViewModel viewModel)
@@ -19,6 +21,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         viewModel.ProjectRequested += ShowProjectionWindow;
+        viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -43,27 +46,85 @@ public partial class MainWindow : Window
 
     private void ShowProjectionWindow()
     {
-        if (projectWindow is not null)
+        try
         {
-            projectWindow.Activate();
-            projectWindow.Focus();
-            viewModel.SetProjectionOpen(true);
-            return;
+            var displayTarget = viewModel.ResolveProjectionDisplayTarget();
+            CloseTestProjectionWindow();
+
+            if (projectWindow is null)
+            {
+                projectWindow = new ProjectWindow(viewModel);
+                projectWindow.Closed += (_, _) =>
+                {
+                    projectWindow = null;
+                    UpdateProjectionClosedStatus();
+                };
+
+                ProjectionDisplayService.PrepareFullscreenWindow(projectWindow, displayTarget);
+                projectWindow.Show();
+            }
+
+            ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
+            viewModel.ReportProjectionOpened(displayTarget, isTest: false);
         }
-
-        projectWindow = new ProjectWindow(viewModel);
-        projectWindow.Closed += (_, _) =>
+        catch (Exception ex)
         {
-            projectWindow = null;
-            viewModel.SetProjectionOpen(false);
-        };
-
-        projectWindow.Show();
-        viewModel.SetProjectionOpen(true);
-        projectWindow.Activate();
+            App.LogStartupError("Projection window could not be opened.", ex);
+            viewModel.StatusText = $"Projection could not open: {ex.Message}";
+            UpdateProjectionClosedStatus();
+        }
     }
 
-    private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void ShowProjectionTestWindow()
+    {
+        try
+        {
+            var displayTarget = viewModel.ResolveProjectionDisplayTarget();
+            CloseLiveProjectionWindow();
+
+            if (testProjectionWindow is null)
+            {
+                testProjectionWindow = ProjectWindow.CreateTestWindow(viewModel);
+                testProjectionWindow.Closed += (_, _) =>
+                {
+                    testProjectionWindow = null;
+                    UpdateProjectionClosedStatus();
+                };
+
+                ProjectionDisplayService.PrepareFullscreenWindow(testProjectionWindow, displayTarget);
+                testProjectionWindow.Show();
+            }
+
+            ProjectionDisplayService.MaximizeOnTarget(testProjectionWindow, displayTarget);
+            viewModel.ReportProjectionOpened(displayTarget, isTest: true);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Projection test window could not be opened.", ex);
+            viewModel.StatusText = $"Projection test could not open: {ex.Message}";
+            UpdateProjectionClosedStatus();
+        }
+    }
+
+    private void CloseLiveProjectionWindow()
+    {
+        projectWindow?.Close();
+    }
+
+    private void CloseTestProjectionWindow()
+    {
+        testProjectionWindow?.Close();
+    }
+
+    private void UpdateProjectionClosedStatus()
+    {
+        if (projectWindow is null && testProjectionWindow is null)
+        {
+            viewModel.SetProjectionOpen(false);
+        }
+    }
+
+    private async void Window_PreviewKeyDown(object sender, WpfKeyEventArgs e)
     {
         if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab) &&
             (BibleSearchBox.IsKeyboardFocusWithin || BibleNavigationList.IsKeyboardFocusWithin))
@@ -108,9 +169,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Escape && projectWindow is not null)
+        if (e.Key == Key.Escape && (projectWindow is not null || testProjectionWindow is not null))
         {
-            projectWindow.Close();
+            CloseLiveProjectionWindow();
+            CloseTestProjectionWindow();
             e.Handled = true;
         }
     }
