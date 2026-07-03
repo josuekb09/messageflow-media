@@ -207,20 +207,22 @@
                                                          <RowDefinition Height="Auto" />
                                                      </Grid.RowDefinitions>
                                                      <TextBlock Text="{Binding Title}"
-                                                                FontSize="15"
+                                                                FontSize="16"
                                                                 FontWeight="SemiBold"
-                                                                TextWrapping="Wrap" />
+                                                                TextWrapping="Wrap"
+                                                                LineHeight="21" />
                                                      <TextBlock Grid.Row="1"
-                                                                Margin="0,7,0,0"
+                                                                Margin="0,8,0,0"
                                                                 Text="{Binding ContentTypeDisplay}"
                                                                 Foreground="{StaticResource AccentBrush}"
-                                                                FontSize="13"
+                                                                FontSize="14"
                                                                 FontWeight="SemiBold" />
                                                      <TextBlock Grid.Row="2"
-                                                                Margin="0,6,0,0"
+                                                                Margin="0,7,0,0"
                                                                 Text="{Binding MetaLine}"
                                                                 Foreground="{StaticResource SecondaryTextBrush}"
                                                                 FontSize="13"
+                                                                LineHeight="19"
                                                                 TextWrapping="Wrap" />
                                                  </Grid>
                                              </Border>
@@ -253,14 +255,14 @@
 
                                 <Grid Grid.Row="1">
                                     <ListBox x:Name="BibleNavigationList"
-                                             MinHeight="180"
-                                             Margin="0,10,0,0"
+                                             MinHeight="220"
+                                             Margin="0,12,0,0"
                                              ItemsSource="{Binding BibleNavigationItems}"
                                              SelectedItem="{Binding SelectedBibleNavigationItem}"
                                              MouseLeftButtonUp="BibleNavigationList_MouseLeftButtonUp">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Padding="{StaticResource CardPadding}"
+                                                <Border Padding="18,15"
                                                         Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                         BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                         BorderThickness="1"
@@ -272,22 +274,23 @@
                                                             <RowDefinition Height="Auto" />
                                                         </Grid.RowDefinitions>
                                                         <TextBlock Text="{Binding PrimaryText}"
-                                                                   FontSize="14"
+                                                                   FontSize="16"
                                                                    FontWeight="SemiBold"
-                                                                   TextWrapping="Wrap" />
+                                                                   TextWrapping="Wrap"
+                                                                   LineHeight="22" />
                                                         <TextBlock Grid.Row="1"
-                                                                   Margin="0,6,0,0"
+                                                                   Margin="0,7,0,0"
                                                                    Text="{Binding SecondaryText}"
                                                                    Foreground="{StaticResource AccentBrush}"
-                                                                   FontSize="13"
+                                                                   FontSize="14"
                                                                    FontWeight="SemiBold" />
                                                         <TextBlock Grid.Row="2"
-                                                                   Margin="0,7,0,0"
+                                                                   Margin="0,9,0,0"
                                                                    Text="{Binding PreviewText}"
                                                                    Foreground="{StaticResource SecondaryTextBrush}"
-                                                                   FontSize="13"
-                                                                   LineHeight="18"
-                                                                   MaxHeight="54"
+                                                                   FontSize="14"
+                                                                   LineHeight="21"
+                                                                   MaxHeight="84"
                                                                    TextWrapping="Wrap" />
                                                    </Grid>
                                                 </Border>
@@ -777,7 +780,7 @@
                                                 Opacity="0" />
 
                                         <Grid Grid.Column="1"
-                                              Margin="14">
+                                              Margin="16">
                                              <Grid.RowDefinitions>
                                                  <RowDefinition Height="Auto" />
                                                  <RowDefinition Height="Auto" />
@@ -787,7 +790,7 @@
                                                 <TextBlock Text="{Binding ParagraphNumber, StringFormat=Paragraph {0}}"
                                                            Foreground="{StaticResource AccentBrush}"
                                                            FontWeight="SemiBold"
-                                                           FontSize="14"
+                                                           FontSize="15"
                                                            DockPanel.Dock="Left" />
                                                 <TextBlock Text="{Binding PageNumber, StringFormat=Page {0}}"
                                                            Foreground="{StaticResource MutedTextBrush}"
@@ -801,13 +804,13 @@
                                                         FontSize="13"
                                                         TextWrapping="Wrap" />
                                             <TextBlock Grid.Row="2"
-                                                       Margin="0,7,0,0"
+                                                       Margin="0,9,0,0"
                                                        Text="{Binding ParagraphTextPreview}"
-                                                       FontSize="16"
+                                                       FontSize="17"
                                                        Foreground="{StaticResource SecondaryTextBrush}"
                                                        TextWrapping="Wrap"
-                                                       LineHeight="22"
-                                                       MaxHeight="74" />
+                                                       LineHeight="24"
+                                                       MaxHeight="96" />
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -850,8 +853,8 @@
                                        FontSize="15"
                                        TextWrapping="Wrap" />
                             <TextBlock Text="{Binding PreviewText}"
-                                       FontSize="30"
-                                       LineHeight="42"
+                                       FontSize="32"
+                                       LineHeight="45"
                                        TextWrapping="Wrap"
                                        Foreground="{StaticResource PrimaryTextBrush}" />
                         </StackPanel>
@@ -927,8 +930,8 @@
                                   Margin="0,18,0,20"
                                   VerticalScrollBarVisibility="Auto">
                         <TextBlock Text="{Binding PreviewText}"
-                                   FontSize="22"
-                                   LineHeight="32"
+                                   FontSize="23"
+                                   LineHeight="34"
                                    TextWrapping="Wrap"
                                    Foreground="{StaticResource PrimaryTextBrush}" />
                     </ScrollViewer>

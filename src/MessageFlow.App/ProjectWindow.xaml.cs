@@ -12,8 +12,8 @@ namespace MessageFlow.App;
 
 public partial class ProjectWindow : Window
 {
-    private const double MinimumParagraphFontSize = 34;
-    private const double MaximumParagraphFontSize = 72;
+    private const double MinimumParagraphFontSize = 36;
+    private const double MaximumParagraphFontSize = 76;
     private const double FontStep = 2;
     private const string ProjectionTestTitle = "MessageFlow Projection Test";
     private const string ProjectionTestText = "If you can see this on the TV, projection is ready.";
