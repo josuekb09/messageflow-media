@@ -7,7 +7,7 @@
         Title="MessageFlow"
         Height="820"
         Width="1180"
-        MinHeight="620"
+        MinHeight="640"
         MinWidth="1080"
         WindowState="Maximized"
         Background="{StaticResource WindowBackgroundBrush}"
@@ -142,21 +142,24 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Margin="24">
+        <Grid Grid.Row="1"
+              Margin="24"
+              ClipToBounds="True">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.95*" MinWidth="260" />
+                <ColumnDefinition Width="0.95*" MinWidth="340" />
                 <ColumnDefinition Width="8" />
-                <ColumnDefinition Width="1.45*" MinWidth="360" />
+                <ColumnDefinition Width="1.45*" MinWidth="320" />
                 <ColumnDefinition Width="8" />
-                <ColumnDefinition Width="1.05*" MinWidth="360" />
+                <ColumnDefinition Width="1.05*" MinWidth="320" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
                     Background="{StaticResource PanelBackgroundBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="{StaticResource BorderRadius}">
-                <Grid>
+                    CornerRadius="{StaticResource BorderRadius}"
+                    ClipToBounds="True">
+                <Grid ClipToBounds="True">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -176,9 +179,13 @@
                     <TabControl x:Name="LibraryTabs"
                                 Grid.Row="1"
                                 Margin="10,0,10,10"
+                                MinHeight="0"
+                                ClipToBounds="True"
                                 SelectionChanged="LibraryTabs_SelectionChanged">
                         <TabItem Header="Search">
-                            <Grid Margin="0,10,0,0">
+                            <Grid Margin="0,10,0,0"
+                                  MinHeight="0"
+                                  ClipToBounds="True">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
@@ -191,11 +198,15 @@
                                            TextWrapping="Wrap" />
 
                                 <ListBox Grid.Row="1"
+                                         MinHeight="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          ItemsSource="{Binding SermonResults}"
                                          SelectedItem="{Binding SelectedSermon}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="{StaticResource CardPadding}"
+                                                MinHeight="92"
                                                 Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                 BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                 BorderThickness="1"
@@ -234,7 +245,9 @@
 
                         <TabItem x:Name="BibleTab"
                                  Header="Bible">
-                            <Grid Margin="0,10,0,0">
+                            <Grid Margin="0,10,0,0"
+                                  MinHeight="0"
+                                  ClipToBounds="True">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
@@ -255,14 +268,17 @@
 
                                 <Grid Grid.Row="1">
                                     <ListBox x:Name="BibleNavigationList"
-                                             MinHeight="220"
-                                             Margin="0,12,0,0"
+                                             MinHeight="0"
+                                             Margin="0,12,0,12"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                              ItemsSource="{Binding BibleNavigationItems}"
                                              SelectedItem="{Binding SelectedBibleNavigationItem}"
                                              MouseLeftButtonUp="BibleNavigationList_MouseLeftButtonUp">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Padding="18,15"
+                                                        MinHeight="96"
                                                         Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                         BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                                         BorderThickness="1"
@@ -292,7 +308,7 @@
                                                                    LineHeight="21"
                                                                    MaxHeight="84"
                                                                    TextWrapping="Wrap" />
-                                                   </Grid>
+                                                    </Grid>
                                                 </Border>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -334,30 +350,34 @@
                                     </Border>
                                 </Grid>
 
-                                <StackPanel Grid.Row="2"
-                                            Margin="0,10,0,0">
-                                    <ComboBox ItemsSource="{Binding BibleTranslations}"
-                                              SelectedItem="{Binding SelectedBibleTranslation}"
-                                              DisplayMemberPath="DisplayName"
-                                              TextSearch.TextPath="DisplayName"
-                                              VerticalContentAlignment="Center" />
-                                    <TextBlock Text="Bible is not available. Open Admin Tools if setup is needed."
-                                               Margin="4,8,4,0"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="13"
-                                               TextWrapping="Wrap">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
+                                <Border Grid.Row="2"
+                                        Padding="0,12,0,0"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,1,0,0">
+                                    <StackPanel>
+                                        <ComboBox ItemsSource="{Binding BibleTranslations}"
+                                                  SelectedItem="{Binding SelectedBibleTranslation}"
+                                                  DisplayMemberPath="DisplayName"
+                                                  TextSearch.TextPath="DisplayName"
+                                                  VerticalContentAlignment="Center" />
+                                        <TextBlock Text="Bible is not available. Open Admin Tools if setup is needed."
+                                                   Margin="4,8,4,0"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="13"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </TabItem>
 
@@ -719,6 +739,7 @@
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Background="{StaticResource BorderBrush}"
+                          Focusable="False"
                           ShowsPreview="True"
                           ResizeDirection="Columns"
                           ResizeBehavior="PreviousAndNext" />
@@ -898,6 +919,7 @@
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Background="{StaticResource BorderBrush}"
+                          Focusable="False"
                           ShowsPreview="True"
                           ResizeDirection="Columns"
                           ResizeBehavior="PreviousAndNext" />

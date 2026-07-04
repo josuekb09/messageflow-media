@@ -12,7 +12,10 @@ namespace MessageFlow.App;
 
 public partial class ProjectWindow : Window
 {
-    private const double MinimumParagraphFontSize = 36;
+    private const double SmallMinimumParagraphFontSize = 30;
+    private const double MediumMinimumParagraphFontSize = 36;
+    private const double LargeMinimumParagraphFontSize = 44;
+    private const double ExtraLargeMinimumParagraphFontSize = 52;
     private const double MaximumParagraphFontSize = 76;
     private const double FontStep = 2;
     private const string ProjectionTestTitle = "MessageFlow Projection Test";
@@ -174,17 +177,18 @@ public partial class ProjectWindow : Window
         }
 
         var availableSize = new WpfSize(ParagraphStage.ActualWidth, ParagraphStage.ActualHeight);
-        var preferredFontSize = Math.Clamp(viewModel.ProjectionFontSize, MinimumParagraphFontSize, MaximumParagraphFontSize);
-        var fontSize = FindLargestFittingFontSize(text, availableSize, preferredFontSize);
+        var minimumFontSize = GetMinimumReadableFontSize();
+        var preferredFontSize = Math.Clamp(viewModel.ProjectionFontSize, minimumFontSize, MaximumParagraphFontSize);
+        var fontSize = FindLargestFittingFontSize(text, availableSize, preferredFontSize, minimumFontSize);
 
         projectionPages.Clear();
-        if (fontSize >= MinimumParagraphFontSize)
+        if (fontSize >= minimumFontSize)
         {
             projectionPages.Add(text);
         }
         else
         {
-            fontSize = MinimumParagraphFontSize;
+            fontSize = minimumFontSize;
             projectionPages.AddRange(SplitIntoProjectionPages(text, availableSize, fontSize));
         }
 
@@ -207,9 +211,13 @@ public partial class ProjectWindow : Window
             : string.Empty;
     }
 
-    private double FindLargestFittingFontSize(string text, WpfSize availableSize, double preferredFontSize)
+    private double FindLargestFittingFontSize(
+        string text,
+        WpfSize availableSize,
+        double preferredFontSize,
+        double minimumFontSize)
     {
-        for (var fontSize = preferredFontSize; fontSize >= MinimumParagraphFontSize; fontSize -= FontStep)
+        for (var fontSize = preferredFontSize; fontSize >= minimumFontSize; fontSize -= FontStep)
         {
             if (DoesTextFit(text, availableSize, fontSize))
             {
@@ -218,6 +226,21 @@ public partial class ProjectWindow : Window
         }
 
         return 0;
+    }
+
+    private double GetMinimumReadableFontSize()
+    {
+        return viewModel.SelectedProjectionFontSize?.Label switch
+        {
+            "Small" => SmallMinimumParagraphFontSize,
+            "Medium" => MediumMinimumParagraphFontSize,
+            "Large" => LargeMinimumParagraphFontSize,
+            "Extra Large" => ExtraLargeMinimumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 70 => ExtraLargeMinimumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 58 => LargeMinimumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 46 => MediumMinimumParagraphFontSize,
+            _ => SmallMinimumParagraphFontSize
+        };
     }
 
     private IReadOnlyList<string> SplitIntoProjectionPages(string text, WpfSize availableSize, double fontSize)
