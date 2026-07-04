@@ -74,8 +74,8 @@
                           SelectedItem="{Binding SelectedAuthor}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="140"
-                          Width="132"
+                          MinWidth="180"
+                          Width="190"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -94,8 +94,8 @@
                           SelectedItem="{Binding SelectedSourceFilter}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="140"
-                          Width="132"
+                          MinWidth="180"
+                          Width="190"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -114,8 +114,8 @@
                           SelectedItem="{Binding SelectedYear}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="92"
-                          Width="88"
+                          MinWidth="104"
+                          Width="108"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -135,7 +135,7 @@
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
                           MinWidth="150"
-                          Width="132"
+                          Width="164"
                           ToolTip="Projection font size"
                           VerticalContentAlignment="Center" />
                 </WrapPanel>
@@ -199,7 +199,7 @@
 
                                 <ListBox Grid.Row="1"
                                          MinHeight="0"
-                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.VerticalScrollBarVisibility="Visible"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          ItemsSource="{Binding SermonResults}"
                                          SelectedItem="{Binding SelectedSermon}">
@@ -251,26 +251,91 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <StackPanel>
-                                    <TextBlock Text="Search by book, chapter, verse, or keyword."
-                                               Margin="4,0,4,8"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="13"
-                                               TextWrapping="Wrap" />
+                                    <DockPanel Margin="4,0,4,8"
+                                               LastChildFill="True">
+                                        <ComboBox DockPanel.Dock="Right"
+                                                  ItemsSource="{Binding BibleTranslations}"
+                                                  SelectedItem="{Binding SelectedBibleTranslation}"
+                                                  DisplayMemberPath="DisplayName"
+                                                  TextSearch.TextPath="DisplayName"
+                                                  Width="154"
+                                                  MinWidth="142"
+                                                  Margin="12,0,0,0"
+                                                  Padding="10,6"
+                                                  FontSize="13"
+                                                  MinHeight="38"
+                                                  VerticalContentAlignment="Center">
+                                            <ComboBox.Style>
+                                                <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasMultipleBibleTranslations}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ComboBox.Style>
+                                        </ComboBox>
+
+                                        <Border DockPanel.Dock="Right"
+                                                Margin="12,0,0,0"
+                                                Padding="10,6"
+                                                Background="{StaticResource CardBackgroundBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasSingleBibleTranslation}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding SelectedBibleVersionShortDisplay}"
+                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold" />
+                                        </Border>
+
+                                        <TextBlock Text="Search by book, chapter, verse, or keyword."
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="13"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                    </DockPanel>
                                     <TextBox x:Name="BibleSearchBox"
                                              Text="{Binding BibleSearchText, UpdateSourceTrigger=PropertyChanged}"
                                              ToolTip="Search Bible references or keywords"
                                              VerticalContentAlignment="Center" />
+                                    <TextBlock Text="Bible is not available. Open Admin Tools if setup is needed."
+                                               Margin="4,8,4,0"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
 
                                 <Grid Grid.Row="1">
                                     <ListBox x:Name="BibleNavigationList"
                                              MinHeight="0"
                                              Margin="0,12,0,12"
-                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ScrollViewer.VerticalScrollBarVisibility="Visible"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                              ItemsSource="{Binding BibleNavigationItems}"
                                              SelectedItem="{Binding SelectedBibleNavigationItem}"
@@ -350,40 +415,12 @@
                                     </Border>
                                 </Grid>
 
-                                <Border Grid.Row="2"
-                                        Padding="0,12,0,0"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="0,1,0,0">
-                                    <StackPanel>
-                                        <ComboBox ItemsSource="{Binding BibleTranslations}"
-                                                  SelectedItem="{Binding SelectedBibleTranslation}"
-                                                  DisplayMemberPath="DisplayName"
-                                                  TextSearch.TextPath="DisplayName"
-                                                  VerticalContentAlignment="Center" />
-                                        <TextBlock Text="Bible is not available. Open Admin Tools if setup is needed."
-                                                   Margin="4,8,4,0"
-                                                   Foreground="{StaticResource MutedTextBrush}"
-                                                   FontSize="13"
-                                                   TextWrapping="Wrap">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsBibleUnavailable}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
                             </Grid>
                         </TabItem>
 
                         <TabItem Header="Favorites">
                             <ScrollViewer Margin="0,10,0,0"
-                                          VerticalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Visible"
                                           HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel>
                                     <Border Padding="16"
@@ -769,6 +806,8 @@
 
                     <ListBox Grid.Row="1"
                              Margin="10,0,10,10"
+                             ScrollViewer.VerticalScrollBarVisibility="Visible"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ItemsSource="{Binding ParagraphResults}"
                              SelectedItem="{Binding SelectedParagraph}">
                         <ListBox.Style>
@@ -852,7 +891,7 @@
 
                     <ScrollViewer Grid.Row="1"
                                   Margin="20,8,20,20"
-                                  VerticalScrollBarVisibility="Auto">
+                                  VerticalScrollBarVisibility="Visible">
                         <ScrollViewer.Style>
                             <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -950,7 +989,7 @@
 
                     <ScrollViewer Grid.Row="1"
                                   Margin="0,18,0,20"
-                                  VerticalScrollBarVisibility="Auto">
+                                  VerticalScrollBarVisibility="Visible">
                         <TextBlock Text="{Binding PreviewText}"
                                    FontSize="23"
                                    LineHeight="34"

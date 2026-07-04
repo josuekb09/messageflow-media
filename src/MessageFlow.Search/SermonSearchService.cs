@@ -247,6 +247,57 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<SearchResult>> BrowseSermonsAsync(
+        int? authorId = null,
+        int? contentSourceId = null,
+        int? year = null,
+        int maxResults = 2000,
+        CancellationToken cancellationToken = default)
+    {
+        var parameters = new List<SearchParameter>
+        {
+            new("$limit", ClampBrowseLimit(maxResults))
+        };
+        var clauses = new List<string>
+        {
+            """
+            p.Id = (
+                SELECT p2.Id
+                FROM SermonParagraphs p2
+                WHERE p2.SermonId = s.Id
+                ORDER BY p2.ParagraphNumber, p2.Id
+                LIMIT 1
+            )
+            """
+        };
+
+        if (authorId is not null)
+        {
+            clauses.Add("s.AuthorId = $authorId");
+            parameters.Add(new("$authorId", authorId.Value));
+        }
+
+        if (contentSourceId is not null)
+        {
+            clauses.Add("s.ContentSourceId = $contentSourceId");
+            parameters.Add(new("$contentSourceId", contentSourceId.Value));
+        }
+
+        if (year is not null)
+        {
+            clauses.Add("s.Year = $year");
+            parameters.Add(new("$year", year.Value));
+        }
+
+        return await ExecuteQueryAsync(
+            BuildBaseSelect(
+                "SermonParagraphs p",
+                string.Join($"{Environment.NewLine}        AND ", clauses),
+                orderByFtsRank: false),
+            parameters,
+            cancellationToken);
+    }
+
     private static string BuildSimpleSearchSql(bool useFts, bool hasNumber)
     {
         var clauses = new List<string>();
@@ -449,6 +500,11 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private static int ClampLimit(int maxResults)
     {
         return Math.Clamp(maxResults, 1, 250);
+    }
+
+    private static int ClampBrowseLimit(int maxResults)
+    {
+        return Math.Clamp(maxResults, 1, 2000);
     }
 
     private static string BuildContainsLike(string value)

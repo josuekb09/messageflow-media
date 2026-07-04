@@ -246,7 +246,7 @@
                             </ToggleButton>
 
                             <ContentPresenter x:Name="ContentSite"
-                                              Margin="{TemplateBinding Padding}"
+                                              Margin="12,8,42,8"
                                               HorizontalAlignment="Left"
                                               VerticalAlignment="Center"
                                               Content="{TemplateBinding SelectionBoxItem}"
@@ -294,7 +294,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Visible" />
             <Setter Property="ScrollViewer.CanContentScroll" Value="False" />
             <Setter Property="VirtualizingStackPanel.ScrollUnit" Value="Pixel" />
             <Setter Property="infra:GentleScroll.WheelStep" Value="46" />
@@ -360,10 +360,10 @@
         </Style>
 
         <Style TargetType="ScrollBar">
-            <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}" />
+            <Setter Property="Background" Value="#111827" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="Width" Value="14" />
-            <Setter Property="Height" Value="14" />
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ScrollBar}">
@@ -376,12 +376,21 @@
                                                   Style="{StaticResource ScrollBarRepeatButtonStyle}" />
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb>
+                                    <Thumb MinHeight="36">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="{x:Type Thumb}">
-                                                <Border Margin="3"
-                                                        Background="{StaticResource BorderBrush}"
+                                                <Border x:Name="ThumbChrome"
+                                                        Margin="2"
+                                                        Background="#64748B"
                                                         CornerRadius="4" />
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbChrome" Property="Background" Value="#94A3B8" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbChrome" Property="Background" Value="{StaticResource AccentBrush}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>
@@ -396,7 +405,7 @@
                             <Trigger Property="Orientation" Value="Horizontal">
                                 <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
                                 <Setter Property="Width" Value="Auto" />
-                                <Setter Property="Height" Value="14" />
+                                <Setter Property="Height" Value="12" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.35" />

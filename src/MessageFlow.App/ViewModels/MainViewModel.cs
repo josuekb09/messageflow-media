@@ -56,6 +56,7 @@ public sealed class MainViewModel : ObservableObject
     private bool showTestSourcesInManageSources;
     private bool suppressBibleSearchQueue;
     private bool isApplyingSearchResults;
+    private bool isSermonBrowseMode;
     private bool suppressProjectionDisplayPreferenceSave;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
@@ -65,9 +66,9 @@ public sealed class MainViewModel : ObservableObject
     {
         this.scopeFactory = scopeFactory;
 
-        AuthorFilters.Add(new FilterOption(null, "All authors"));
-        SourceFilters.Add(new FilterOption(null, "All sources"));
-        YearFilters.Add(new FilterOption(null, "All years"));
+        AuthorFilters.Add(new FilterOption(null, "All Authors"));
+        SourceFilters.Add(new FilterOption(null, "All Sources"));
+        YearFilters.Add(new FilterOption(null, "All Years"));
         selectedAuthor = AuthorFilters[0];
         selectedSourceFilter = SourceFilters[0];
         selectedYear = YearFilters[0];
@@ -168,6 +169,12 @@ public sealed class MainViewModel : ObservableObject
         BibleResults.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(LibraryCountText));
+        };
+        BibleTranslations.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasSingleBibleTranslation));
+            OnPropertyChanged(nameof(HasMultipleBibleTranslations));
+            OnPropertyChanged(nameof(SelectedBibleVersionShortDisplay));
         };
         BibleNavigationItems.CollectionChanged += (_, _) =>
         {
@@ -446,6 +453,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(CurrentBibleTranslationDisplay));
                 OnPropertyChanged(nameof(CurrentBibleVerseCountDisplay));
+                OnPropertyChanged(nameof(SelectedBibleVersionShortDisplay));
                 QueueBibleSearch();
             }
         }
@@ -626,6 +634,13 @@ public sealed class MainViewModel : ObservableObject
             ? "No Bible translation imported yet."
             : $"Bible: {SelectedBibleTranslation.Name} ({SelectedBibleTranslation.Abbreviation})";
 
+    public string SelectedBibleVersionShortDisplay =>
+        SelectedBibleTranslation is null ? "Version: none" : $"Version: {SelectedBibleTranslation.Abbreviation}";
+
+    public bool HasSingleBibleTranslation => BibleTranslations.Count == 1;
+
+    public bool HasMultipleBibleTranslations => BibleTranslations.Count > 1;
+
     public string CurrentBibleVerseCountDisplay =>
         currentBibleVerseCount <= 0
             ? "No Bible verses imported."
@@ -670,9 +685,14 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(CenterPanelTitle));
                 OnPropertyChanged(nameof(RightPanelTitle));
                 OnPropertyChanged(nameof(LibraryCountText));
+                OnPropertyChanged(nameof(SelectedParagraphHeader));
+                OnPropertyChanged(nameof(SelectedParagraphMeta));
                 OnPropertyChanged(nameof(PreviewHeader));
                 OnPropertyChanged(nameof(PreviewMeta));
                 OnPropertyChanged(nameof(PreviewText));
+                OnPropertyChanged(nameof(ProjectionParagraphTitle));
+                OnPropertyChanged(nameof(ProjectionParagraphNumber));
+                OnPropertyChanged(nameof(SelectedParagraphText));
                 OnPropertyChanged(nameof(PreviousButtonText));
                 OnPropertyChanged(nameof(NextButtonText));
                 OnPropertyChanged(nameof(FavoriteButtonText));
@@ -690,6 +710,8 @@ public sealed class MainViewModel : ObservableObject
     public string LibraryCountText =>
         IsBibleMode
             ? FormatCount(BibleNavigationItems.Count, "Bible result", "Bible results")
+            : isSermonBrowseMode
+                ? FormatCount(ResultCount, "sermon", "sermons")
             : FormatCount(ResultCount, "paragraph", "paragraphs");
 
     public string PreviewHeader =>
@@ -1445,6 +1467,22 @@ public sealed class MainViewModel : ObservableObject
     public void SetBibleMode(bool enabled)
     {
         IsBibleMode = enabled;
+        if (enabled)
+        {
+            StatusText = SelectedBibleVerse is null
+                ? "Search by book, chapter, verse, or keyword."
+                : $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
+            return;
+        }
+
+        if (SelectedParagraph is null && ParagraphResults.Count > 0)
+        {
+            SelectedParagraph = ParagraphResults.FirstOrDefault();
+        }
+
+        StatusText = SelectedParagraph is null
+            ? "Search by sermon title, code, phrase, or paragraph number."
+            : $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
     }
 
     public async Task BackupDatabaseAsync()
@@ -2976,13 +3014,9 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var hasFilter = snapshot.AuthorId is not null ||
-                        snapshot.ContentSourceId is not null ||
-                        snapshot.Year is not null;
-
-        if (string.IsNullOrWhiteSpace(snapshot.QueryText) && !hasFilter)
+        if (string.IsNullOrWhiteSpace(snapshot.QueryText) && !snapshot.HasFilter)
         {
-            SetResults([]);
+            SetResults([], isSermonBrowseMode: false);
             StatusText = snapshot.ProjectBestResult
                 ? "No matching paragraph found."
                 : "Search by sermon title, code, phrase, or paragraph number.";
@@ -3006,7 +3040,7 @@ public sealed class MainViewModel : ObservableObject
 
             var preferredParagraphId = resultViewModels.FirstOrDefault()?.ParagraphId;
 
-            SetResults(resultViewModels, preferredParagraphId);
+            SetResults(resultViewModels, preferredParagraphId, snapshot.IsFilterOnlyBrowse);
 
             if (snapshot.ProjectBestResult)
             {
@@ -3022,7 +3056,9 @@ public sealed class MainViewModel : ObservableObject
 
             StatusText = ResultCount == 0
                 ? $"No results found in {stopwatch.ElapsedMilliseconds:N0} ms."
-                : $"{ResultCount} paragraph results in {stopwatch.ElapsedMilliseconds:N0} ms.";
+                : snapshot.IsFilterOnlyBrowse
+                    ? $"{FormatCount(ResultCount, "sermon", "sermons")} found in {stopwatch.ElapsedMilliseconds:N0} ms."
+                    : $"{ResultCount} paragraph results in {stopwatch.ElapsedMilliseconds:N0} ms.";
         }
         catch (OperationCanceledException)
         {
@@ -3031,7 +3067,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (IsCurrentSearch(snapshot))
             {
-                SetResults([]);
+                SetResults([], isSermonBrowseMode: false);
                 StatusText = $"Search failed: {ex.Message}";
             }
         }
@@ -3053,19 +3089,31 @@ public sealed class MainViewModel : ObservableObject
             await using var scope = scopeFactory.CreateAsyncScope();
             var searchService = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
 
-            var hasSelectedFilter = snapshot.AuthorId is not null ||
-                                    snapshot.ContentSourceId is not null ||
-                                    snapshot.Year is not null;
-            var results = hasSelectedFilter
-                ? await searchService.SearchAsync(
+            IReadOnlyList<SearchResult> results;
+            if (snapshot.IsFilterOnlyBrowse)
+            {
+                results = await searchService.BrowseSermonsAsync(
+                    snapshot.AuthorId,
+                    snapshot.ContentSourceId,
+                    snapshot.Year,
+                    maxResults: 2000,
+                    cancellationToken: cancellationToken);
+            }
+            else if (snapshot.HasFilter)
+            {
+                results = await searchService.SearchAsync(
                     new SermonSearchQuery(
                         AuthorId: snapshot.AuthorId,
                         ContentSourceId: snapshot.ContentSourceId,
                         SearchText: string.IsNullOrWhiteSpace(snapshot.QueryText) ? null : snapshot.QueryText,
                         Year: snapshot.Year,
                         MaxResults: 200),
-                    cancellationToken)
-                : await searchService.SearchAsync(snapshot.QueryText, 200, cancellationToken);
+                    cancellationToken);
+            }
+            else
+            {
+                results = await searchService.SearchAsync(snapshot.QueryText, 200, cancellationToken);
+            }
 
             cancellationToken.ThrowIfCancellationRequested();
             return results
@@ -3077,10 +3125,18 @@ public sealed class MainViewModel : ObservableObject
 
     private void SetResults(
         List<ParagraphResultViewModel> results,
-        int? preferredParagraphId = null)
+        int? preferredParagraphId = null,
+        bool isSermonBrowseMode = false)
     {
+        var browseModeChanged = this.isSermonBrowseMode != isSermonBrowseMode;
+        this.isSermonBrowseMode = isSermonBrowseMode;
         allParagraphResults = results;
         ResultCount = allParagraphResults.Count;
+        if (browseModeChanged)
+        {
+            OnPropertyChanged(nameof(LibraryCountText));
+        }
+
         var preferredParagraph = preferredParagraphId is null
             ? allParagraphResults.FirstOrDefault()
             : allParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value);
@@ -4070,21 +4126,21 @@ public sealed class MainViewModel : ObservableObject
             .ToListAsync();
 
         AuthorFilters.Clear();
-        AuthorFilters.Add(new FilterOption(null, "All authors"));
+        AuthorFilters.Add(new FilterOption(null, "All Authors"));
         foreach (var author in linkedAuthors)
         {
             AuthorFilters.Add(author);
         }
 
         YearFilters.Clear();
-        YearFilters.Add(new FilterOption(null, "All years"));
+        YearFilters.Add(new FilterOption(null, "All Years"));
         foreach (var year in years)
         {
             YearFilters.Add(new FilterOption(year, year.ToString()));
         }
 
         SourceFilters.Clear();
-        SourceFilters.Add(new FilterOption(null, "All sources"));
+        SourceFilters.Add(new FilterOption(null, "All Sources"));
         foreach (var source in linkedSources)
         {
             SourceFilters.Add(source);
@@ -4984,7 +5040,12 @@ public sealed class MainViewModel : ObservableObject
         int? ContentSourceId,
         int? Year,
         int Version,
-        bool ProjectBestResult);
+        bool ProjectBestResult)
+    {
+        public bool HasFilter => AuthorId is not null || ContentSourceId is not null || Year is not null;
+
+        public bool IsFilterOnlyBrowse => string.IsNullOrWhiteSpace(QueryText) && HasFilter;
+    }
 
     private sealed record BibleNavigationResult(
         IReadOnlyList<BibleNavigationItemViewModel> Items,
