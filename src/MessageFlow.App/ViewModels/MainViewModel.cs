@@ -141,10 +141,10 @@ public sealed class MainViewModel : ObservableObject
             () => !IsDatabaseOperationRunning);
         RefreshProjectionDisplaysCommand = new RelayCommand(RefreshProjectionDisplayOptions);
 
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 36, 48));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 48, 64));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 60, 78));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 76, 98));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 44, 56));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 56, 70));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 68, 84));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 80, 98));
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
         RefreshProjectionDisplayOptions();
 
@@ -767,10 +767,10 @@ public sealed class MainViewModel : ObservableObject
         IsBibleMode ? SelectedBibleVerse?.Text ?? string.Empty : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public double ProjectionFontSize =>
-        SelectedProjectionFontSize?.FontSize ?? 48;
+        SelectedProjectionFontSize?.FontSize ?? 56;
 
     public double ProjectionLineHeight =>
-        SelectedProjectionFontSize?.LineHeight ?? 64;
+        SelectedProjectionFontSize?.LineHeight ?? 70;
 
     public string FavoriteButtonText =>
         IsBibleMode

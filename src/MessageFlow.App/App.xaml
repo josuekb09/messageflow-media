@@ -360,27 +360,31 @@
         </Style>
 
         <Style TargetType="ScrollBar">
-            <Setter Property="Background" Value="#111827" />
+            <Setter Property="Background" Value="#0F172A" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
             <Setter Property="Width" Value="12" />
-            <Setter Property="Height" Value="12" />
+            <Setter Property="MinWidth" Value="12" />
+            <Setter Property="MinHeight" Value="12" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ScrollBar}">
                         <Grid x:Name="Root"
-                              Background="{TemplateBinding Background}">
+                              Background="{TemplateBinding Background}"
+                              SnapsToDevicePixels="True">
                             <Track x:Name="PART_Track"
+                                   Orientation="{TemplateBinding Orientation}"
                                    IsDirectionReversed="True">
                                 <Track.DecreaseRepeatButton>
                                     <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
                                                   Style="{StaticResource ScrollBarRepeatButtonStyle}" />
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb MinHeight="36">
+                                    <Thumb x:Name="ScrollThumb"
+                                           MinHeight="42">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="{x:Type Thumb}">
                                                 <Border x:Name="ThumbChrome"
-                                                        Margin="2"
+                                                        Margin="2,3"
                                                         Background="#64748B"
                                                         CornerRadius="4" />
                                                 <ControlTemplate.Triggers>
@@ -404,6 +408,8 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="Orientation" Value="Horizontal">
                                 <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
+                                <Setter TargetName="ScrollThumb" Property="MinHeight" Value="0" />
+                                <Setter TargetName="ScrollThumb" Property="MinWidth" Value="42" />
                                 <Setter Property="Width" Value="Auto" />
                                 <Setter Property="Height" Value="12" />
                             </Trigger>

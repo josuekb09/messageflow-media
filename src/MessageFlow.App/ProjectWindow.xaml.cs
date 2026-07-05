@@ -12,11 +12,14 @@ namespace MessageFlow.App;
 
 public partial class ProjectWindow : Window
 {
-    private const double SmallMinimumParagraphFontSize = 30;
-    private const double MediumMinimumParagraphFontSize = 36;
-    private const double LargeMinimumParagraphFontSize = 44;
-    private const double ExtraLargeMinimumParagraphFontSize = 52;
-    private const double MaximumParagraphFontSize = 76;
+    private const double SmallMinimumParagraphFontSize = 34;
+    private const double MediumMinimumParagraphFontSize = 42;
+    private const double LargeMinimumParagraphFontSize = 50;
+    private const double ExtraLargeMinimumParagraphFontSize = 58;
+    private const double SmallMaximumParagraphFontSize = 72;
+    private const double MediumMaximumParagraphFontSize = 90;
+    private const double LargeMaximumParagraphFontSize = 108;
+    private const double ExtraLargeMaximumParagraphFontSize = 122;
     private const double FontStep = 2;
     private const string ProjectionTestTitle = "MessageFlow Projection Test";
     private const string ProjectionTestText = "If you can see this on the TV, projection is ready.";
@@ -87,14 +90,14 @@ public partial class ProjectWindow : Window
             return;
         }
 
-        if (e.Key == Key.Right)
+        if (e.Key is Key.Right or Key.Down or Key.Space)
         {
             ShowNextProjectionItem();
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Left)
+        if (e.Key is Key.Left or Key.Up or Key.Back)
         {
             ShowPreviousProjectionItem();
             e.Handled = true;
@@ -178,7 +181,8 @@ public partial class ProjectWindow : Window
 
         var availableSize = new WpfSize(ParagraphStage.ActualWidth, ParagraphStage.ActualHeight);
         var minimumFontSize = GetMinimumReadableFontSize();
-        var preferredFontSize = Math.Clamp(viewModel.ProjectionFontSize, minimumFontSize, MaximumParagraphFontSize);
+        var selectedFontSize = Math.Max(viewModel.ProjectionFontSize, minimumFontSize);
+        var preferredFontSize = GetPreferredParagraphFontSize(text, selectedFontSize);
         var fontSize = FindLargestFittingFontSize(text, availableSize, preferredFontSize, minimumFontSize);
 
         projectionPages.Clear();
@@ -207,7 +211,7 @@ public partial class ProjectWindow : Window
         ParagraphTextBlock.LineHeight = CalculateLineHeight(fontSize);
         ParagraphTextBlock.Text = projectionPages[currentPageIndex];
         PageIndicatorTextBlock.Text = projectionPages.Count > 1
-            ? $"{currentPageIndex + 1}/{projectionPages.Count}"
+            ? $"Page {currentPageIndex + 1} of {projectionPages.Count}"
             : string.Empty;
     }
 
@@ -240,6 +244,39 @@ public partial class ProjectWindow : Window
             _ when viewModel.ProjectionFontSize >= 58 => LargeMinimumParagraphFontSize,
             _ when viewModel.ProjectionFontSize >= 46 => MediumMinimumParagraphFontSize,
             _ => SmallMinimumParagraphFontSize
+        };
+    }
+
+    private double GetPreferredParagraphFontSize(string text, double selectedFontSize)
+    {
+        var maximumFontSize = GetMaximumReadableFontSize();
+        var wordCount = CountWords(text);
+
+        if (text.Length <= 165 && wordCount <= 34)
+        {
+            return Math.Clamp(selectedFontSize * 1.45, selectedFontSize, maximumFontSize);
+        }
+
+        if (text.Length <= 280 && wordCount <= 52)
+        {
+            return Math.Clamp(selectedFontSize * 1.25, selectedFontSize, maximumFontSize);
+        }
+
+        return Math.Clamp(selectedFontSize, GetMinimumReadableFontSize(), maximumFontSize);
+    }
+
+    private double GetMaximumReadableFontSize()
+    {
+        return viewModel.SelectedProjectionFontSize?.Label switch
+        {
+            "Small" => SmallMaximumParagraphFontSize,
+            "Medium" => MediumMaximumParagraphFontSize,
+            "Large" => LargeMaximumParagraphFontSize,
+            "Extra Large" => ExtraLargeMaximumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 80 => ExtraLargeMaximumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 68 => LargeMaximumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 56 => MediumMaximumParagraphFontSize,
+            _ => SmallMaximumParagraphFontSize
         };
     }
 
@@ -394,6 +431,13 @@ public partial class ProjectWindow : Window
         return string.Join(' ', text.Split(
             [' ', '\t', '\r', '\n'],
             StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
+
+    private static int CountWords(string text)
+    {
+        return string.IsNullOrWhiteSpace(text)
+            ? 0
+            : text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
     }
 
     private string GetProjectionText()

@@ -420,6 +420,7 @@
 
                         <TabItem Header="Favorites">
                             <ScrollViewer Margin="0,10,0,0"
+                                          MinHeight="0"
                                           VerticalScrollBarVisibility="Visible"
                                           HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel>
@@ -471,6 +472,8 @@
                                                    Margin="2,0,0,10" />
 
                                         <ListBox x:Name="FavoritesList"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                                  ItemsSource="{Binding FavoriteParagraphs}"
                                                  SelectedItem="{Binding SelectedFavoriteParagraph}"
                                                  MouseDoubleClick="FavoritesList_MouseDoubleClick">
@@ -566,6 +569,8 @@
                                                    Margin="2,4,0,10" />
 
                                         <ListBox x:Name="BibleFavoritesList"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                                  ItemsSource="{Binding BibleFavoriteVerses}"
                                                  SelectedItem="{Binding SelectedBibleFavoriteVerse}"
                                                  MouseDoubleClick="BibleFavoritesList_MouseDoubleClick">
@@ -688,6 +693,9 @@
 
                                 <ListBox x:Name="HistoryList"
                                          Grid.Row="1"
+                                         MinHeight="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          ItemsSource="{Binding ProjectionHistoryItems}"
                                          SelectedItem="{Binding SelectedHistoryParagraph}"
                                          MouseDoubleClick="HistoryList_MouseDoubleClick">
