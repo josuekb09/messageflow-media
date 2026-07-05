@@ -1056,6 +1056,47 @@
                         </Grid>
 
                         <Grid Margin="0,10,0,0">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasProjectionPages}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding ProjectionPageIndicatorText}"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center" />
+                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0"
+                                        Command="{Binding PreviousProjectionPageCommand}">
+                                    <TextBlock Text="Previous Page"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap" />
+                                </Button>
+                                <Button Grid.Column="2"
+                                        Command="{Binding NextProjectionPageCommand}">
+                                    <TextBlock Text="Next Page"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap" />
+                                </Button>
+                            </Grid>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="10" />

@@ -57,6 +57,8 @@ public partial class ProjectWindow : Window
         }
 
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        viewModel.PreviousProjectionPageRequested += ShowPreviousProjectionPage;
+        viewModel.NextProjectionPageRequested += ShowNextProjectionPage;
     }
 
     public static ProjectWindow CreateTestWindow(MainViewModel viewModel)
@@ -101,14 +103,14 @@ public partial class ProjectWindow : Window
 
         if (e.Key is Key.Right or Key.Down or Key.Space)
         {
-            ShowNextProjectionItem();
+            ShowNextProjectionPage();
             e.Handled = true;
             return;
         }
 
         if (e.Key is Key.Left or Key.Up or Key.Back)
         {
-            ShowPreviousProjectionItem();
+            ShowPreviousProjectionPage();
             e.Handled = true;
         }
     }
@@ -228,6 +230,7 @@ public partial class ProjectWindow : Window
             projectionPages.Clear();
             ParagraphTextBlock.Text = text;
             PageIndicatorTextBlock.Text = string.Empty;
+            viewModel.ClearProjectionPageState();
             return;
         }
 
@@ -272,6 +275,7 @@ public partial class ProjectWindow : Window
         PageIndicatorTextBlock.Text = projectionPages.Count > 1
             ? $"Page {currentPageIndex + 1} of {projectionPages.Count}"
             : string.Empty;
+        viewModel.ReportProjectionPageState(currentPageIndex, projectionPages.Count);
     }
 
     private double FindLargestFittingFontSize(
@@ -452,7 +456,7 @@ public partial class ProjectWindow : Window
         return fontSize * Math.Clamp(ratio, 1.18, 1.34);
     }
 
-    private void ShowNextProjectionItem()
+    private void ShowNextProjectionPage()
     {
         if (isTestProjection)
         {
@@ -465,14 +469,9 @@ public partial class ProjectWindow : Window
             ApplyProjectionPage(ParagraphTextBlock.FontSize);
             return;
         }
-
-        if (viewModel.NextParagraphCommand.CanExecute(null))
-        {
-            viewModel.NextParagraphCommand.Execute(null);
-        }
     }
 
-    private void ShowPreviousProjectionItem()
+    private void ShowPreviousProjectionPage()
     {
         if (isTestProjection)
         {
@@ -483,12 +482,6 @@ public partial class ProjectWindow : Window
         {
             currentPageIndex--;
             ApplyProjectionPage(ParagraphTextBlock.FontSize);
-            return;
-        }
-
-        if (viewModel.PreviousParagraphCommand.CanExecute(null))
-        {
-            viewModel.PreviousParagraphCommand.Execute(null);
         }
     }
 
@@ -574,6 +567,9 @@ public partial class ProjectWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        viewModel.PreviousProjectionPageRequested -= ShowPreviousProjectionPage;
+        viewModel.NextProjectionPageRequested -= ShowNextProjectionPage;
+        viewModel.ClearProjectionPageState();
         base.OnClosed(e);
     }
 }

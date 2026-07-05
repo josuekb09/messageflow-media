@@ -162,6 +162,9 @@
                         <Button Content="Test Projection Display"
                                 Margin="0,10,0,0"
                                 Command="{Binding TestProjectionDisplayCommand}" />
+                        <Button Content="Open Projection Preview Window"
+                                Margin="0,10,0,0"
+                                Command="{Binding OpenProjectionPreviewCommand}" />
                         <Button Content="Refresh Displays"
                                 Margin="0,10,0,0"
                                 Command="{Binding RefreshProjectionDisplaysCommand}" />

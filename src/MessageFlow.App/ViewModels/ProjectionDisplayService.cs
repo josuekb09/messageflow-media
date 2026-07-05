@@ -100,6 +100,18 @@ public static partial class ProjectionDisplayService
         window.WindowState = WindowState.Maximized;
     }
 
+    public static void PrepareWindowedPreviewWindow(Window window, ProjectionDisplayTarget target)
+    {
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.WindowStyle = WindowStyle.SingleBorderWindow;
+        window.ResizeMode = ResizeMode.CanResize;
+        window.ShowInTaskbar = true;
+        window.ShowActivated = true;
+        window.Topmost = false;
+        window.WindowState = WindowState.Normal;
+        ApplyWindowedPreviewBounds(window, target);
+    }
+
     public static void MaximizeOnTarget(Window window, ProjectionDisplayTarget target)
     {
         window.WindowState = WindowState.Normal;
@@ -110,12 +122,41 @@ public static partial class ProjectionDisplayService
         window.Focus();
     }
 
+    public static void ShowWindowedPreviewOnTarget(Window window, ProjectionDisplayTarget target)
+    {
+        window.Topmost = false;
+        window.WindowState = WindowState.Normal;
+        ApplyWindowedPreviewBounds(window, target);
+        window.Activate();
+        window.Focus();
+    }
+
+    public static bool ShouldUseWindowedPreview(ProjectionDisplayTarget target)
+    {
+        return target.ScreenCount <= 1;
+    }
+
     private static void ApplyTargetBounds(Window window, ProjectionDisplayTarget target)
     {
         window.Left = target.Left;
         window.Top = target.Top;
         window.Width = target.Width;
         window.Height = target.Height;
+    }
+
+    private static void ApplyWindowedPreviewBounds(Window window, ProjectionDisplayTarget target)
+    {
+        var maximumWidth = Math.Max(640, target.WorkingAreaWidth - 80);
+        var maximumHeight = Math.Max(420, target.WorkingAreaHeight - 90);
+        var minimumWidth = Math.Min(860, maximumWidth);
+        var minimumHeight = Math.Min(560, maximumHeight);
+        var width = Math.Clamp(target.WorkingAreaWidth * 0.78, minimumWidth, maximumWidth);
+        var height = Math.Clamp(target.WorkingAreaHeight * 0.72, minimumHeight, maximumHeight);
+
+        window.Left = target.Left + ((target.Width - width) / 2);
+        window.Top = target.Top + ((target.Height - height) / 2);
+        window.Width = width;
+        window.Height = height;
     }
 
     public static IReadOnlyList<ProjectionDisplayTarget> GetDisplayTargets()

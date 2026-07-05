@@ -22,6 +22,7 @@ public partial class MainWindow : Window
 
         viewModel.ProjectRequested += ShowProjectionWindow;
         viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
+        viewModel.ProjectionPreviewRequested += ShowWindowedProjectionPreview;
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -60,12 +61,29 @@ public partial class MainWindow : Window
                     UpdateProjectionClosedStatus();
                 };
 
-                ProjectionDisplayService.PrepareFullscreenWindow(projectWindow, displayTarget);
+                if (ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget))
+                {
+                    ProjectionDisplayService.PrepareWindowedPreviewWindow(projectWindow, displayTarget);
+                }
+                else
+                {
+                    ProjectionDisplayService.PrepareFullscreenWindow(projectWindow, displayTarget);
+                }
+
                 projectWindow.Show();
             }
 
-            ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
-            viewModel.ReportProjectionOpened(displayTarget, isTest: false);
+            var useWindowedPreview = ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget);
+            if (useWindowedPreview)
+            {
+                ProjectionDisplayService.ShowWindowedPreviewOnTarget(projectWindow, displayTarget);
+            }
+            else
+            {
+                ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
+            }
+
+            viewModel.ReportProjectionOpened(displayTarget, isTest: false, isWindowedPreview: useWindowedPreview);
         }
         catch (Exception ex)
         {
@@ -91,17 +109,65 @@ public partial class MainWindow : Window
                     UpdateProjectionClosedStatus();
                 };
 
-                ProjectionDisplayService.PrepareFullscreenWindow(testProjectionWindow, displayTarget);
+                if (ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget))
+                {
+                    ProjectionDisplayService.PrepareWindowedPreviewWindow(testProjectionWindow, displayTarget);
+                }
+                else
+                {
+                    ProjectionDisplayService.PrepareFullscreenWindow(testProjectionWindow, displayTarget);
+                }
+
                 testProjectionWindow.Show();
             }
 
-            ProjectionDisplayService.MaximizeOnTarget(testProjectionWindow, displayTarget);
-            viewModel.ReportProjectionOpened(displayTarget, isTest: true);
+            var useWindowedPreview = ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget);
+            if (useWindowedPreview)
+            {
+                ProjectionDisplayService.ShowWindowedPreviewOnTarget(testProjectionWindow, displayTarget);
+            }
+            else
+            {
+                ProjectionDisplayService.MaximizeOnTarget(testProjectionWindow, displayTarget);
+            }
+
+            viewModel.ReportProjectionOpened(displayTarget, isTest: true, isWindowedPreview: useWindowedPreview);
         }
         catch (Exception ex)
         {
             App.LogStartupError("Projection test window could not be opened.", ex);
             viewModel.StatusText = $"Projection test could not open: {ex.Message}";
+            UpdateProjectionClosedStatus();
+        }
+    }
+
+    private void ShowWindowedProjectionPreview()
+    {
+        try
+        {
+            var displayTarget = viewModel.ResolveProjectionDisplayTarget();
+            CloseTestProjectionWindow();
+
+            if (projectWindow is null)
+            {
+                projectWindow = new ProjectWindow(viewModel);
+                projectWindow.Closed += (_, _) =>
+                {
+                    projectWindow = null;
+                    UpdateProjectionClosedStatus();
+                };
+
+                ProjectionDisplayService.PrepareWindowedPreviewWindow(projectWindow, displayTarget);
+                projectWindow.Show();
+            }
+
+            ProjectionDisplayService.ShowWindowedPreviewOnTarget(projectWindow, displayTarget);
+            viewModel.ReportProjectionOpened(displayTarget, isTest: false, isWindowedPreview: true);
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Projection preview window could not be opened.", ex);
+            viewModel.StatusText = $"Projection preview could not open: {ex.Message}";
             UpdateProjectionClosedStatus();
         }
     }

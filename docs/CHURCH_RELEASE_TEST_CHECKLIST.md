@@ -22,12 +22,17 @@ Use this checklist on the church computer before service.
 - [ ] Selecting Ruth 1 shows all Ruth 1 verses and the list scrolls correctly through every verse.
 - [ ] Bible search/select Matthew 1 and confirm the visible scrollbar can be dragged through the results.
 - [ ] Projection opens on the TV/projector.
+- [ ] On a one-screen laptop, Project opens a normal windowed Projection Preview that can be moved, resized, and minimized.
+- [ ] Admin > Open Projection Preview Window opens a windowed projection preview for the selected Bible verse or sermon paragraph.
 - [ ] Projection uses the full TV/projector screen with only safe margins.
 - [ ] Project `John 3:16`; it appears large and readable, not small in the middle of the screen.
 - [ ] Project `Romans 8:4`, `Romans 8:28`, and `Matthew 1:12`; each short verse fills the screen well and remains readable.
 - [ ] Project one sermon paragraph; it is readable from the back of the room.
 - [ ] Project a long sermon paragraph; it paginates instead of shrinking to tiny text.
+- [ ] When a long paragraph shows `Page 1 of 2`, the operator-side Next Page button updates the TV/projector to page 2.
+- [ ] Previous Page and Next Page move within the projected item; Previous Paragraph and Next Paragraph still move between paragraphs.
 - [ ] Projection page navigation works with Right/Down/Space for next page and Left/Up/Backspace for previous page.
+- [ ] Project a long paragraph and confirm words wrap normally, without words splitting into individual letters.
 - [ ] A+ increases projected text size and may create more pages for long paragraphs.
 - [ ] A- decreases projected text size.
 - [ ] Fit resets projected text size to the selected dropdown's automatic fit.
@@ -37,6 +42,8 @@ Use this checklist on the church computer before service.
 - [ ] History works.
 - [ ] Admin > Verify Production Data passes.
 - [ ] Admin > Test Projection Display works.
+- [ ] `dotnet run --project tools\AuditBranhamImportQuality` generates `D:\MessageFlow Archive\BranhamAudit\branham_import_quality_report.txt`.
+- [ ] Review the Branham audit report before any future text cleanup; do not clean or delete database content until the audit is reviewed.
 - [ ] Brother Frank is not enabled unless intentionally imported later.
 - [ ] The Table is not imported.
 

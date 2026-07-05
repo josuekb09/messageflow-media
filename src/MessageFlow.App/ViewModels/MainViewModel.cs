@@ -47,6 +47,8 @@ public sealed class MainViewModel : ObservableObject
     private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private double projectionFontSizeAdjustment;
+    private int projectionPageIndex;
+    private int projectionPageCount;
     private string bibleSearchText = string.Empty;
     private string statusText = "Ready";
     private string? latestBackupPath;
@@ -143,6 +145,9 @@ public sealed class MainViewModel : ObservableObject
         TestProjectionDisplayCommand = new RelayCommand(
             RequestProjectionDisplayTest,
             () => !IsDatabaseOperationRunning);
+        OpenProjectionPreviewCommand = new RelayCommand(
+            RequestProjectionPreview,
+            CanUseCurrentSelection);
         RefreshProjectionDisplaysCommand = new RelayCommand(RefreshProjectionDisplayOptions);
         DecreaseProjectionTextSizeCommand = new RelayCommand(
             DecreaseProjectionTextSize,
@@ -151,6 +156,12 @@ public sealed class MainViewModel : ObservableObject
             IncreaseProjectionTextSize,
             () => projectionFontSizeAdjustment < MaximumProjectionFontAdjustment);
         ResetProjectionTextSizeCommand = new RelayCommand(ResetProjectionTextSize);
+        PreviousProjectionPageCommand = new RelayCommand(
+            RequestPreviousProjectionPage,
+            () => HasProjectionPages && projectionPageIndex > 0);
+        NextProjectionPageCommand = new RelayCommand(
+            RequestNextProjectionPage,
+            () => HasProjectionPages && projectionPageIndex < projectionPageCount - 1);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 48, 60));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 62, 76));
@@ -197,6 +208,12 @@ public sealed class MainViewModel : ObservableObject
     public event Action? ProjectRequested;
 
     public event Action? ProjectionTestRequested;
+
+    public event Action? ProjectionPreviewRequested;
+
+    public event Action? PreviousProjectionPageRequested;
+
+    public event Action? NextProjectionPageRequested;
 
     public ObservableCollection<FilterOption> AuthorFilters { get; } = [];
 
@@ -280,6 +297,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand TestProjectionDisplayCommand { get; }
 
+    public RelayCommand OpenProjectionPreviewCommand { get; }
+
     public RelayCommand RefreshProjectionDisplaysCommand { get; }
 
     public RelayCommand DecreaseProjectionTextSizeCommand { get; }
@@ -287,6 +306,10 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand IncreaseProjectionTextSizeCommand { get; }
 
     public RelayCommand ResetProjectionTextSizeCommand { get; }
+
+    public RelayCommand PreviousProjectionPageCommand { get; }
+
+    public RelayCommand NextProjectionPageCommand { get; }
 
     public string SearchText
     {
@@ -690,6 +713,11 @@ public sealed class MainViewModel : ObservableObject
 
     public string ProjectionStatusText =>
         IsProjectionOpen ? $"Projection: Open on {projectionOpenDisplayText}" : "Projection: Closed";
+
+    public bool HasProjectionPages => projectionPageCount > 1;
+
+    public string ProjectionPageIndicatorText =>
+        HasProjectionPages ? $"Page {projectionPageIndex + 1} of {projectionPageCount}" : string.Empty;
 
     public bool IsBibleMode
     {
@@ -3446,13 +3474,23 @@ public sealed class MainViewModel : ObservableObject
         }
 
         IsProjectionOpen = isOpen;
+
+        if (!isOpen)
+        {
+            ClearProjectionPageState();
+        }
     }
 
-    public void ReportProjectionOpened(ProjectionDisplayTarget displayTarget, bool isTest)
+    public void ReportProjectionOpened(
+        ProjectionDisplayTarget displayTarget,
+        bool isTest,
+        bool isWindowedPreview = false)
     {
         SetProjectionOpen(true, displayTarget);
 
-        var messagePrefix = isTest ? "Projection test opened" : "Projection opened";
+        var messagePrefix = isTest
+            ? isWindowedPreview ? "Projection test preview opened" : "Projection test opened"
+            : isWindowedPreview ? "Projection preview opened" : "Projection opened";
         StatusText =
             $"{messagePrefix} on {displayTarget.StatusDisplayName}. Screens detected: {displayTarget.ScreenCount:N0}. Bounds: {displayTarget.BoundsDisplay}.";
 
@@ -3462,7 +3500,34 @@ public sealed class MainViewModel : ObservableObject
             $"{Environment.NewLine}Selected display: {displayTarget.StatusDisplayName}" +
             $"{Environment.NewLine}Device: {displayTarget.DeviceName}" +
             $"{Environment.NewLine}Bounds: {displayTarget.BoundsDisplay}" +
+            $"{Environment.NewLine}Windowed preview: {isWindowedPreview}" +
             $"{Environment.NewLine}Preference: {SelectedProjectionDisplayOption?.Label ?? "Auto"}");
+    }
+
+    public void ReportProjectionPageState(int pageIndex, int pageCount)
+    {
+        var normalizedPageCount = Math.Max(0, pageCount);
+        var normalizedPageIndex = normalizedPageCount == 0
+            ? 0
+            : Math.Clamp(pageIndex, 0, normalizedPageCount - 1);
+
+        var changed = projectionPageIndex != normalizedPageIndex ||
+                      projectionPageCount != normalizedPageCount;
+
+        projectionPageIndex = normalizedPageIndex;
+        projectionPageCount = normalizedPageCount;
+
+        if (changed)
+        {
+            OnPropertyChanged(nameof(HasProjectionPages));
+            OnPropertyChanged(nameof(ProjectionPageIndicatorText));
+            RaiseProjectionPageCommandStates();
+        }
+    }
+
+    public void ClearProjectionPageState()
+    {
+        ReportProjectionPageState(0, 0);
     }
 
     public ProjectionDisplayTarget ResolveProjectionDisplayTarget()
@@ -4340,6 +4405,11 @@ public sealed class MainViewModel : ObservableObject
         ProjectionTestRequested?.Invoke();
     }
 
+    private void RequestProjectionPreview()
+    {
+        ProjectionPreviewRequested?.Invoke();
+    }
+
     private void DecreaseProjectionTextSize()
     {
         ApplyProjectionTextSizeAdjustment(projectionFontSizeAdjustment - ProjectionFontAdjustmentStep);
@@ -4353,6 +4423,16 @@ public sealed class MainViewModel : ObservableObject
     private void ResetProjectionTextSize()
     {
         ApplyProjectionTextSizeAdjustment(0);
+    }
+
+    private void RequestPreviousProjectionPage()
+    {
+        PreviousProjectionPageRequested?.Invoke();
+    }
+
+    private void RequestNextProjectionPage()
+    {
+        NextProjectionPageRequested?.Invoke();
     }
 
     private void ApplyProjectionTextSizeAdjustment(double requestedAdjustment)
@@ -5082,6 +5162,7 @@ public sealed class MainViewModel : ObservableObject
         CleanupTestDataCommand.RaiseCanExecuteChanged();
         CleanupBrotherFrankCircularLettersCommand.RaiseCanExecuteChanged();
         TestProjectionDisplayCommand.RaiseCanExecuteChanged();
+        OpenProjectionPreviewCommand.RaiseCanExecuteChanged();
         ProjectFavoriteCommand.RaiseCanExecuteChanged();
         RemoveFavoriteCommand.RaiseCanExecuteChanged();
         ProjectBibleFavoriteCommand.RaiseCanExecuteChanged();
@@ -5096,6 +5177,13 @@ public sealed class MainViewModel : ObservableObject
         DecreaseProjectionTextSizeCommand.RaiseCanExecuteChanged();
         IncreaseProjectionTextSizeCommand.RaiseCanExecuteChanged();
         ResetProjectionTextSizeCommand.RaiseCanExecuteChanged();
+        RaiseProjectionPageCommandStates();
+    }
+
+    private void RaiseProjectionPageCommandStates()
+    {
+        PreviousProjectionPageCommand.RaiseCanExecuteChanged();
+        NextProjectionPageCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(
