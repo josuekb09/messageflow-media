@@ -12,14 +12,14 @@ namespace MessageFlow.App;
 
 public partial class ProjectWindow : Window
 {
-    private const double SmallMinimumParagraphFontSize = 34;
-    private const double MediumMinimumParagraphFontSize = 42;
-    private const double LargeMinimumParagraphFontSize = 50;
-    private const double ExtraLargeMinimumParagraphFontSize = 58;
-    private const double SmallMaximumParagraphFontSize = 72;
-    private const double MediumMaximumParagraphFontSize = 90;
-    private const double LargeMaximumParagraphFontSize = 108;
-    private const double ExtraLargeMaximumParagraphFontSize = 122;
+    private const double SmallMinimumParagraphFontSize = 36;
+    private const double MediumMinimumParagraphFontSize = 46;
+    private const double LargeMinimumParagraphFontSize = 56;
+    private const double ExtraLargeMinimumParagraphFontSize = 64;
+    private const double SmallMaximumParagraphFontSize = 112;
+    private const double MediumMaximumParagraphFontSize = 132;
+    private const double LargeMaximumParagraphFontSize = 154;
+    private const double ExtraLargeMaximumParagraphFontSize = 176;
     private const double FontStep = 2;
     private const string ProjectionTestTitle = "MessageFlow Projection Test";
     private const string ProjectionTestText = "If you can see this on the TV, projection is ready.";
@@ -66,11 +66,13 @@ public partial class ProjectWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        UpdateProjectionSafeMargins();
         QueueProjectionUpdate(resetPage: true);
     }
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
+        UpdateProjectionSafeMargins();
         QueueProjectionUpdate(resetPage: false);
     }
 
@@ -90,6 +92,13 @@ public partial class ProjectWindow : Window
             return;
         }
 
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control &&
+            TryHandleProjectionTextSizeShortcut(e.Key))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key is Key.Right or Key.Down or Key.Space)
         {
             ShowNextProjectionItem();
@@ -102,6 +111,25 @@ public partial class ProjectWindow : Window
             ShowPreviousProjectionItem();
             e.Handled = true;
         }
+    }
+
+    private bool TryHandleProjectionTextSizeShortcut(Key key)
+    {
+        var command = key switch
+        {
+            Key.Add or Key.OemPlus => viewModel.IncreaseProjectionTextSizeCommand,
+            Key.Subtract or Key.OemMinus => viewModel.DecreaseProjectionTextSizeCommand,
+            Key.D0 or Key.NumPad0 => viewModel.ResetProjectionTextSizeCommand,
+            _ => null
+        };
+
+        if (command is null || !command.CanExecute(null))
+        {
+            return false;
+        }
+
+        command.Execute(null);
+        return true;
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -166,6 +194,30 @@ public partial class ProjectWindow : Window
         }));
     }
 
+    private void UpdateProjectionSafeMargins()
+    {
+        if (ActualWidth <= 0 || ActualHeight <= 0)
+        {
+            return;
+        }
+
+        var horizontalMargin = Math.Clamp(ActualWidth * 0.045, 36, 86);
+        var verticalMargin = Math.Clamp(ActualHeight * 0.04, 28, 70);
+        var safeMargin = new Thickness(
+            horizontalMargin,
+            verticalMargin,
+            horizontalMargin,
+            verticalMargin);
+
+        if (Math.Abs(ProjectionRoot.Margin.Left - safeMargin.Left) > 0.5 ||
+            Math.Abs(ProjectionRoot.Margin.Top - safeMargin.Top) > 0.5 ||
+            Math.Abs(ProjectionRoot.Margin.Right - safeMargin.Right) > 0.5 ||
+            Math.Abs(ProjectionRoot.Margin.Bottom - safeMargin.Bottom) > 0.5)
+        {
+            ProjectionRoot.Margin = safeMargin;
+        }
+    }
+
     private void UpdateProjectionLayout()
     {
         var text = NormalizeProjectionText(GetProjectionText());
@@ -183,16 +235,23 @@ public partial class ProjectWindow : Window
         var minimumFontSize = GetMinimumReadableFontSize();
         var selectedFontSize = Math.Max(viewModel.ProjectionFontSize, minimumFontSize);
         var preferredFontSize = GetPreferredParagraphFontSize(text, selectedFontSize);
-        var fontSize = FindLargestFittingFontSize(text, availableSize, preferredFontSize, minimumFontSize);
+        var singlePageMinimumFontSize = ShouldPreferPaging(text, preferredFontSize, selectedFontSize)
+            ? Math.Max(minimumFontSize, preferredFontSize - 10)
+            : minimumFontSize;
+        var fontSize = FindLargestFittingFontSize(
+            text,
+            availableSize,
+            preferredFontSize,
+            singlePageMinimumFontSize);
 
         projectionPages.Clear();
-        if (fontSize >= minimumFontSize)
+        if (fontSize >= singlePageMinimumFontSize)
         {
             projectionPages.Add(text);
         }
         else
         {
-            fontSize = minimumFontSize;
+            fontSize = Math.Max(minimumFontSize, preferredFontSize);
             projectionPages.AddRange(SplitIntoProjectionPages(text, availableSize, fontSize));
         }
 
@@ -240,9 +299,9 @@ public partial class ProjectWindow : Window
             "Medium" => MediumMinimumParagraphFontSize,
             "Large" => LargeMinimumParagraphFontSize,
             "Extra Large" => ExtraLargeMinimumParagraphFontSize,
-            _ when viewModel.ProjectionFontSize >= 70 => ExtraLargeMinimumParagraphFontSize,
-            _ when viewModel.ProjectionFontSize >= 58 => LargeMinimumParagraphFontSize,
-            _ when viewModel.ProjectionFontSize >= 46 => MediumMinimumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 90 => ExtraLargeMinimumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 76 => LargeMinimumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 62 => MediumMinimumParagraphFontSize,
             _ => SmallMinimumParagraphFontSize
         };
     }
@@ -252,17 +311,25 @@ public partial class ProjectWindow : Window
         var maximumFontSize = GetMaximumReadableFontSize();
         var wordCount = CountWords(text);
 
-        if (text.Length <= 165 && wordCount <= 34)
+        if (text.Length <= 190 && wordCount <= 38)
         {
-            return Math.Clamp(selectedFontSize * 1.45, selectedFontSize, maximumFontSize);
+            return Math.Clamp(selectedFontSize * 1.7, selectedFontSize, maximumFontSize);
         }
 
-        if (text.Length <= 280 && wordCount <= 52)
+        if (text.Length <= 320 && wordCount <= 58)
         {
-            return Math.Clamp(selectedFontSize * 1.25, selectedFontSize, maximumFontSize);
+            return Math.Clamp(selectedFontSize * 1.35, selectedFontSize, maximumFontSize);
         }
 
         return Math.Clamp(selectedFontSize, GetMinimumReadableFontSize(), maximumFontSize);
+    }
+
+    private static bool ShouldPreferPaging(string text, double preferredFontSize, double selectedFontSize)
+    {
+        var wordCount = CountWords(text);
+        return text.Length > 420 ||
+               wordCount > 70 ||
+               (preferredFontSize > selectedFontSize + 8 && wordCount > 44);
     }
 
     private double GetMaximumReadableFontSize()
@@ -273,9 +340,9 @@ public partial class ProjectWindow : Window
             "Medium" => MediumMaximumParagraphFontSize,
             "Large" => LargeMaximumParagraphFontSize,
             "Extra Large" => ExtraLargeMaximumParagraphFontSize,
-            _ when viewModel.ProjectionFontSize >= 80 => ExtraLargeMaximumParagraphFontSize,
-            _ when viewModel.ProjectionFontSize >= 68 => LargeMaximumParagraphFontSize,
-            _ when viewModel.ProjectionFontSize >= 56 => MediumMaximumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 90 => ExtraLargeMaximumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 76 => LargeMaximumParagraphFontSize,
+            _ when viewModel.ProjectionFontSize >= 62 => MediumMaximumParagraphFontSize,
             _ => SmallMaximumParagraphFontSize
         };
     }
@@ -335,11 +402,18 @@ public partial class ProjectWindow : Window
     private static int PreferSentenceBoundary(string[] words, int start, int end)
     {
         const int minimumWordsBeforeBreak = 8;
+        const int minimumWordsOnLastPage = 10;
 
         for (var index = end - 1; index > start + minimumWordsBeforeBreak; index--)
         {
             if (EndsSentence(words[index]))
             {
+                var remainingWords = words.Length - (index + 1);
+                if (remainingWords > 0 && remainingWords < minimumWordsOnLastPage)
+                {
+                    continue;
+                }
+
                 return index + 1;
             }
         }

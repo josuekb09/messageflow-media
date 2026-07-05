@@ -126,6 +126,13 @@ public partial class MainWindow : Window
 
     private async void Window_PreviewKeyDown(object sender, WpfKeyEventArgs e)
     {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control &&
+            TryHandleProjectionTextSizeShortcut(e.Key))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab) &&
             (BibleSearchBox.IsKeyboardFocusWithin || BibleNavigationList.IsKeyboardFocusWithin))
         {
@@ -175,6 +182,25 @@ public partial class MainWindow : Window
             CloseTestProjectionWindow();
             e.Handled = true;
         }
+    }
+
+    private bool TryHandleProjectionTextSizeShortcut(Key key)
+    {
+        var command = key switch
+        {
+            Key.Add or Key.OemPlus => viewModel.IncreaseProjectionTextSizeCommand,
+            Key.Subtract or Key.OemMinus => viewModel.DecreaseProjectionTextSizeCommand,
+            Key.D0 or Key.NumPad0 => viewModel.ResetProjectionTextSizeCommand,
+            _ => null
+        };
+
+        if (command is null || !command.CanExecute(null))
+        {
+            return false;
+        }
+
+        command.Execute(null);
+        return true;
     }
 
     private void MoveBibleNavigationSelection(int offset)

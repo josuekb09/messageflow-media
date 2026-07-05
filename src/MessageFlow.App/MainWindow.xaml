@@ -129,7 +129,7 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="5"
-                          Margin="0,0,0,8"
+                          Margin="0,0,8,8"
                           ItemsSource="{Binding ProjectionFontSizes}"
                           SelectedItem="{Binding SelectedProjectionFontSize}"
                           DisplayMemberPath="Label"
@@ -138,6 +138,33 @@
                           Width="164"
                           ToolTip="Projection font size"
                           VerticalContentAlignment="Center" />
+
+                <Button Content="A-"
+                        Command="{Binding DecreaseProjectionTextSizeCommand}"
+                        Width="46"
+                        MinHeight="48"
+                        Margin="0,0,8,8"
+                        Padding="0"
+                        FontSize="14"
+                        ToolTip="Decrease projection text size" />
+
+                <Button Content="Fit"
+                        Command="{Binding ResetProjectionTextSizeCommand}"
+                        Width="56"
+                        MinHeight="48"
+                        Margin="0,0,8,8"
+                        Padding="0"
+                        FontSize="13"
+                        ToolTip="Reset projection text size" />
+
+                <Button Content="A+"
+                        Command="{Binding IncreaseProjectionTextSizeCommand}"
+                        Width="46"
+                        MinHeight="48"
+                        Margin="0,0,0,8"
+                        Padding="0"
+                        FontSize="14"
+                        ToolTip="Increase projection text size" />
                 </WrapPanel>
             </Grid>
         </Border>
@@ -899,7 +926,8 @@
 
                     <ScrollViewer Grid.Row="1"
                                   Margin="20,8,20,20"
-                                  VerticalScrollBarVisibility="Visible">
+                                  VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Disabled">
                         <ScrollViewer.Style>
                             <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -997,7 +1025,8 @@
 
                     <ScrollViewer Grid.Row="1"
                                   Margin="0,18,0,20"
-                                  VerticalScrollBarVisibility="Visible">
+                                  VerticalScrollBarVisibility="Visible"
+                                  HorizontalScrollBarVisibility="Disabled">
                         <TextBlock Text="{Binding PreviewText}"
                                    FontSize="23"
                                    LineHeight="34"

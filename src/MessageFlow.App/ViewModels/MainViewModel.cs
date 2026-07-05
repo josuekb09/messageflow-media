@@ -21,6 +21,9 @@ namespace MessageFlow.App.ViewModels;
 public sealed class MainViewModel : ObservableObject
 {
     private const int SearchDebounceMilliseconds = 400;
+    private const double ProjectionFontAdjustmentStep = 6;
+    private const double MinimumProjectionFontAdjustment = -24;
+    private const double MaximumProjectionFontAdjustment = 54;
     private readonly IServiceScopeFactory scopeFactory;
     private CancellationTokenSource? searchDebounce;
     private CancellationTokenSource? bibleSearchDebounce;
@@ -43,6 +46,7 @@ public sealed class MainViewModel : ObservableObject
     private BibleNavigationItemViewModel? selectedBibleNavigationItem;
     private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
+    private double projectionFontSizeAdjustment;
     private string bibleSearchText = string.Empty;
     private string statusText = "Ready";
     private string? latestBackupPath;
@@ -140,11 +144,18 @@ public sealed class MainViewModel : ObservableObject
             RequestProjectionDisplayTest,
             () => !IsDatabaseOperationRunning);
         RefreshProjectionDisplaysCommand = new RelayCommand(RefreshProjectionDisplayOptions);
+        DecreaseProjectionTextSizeCommand = new RelayCommand(
+            DecreaseProjectionTextSize,
+            () => projectionFontSizeAdjustment > MinimumProjectionFontAdjustment);
+        IncreaseProjectionTextSizeCommand = new RelayCommand(
+            IncreaseProjectionTextSize,
+            () => projectionFontSizeAdjustment < MaximumProjectionFontAdjustment);
+        ResetProjectionTextSizeCommand = new RelayCommand(ResetProjectionTextSize);
 
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 44, 56));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 56, 70));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 68, 84));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 80, 98));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 48, 60));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 62, 76));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 76, 92));
+        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 90, 108));
         selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
         RefreshProjectionDisplayOptions();
 
@@ -270,6 +281,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand TestProjectionDisplayCommand { get; }
 
     public RelayCommand RefreshProjectionDisplaysCommand { get; }
+
+    public RelayCommand DecreaseProjectionTextSizeCommand { get; }
+
+    public RelayCommand IncreaseProjectionTextSizeCommand { get; }
+
+    public RelayCommand ResetProjectionTextSizeCommand { get; }
 
     public string SearchText
     {
@@ -767,10 +784,10 @@ public sealed class MainViewModel : ObservableObject
         IsBibleMode ? SelectedBibleVerse?.Text ?? string.Empty : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public double ProjectionFontSize =>
-        SelectedProjectionFontSize?.FontSize ?? 56;
+        Math.Max(24, (SelectedProjectionFontSize?.FontSize ?? 62) + projectionFontSizeAdjustment);
 
     public double ProjectionLineHeight =>
-        SelectedProjectionFontSize?.LineHeight ?? 70;
+        ProjectionFontSize * ((SelectedProjectionFontSize?.LineHeight ?? 76) / (SelectedProjectionFontSize?.FontSize ?? 62));
 
     public string FavoriteButtonText =>
         IsBibleMode
@@ -4323,6 +4340,45 @@ public sealed class MainViewModel : ObservableObject
         ProjectionTestRequested?.Invoke();
     }
 
+    private void DecreaseProjectionTextSize()
+    {
+        ApplyProjectionTextSizeAdjustment(projectionFontSizeAdjustment - ProjectionFontAdjustmentStep);
+    }
+
+    private void IncreaseProjectionTextSize()
+    {
+        ApplyProjectionTextSizeAdjustment(projectionFontSizeAdjustment + ProjectionFontAdjustmentStep);
+    }
+
+    private void ResetProjectionTextSize()
+    {
+        ApplyProjectionTextSizeAdjustment(0);
+    }
+
+    private void ApplyProjectionTextSizeAdjustment(double requestedAdjustment)
+    {
+        var nextAdjustment = Math.Clamp(
+            requestedAdjustment,
+            MinimumProjectionFontAdjustment,
+            MaximumProjectionFontAdjustment);
+
+        if (Math.Abs(nextAdjustment - projectionFontSizeAdjustment) <= 0.1)
+        {
+            return;
+        }
+
+        projectionFontSizeAdjustment = nextAdjustment;
+        OnPropertyChanged(nameof(ProjectionFontSize));
+        OnPropertyChanged(nameof(ProjectionLineHeight));
+        RaiseProjectionTextSizeCommandStates();
+
+        StatusText = Math.Abs(projectionFontSizeAdjustment) <= 0.1
+            ? "Projection text size reset to fit."
+            : projectionFontSizeAdjustment > 0
+                ? $"Projection text size increased by {projectionFontSizeAdjustment:0}."
+                : $"Projection text size decreased by {Math.Abs(projectionFontSizeAdjustment):0}.";
+    }
+
     private async Task LoadSelectedSourceDiagnosticsAsync(ContentSourceViewModel? source)
     {
         var version = Interlocked.Increment(ref sourceDetailsRequestVersion);
@@ -5032,6 +5088,14 @@ public sealed class MainViewModel : ObservableObject
         CopyBibleFavoriteCommand.RaiseCanExecuteChanged();
         RemoveBibleFavoriteCommand.RaiseCanExecuteChanged();
         ProjectHistoryCommand.RaiseCanExecuteChanged();
+        RaiseProjectionTextSizeCommandStates();
+    }
+
+    private void RaiseProjectionTextSizeCommandStates()
+    {
+        DecreaseProjectionTextSizeCommand.RaiseCanExecuteChanged();
+        IncreaseProjectionTextSizeCommand.RaiseCanExecuteChanged();
+        ResetProjectionTextSizeCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(
