@@ -27,8 +27,10 @@ public sealed class MainViewModel : ObservableObject
     private readonly IServiceScopeFactory scopeFactory;
     private CancellationTokenSource? searchDebounce;
     private CancellationTokenSource? bibleSearchDebounce;
+    private CancellationTokenSource? songSearchDebounce;
     private int searchRequestVersion;
     private int bibleSearchRequestVersion;
+    private int songSearchRequestVersion;
     private int sourceDetailsRequestVersion;
     private string searchText = string.Empty;
     private FilterOption? selectedAuthor;
@@ -36,6 +38,8 @@ public sealed class MainViewModel : ObservableObject
     private FilterOption? selectedYear;
     private SermonResultViewModel? selectedSermon;
     private ParagraphResultViewModel? selectedParagraph;
+    private SongResultViewModel? selectedSong;
+    private SongSectionViewModel? selectedSongSection;
     private SavedParagraphViewModel? selectedFavoriteParagraph;
     private BibleFavoriteVerseViewModel? selectedBibleFavoriteVerse;
     private SavedParagraphViewModel? selectedHistoryParagraph;
@@ -50,6 +54,7 @@ public sealed class MainViewModel : ObservableObject
     private int projectionPageIndex;
     private int projectionPageCount;
     private string bibleSearchText = string.Empty;
+    private string songSearchText = string.Empty;
     private string statusText = "Ready";
     private string? latestBackupPath;
     private int currentBibleVerseCount;
@@ -58,6 +63,7 @@ public sealed class MainViewModel : ObservableObject
     private bool isDatabaseOperationRunning;
     private bool isBibleAvailable;
     private bool isBibleMode;
+    private bool isSongsMode;
     private bool selectedBibleVerseIsFavorite;
     private bool showTestSourcesInManageSources;
     private bool suppressBibleSearchQueue;
@@ -203,6 +209,15 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(IsBibleResultsEmpty));
             OnPropertyChanged(nameof(LibraryCountText));
         };
+        SongResults.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsSongResultsEmpty));
+            OnPropertyChanged(nameof(LibraryCountText));
+        };
+        SongSections.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsSongSectionsEmpty));
+        };
     }
 
     public event Action? ProjectRequested;
@@ -242,6 +257,10 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<BibleVerseResultViewModel> BibleResults { get; } = [];
 
     public ObservableCollection<BibleNavigationItemViewModel> BibleNavigationItems { get; } = [];
+
+    public ObservableCollection<SongResultViewModel> SongResults { get; } = [];
+
+    public ObservableCollection<SongSectionViewModel> SongSections { get; } = [];
 
     public ObservableCollection<ProjectionFontSizeOption> ProjectionFontSizes { get; } = [];
 
@@ -395,7 +414,13 @@ public sealed class MainViewModel : ObservableObject
 
                 if (value is not null)
                 {
+                    ClearSelectedSong();
+                }
+
+                if (value is not null)
+                {
                     IsBibleMode = false;
+                    IsSongsMode = false;
                 }
 
                 OnPropertyChanged(nameof(SelectedParagraphHeader));
@@ -512,6 +537,12 @@ public sealed class MainViewModel : ObservableObject
                     OnPropertyChanged(nameof(SelectedParagraph));
                 }
 
+                if (value is not null)
+                {
+                    ClearSelectedSong();
+                    IsBibleMode = true;
+                }
+
                 OnPropertyChanged(nameof(SelectedParagraphHeader));
                 OnPropertyChanged(nameof(SelectedParagraphMeta));
                 OnPropertyChanged(nameof(PreviewHeader));
@@ -531,6 +562,50 @@ public sealed class MainViewModel : ObservableObject
                     _ = RefreshSelectedBibleFavoriteStateAsync(value.VerseId);
                 }
 
+                RaiseCommandStates();
+            }
+        }
+    }
+
+    public SongResultViewModel? SelectedSong
+    {
+        get => selectedSong;
+        set
+        {
+            if (SetProperty(ref selectedSong, value))
+            {
+                if (value is not null)
+                {
+                    ClearNonSongSelection();
+                    IsSongsMode = true;
+                    _ = LoadSongSectionsAsync(value);
+                }
+                else
+                {
+                    SongSections.Clear();
+                    SelectedSongSection = null;
+                }
+
+                RaiseCurrentSelectionProperties();
+                RaiseCommandStates();
+            }
+        }
+    }
+
+    public SongSectionViewModel? SelectedSongSection
+    {
+        get => selectedSongSection;
+        set
+        {
+            if (SetProperty(ref selectedSongSection, value))
+            {
+                if (value is not null)
+                {
+                    ClearNonSongSelection();
+                    IsSongsMode = true;
+                }
+
+                RaiseCurrentSelectionProperties();
                 RaiseCommandStates();
             }
         }
@@ -557,6 +632,18 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref bibleSearchText, value) && !suppressBibleSearchQueue)
             {
                 QueueBibleSearch();
+            }
+        }
+    }
+
+    public string SongSearchText
+    {
+        get => songSearchText;
+        set
+        {
+            if (SetProperty(ref songSearchText, value))
+            {
+                QueueSongSearch();
             }
         }
     }
@@ -726,21 +813,22 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref isBibleMode, value))
             {
+                if (value && isSongsMode)
+                {
+                    isSongsMode = false;
+                    OnPropertyChanged(nameof(IsSongsMode));
+                }
+
                 OnPropertyChanged(nameof(IsNotBibleMode));
+                OnPropertyChanged(nameof(IsNotBibleOrSongsMode));
                 OnPropertyChanged(nameof(CenterPanelTitle));
                 OnPropertyChanged(nameof(RightPanelTitle));
                 OnPropertyChanged(nameof(LibraryCountText));
-                OnPropertyChanged(nameof(SelectedParagraphHeader));
-                OnPropertyChanged(nameof(SelectedParagraphMeta));
-                OnPropertyChanged(nameof(PreviewHeader));
-                OnPropertyChanged(nameof(PreviewMeta));
-                OnPropertyChanged(nameof(PreviewText));
-                OnPropertyChanged(nameof(ProjectionParagraphTitle));
-                OnPropertyChanged(nameof(ProjectionParagraphNumber));
-                OnPropertyChanged(nameof(SelectedParagraphText));
+                OnPropertyChanged(nameof(IsFavoriteButtonVisible));
                 OnPropertyChanged(nameof(PreviousButtonText));
                 OnPropertyChanged(nameof(NextButtonText));
                 OnPropertyChanged(nameof(FavoriteButtonText));
+                RaiseCurrentSelectionProperties();
                 RaiseCommandStates();
             }
         }
@@ -748,13 +836,49 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsNotBibleMode => !IsBibleMode;
 
-    public string CenterPanelTitle => IsBibleMode ? "Bible Preview" : GetSearchResultsPanelTitle();
+    public bool IsSongsMode
+    {
+        get => isSongsMode;
+        private set
+        {
+            if (SetProperty(ref isSongsMode, value))
+            {
+                if (value && isBibleMode)
+                {
+                    isBibleMode = false;
+                    OnPropertyChanged(nameof(IsBibleMode));
+                    OnPropertyChanged(nameof(IsNotBibleMode));
+                }
+
+                OnPropertyChanged(nameof(IsNotBibleOrSongsMode));
+                OnPropertyChanged(nameof(CenterPanelTitle));
+                OnPropertyChanged(nameof(LibraryCountText));
+                OnPropertyChanged(nameof(IsFavoriteButtonVisible));
+                OnPropertyChanged(nameof(PreviousButtonText));
+                OnPropertyChanged(nameof(NextButtonText));
+                OnPropertyChanged(nameof(FavoriteButtonText));
+                RaiseCurrentSelectionProperties();
+                RaiseCommandStates();
+            }
+        }
+    }
+
+    public bool IsNotBibleOrSongsMode => !IsBibleMode && !IsSongsMode;
+
+    public string CenterPanelTitle =>
+        IsBibleMode
+            ? "Bible Preview"
+            : IsSongsMode
+                ? "Song Sections"
+                : GetSearchResultsPanelTitle();
 
     public string RightPanelTitle => "Live / Projection";
 
     public string LibraryCountText =>
         IsBibleMode
             ? FormatCount(BibleNavigationItems.Count, "Bible result", "Bible results")
+            : IsSongsMode
+                ? FormatCount(SongResults.Count, "song", "songs")
             : isSermonBrowseMode
                 ? FormatCount(ResultCount, "sermon", "sermons")
             : FormatCount(ResultCount, "paragraph", "paragraphs");
@@ -762,6 +886,8 @@ public sealed class MainViewModel : ObservableObject
     public string PreviewHeader =>
         IsBibleMode
             ? SelectedBibleVerse?.ReferenceDisplay ?? "Ready to search the Bible"
+            : IsSongsMode
+                ? SelectedSong?.Title ?? "Ready to search songs"
             : SelectedParagraph is null
                 ? "Ready to search sermons"
                 : $"{SelectedParagraph.SermonTitle}";
@@ -769,6 +895,10 @@ public sealed class MainViewModel : ObservableObject
     public string PreviewMeta =>
         IsBibleMode
             ? SelectedBibleVerse?.MetaLine ?? "Examples: John 3:16, Romans 8:28, Psalm 23."
+            : IsSongsMode
+                ? SelectedSongSection is null
+                    ? "Search songs by title or lyrics."
+                    : $"{SelectedSongSection.SectionLabel} | {SelectedSong?.FileName ?? "Song source"}"
             : SelectedParagraph is null
                 ? "Search by sermon title, code, phrase, or paragraph number."
                 : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
@@ -776,11 +906,15 @@ public sealed class MainViewModel : ObservableObject
     public string PreviewText =>
         IsBibleMode
             ? SelectedBibleVerse?.Text ?? string.Empty
+            : IsSongsMode
+                ? SelectedSongSection?.Text ?? string.Empty
             : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public string SelectedParagraphHeader =>
         IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.ReferenceDisplay
+            : IsSongsMode && SelectedSong is not null
+            ? SelectedSong.Title
             : SelectedParagraph is null
             ? "Ready to search sermons"
             : $"{SelectedParagraph.SermonTitle}";
@@ -788,6 +922,8 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedParagraphMeta =>
         IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.MetaLine
+            : IsSongsMode && SelectedSongSection is not null
+            ? $"{SelectedSongSection.SectionLabel} | {SelectedSong?.FileName ?? "Song source"}"
             : SelectedParagraph is null
             ? "Search by sermon title, code, phrase, or paragraph number."
             : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
@@ -797,6 +933,8 @@ public sealed class MainViewModel : ObservableObject
             ? SelectedBibleVerse.ReferenceDisplay
             : IsBibleMode
                 ? "MessageFlow Bible"
+                : IsSongsMode
+                    ? SelectedSong?.Title ?? "MessageFlow Songs"
                 : SelectedParagraph?.SermonTitle ?? "MessageFlow";
 
     public string ProjectionParagraphNumber =>
@@ -804,12 +942,18 @@ public sealed class MainViewModel : ObservableObject
             ? SelectedBibleVerse.TranslationAbbreviation
             : IsBibleMode
                 ? string.Empty
+                : IsSongsMode
+                    ? SelectedSongSection?.SectionLabel ?? string.Empty
             : SelectedParagraph is null
                 ? string.Empty
                 : $"Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string SelectedParagraphText =>
-        IsBibleMode ? SelectedBibleVerse?.Text ?? string.Empty : SelectedParagraph?.FullParagraphText ?? string.Empty;
+        IsBibleMode
+            ? SelectedBibleVerse?.Text ?? string.Empty
+            : IsSongsMode
+                ? SelectedSongSection?.Text ?? string.Empty
+                : SelectedParagraph?.FullParagraphText ?? string.Empty;
 
     public double ProjectionFontSize =>
         Math.Max(24, (SelectedProjectionFontSize?.FontSize ?? 62) + projectionFontSizeAdjustment);
@@ -822,13 +966,19 @@ public sealed class MainViewModel : ObservableObject
             ? selectedBibleVerseIsFavorite
                 ? "Remove Bible Favorite"
                 : "Add Bible Favorite"
+            : IsSongsMode
+                ? string.Empty
             : SelectedParagraph?.IsFavorite == true
                 ? "Remove Favorite"
                 : "Add Favorite";
 
-    public string PreviousButtonText => IsBibleMode ? "Previous Verse" : "Previous Paragraph";
+    public bool IsFavoriteButtonVisible => !IsSongsMode;
 
-    public string NextButtonText => IsBibleMode ? "Next Verse" : "Next Paragraph";
+    public string PreviousButtonText =>
+        IsBibleMode ? "Previous Verse" : IsSongsMode ? "Previous Section" : "Previous Paragraph";
+
+    public string NextButtonText =>
+        IsBibleMode ? "Next Verse" : IsSongsMode ? "Next Section" : "Next Paragraph";
 
     public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
 
@@ -843,6 +993,10 @@ public sealed class MainViewModel : ObservableObject
     public bool IsParagraphResultsEmpty => ParagraphResults.Count == 0;
 
     public bool IsBibleResultsEmpty => BibleNavigationItems.Count == 0;
+
+    public bool IsSongResultsEmpty => SongResults.Count == 0;
+
+    public bool IsSongSectionsEmpty => SongSections.Count == 0;
 
     public async Task InitializeAsync()
     {
@@ -1514,9 +1668,15 @@ public sealed class MainViewModel : ObservableObject
         IsBibleMode = enabled;
         if (enabled)
         {
+            IsSongsMode = false;
             StatusText = SelectedBibleVerse is null
                 ? "Search by book, chapter, verse, or keyword."
                 : $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
+            return;
+        }
+
+        if (IsSongsMode)
+        {
             return;
         }
 
@@ -1528,6 +1688,26 @@ public sealed class MainViewModel : ObservableObject
         StatusText = SelectedParagraph is null
             ? "Search by sermon title, code, phrase, or paragraph number."
             : $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
+    }
+
+    public void SetSongsMode(bool enabled)
+    {
+        IsSongsMode = enabled;
+        if (enabled)
+        {
+            IsBibleMode = false;
+            StatusText = SelectedSongSection is null
+                ? "Search songs by title or lyrics."
+                : $"Selected {SelectedSongSection.SectionLabel}.";
+
+            QueueSongSearch();
+            return;
+        }
+
+        if (!IsBibleMode && SelectedParagraph is null && ParagraphResults.Count > 0)
+        {
+            SelectedParagraph = ParagraphResults.FirstOrDefault();
+        }
     }
 
     public async Task BackupDatabaseAsync()
@@ -3011,6 +3191,148 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private void QueueSongSearch()
+    {
+        if (!IsSongsMode)
+        {
+            return;
+        }
+
+        songSearchDebounce?.Cancel();
+        songSearchDebounce = new CancellationTokenSource();
+        var cancellationToken = songSearchDebounce.Token;
+        var queryText = SongSearchText.Trim();
+        var version = Interlocked.Increment(ref songSearchRequestVersion);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(SearchDebounceMilliseconds, cancellationToken);
+                var operation = System.Windows.Application.Current.Dispatcher.InvokeAsync(
+                    () => UpdateSongResultsAsync(queryText, cancellationToken, version));
+
+                await operation.Task.Unwrap();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }, cancellationToken);
+    }
+
+    private bool IsCurrentSongSearch(int version)
+    {
+        return version == Volatile.Read(ref songSearchRequestVersion);
+    }
+
+    private async Task UpdateSongResultsAsync(
+        string queryText,
+        CancellationToken cancellationToken,
+        int version)
+    {
+        if (!IsCurrentSongSearch(version))
+        {
+            return;
+        }
+
+        try
+        {
+            IsSearching = true;
+            StatusText = string.IsNullOrWhiteSpace(queryText) ? "Loading songs..." : "Searching songs...";
+
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var searchService = scope.ServiceProvider.GetRequiredService<ISongSearchService>();
+            var results = await searchService.SearchAsync(
+                new SongSearchQuery(queryText, 200),
+                cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentSongSearch(version))
+            {
+                return;
+            }
+
+            SongResults.Clear();
+            foreach (var result in results.Select(result => new SongResultViewModel(result)))
+            {
+                SongResults.Add(result);
+            }
+
+            SelectedSong = SongResults.FirstOrDefault();
+            StatusText = SongResults.Count == 0
+                ? "No songs found."
+                : $"{FormatCount(SongResults.Count, "song", "songs")} found.";
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrentSongSearch(version))
+            {
+                SongResults.Clear();
+                SongSections.Clear();
+                SelectedSong = null;
+                StatusText = $"Song search failed: {ex.Message}";
+            }
+        }
+        finally
+        {
+            if (IsCurrentSongSearch(version))
+            {
+                IsSearching = false;
+            }
+        }
+    }
+
+    private async Task LoadSongSectionsAsync(SongResultViewModel song)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var sections = await dbContext.SongSections
+                .AsNoTracking()
+                .Where(section => section.SongId == song.SongId)
+                .OrderBy(section => section.SectionOrder)
+                .Select(section => new SongSectionViewModel(
+                    section.Id,
+                    section.SongId,
+                    section.SectionOrder,
+                    section.SectionType,
+                    section.SectionLabel,
+                    section.Text))
+                .ToListAsync();
+
+            if (SelectedSong?.SongId != song.SongId)
+            {
+                return;
+            }
+
+            SongSections.Clear();
+            foreach (var section in sections)
+            {
+                SongSections.Add(section);
+            }
+
+            SelectedSongSection = song.MatchedSectionId is null
+                ? SongSections.FirstOrDefault()
+                : SongSections.FirstOrDefault(section => section.SectionId == song.MatchedSectionId.Value) ??
+                  SongSections.FirstOrDefault();
+
+            StatusText = SelectedSongSection is null
+                ? $"No lyric sections found for {song.Title}."
+                : $"Selected {SelectedSongSection.SectionLabel}.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Song section load failed.", ex);
+            SongSections.Clear();
+            SelectedSongSection = null;
+            StatusText = $"Could not load song sections: {ex.Message}";
+        }
+    }
+
     private void QueueSearch()
     {
         searchDebounce?.Cancel();
@@ -3294,6 +3616,12 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        if (IsSongsMode)
+        {
+            MoveSongSection(-1);
+            return;
+        }
+
         await MoveSelectionAsync(-1);
     }
 
@@ -3302,6 +3630,12 @@ public sealed class MainViewModel : ObservableObject
         if (IsBibleMode)
         {
             await MoveBibleSelectionAsync(1);
+            return;
+        }
+
+        if (IsSongsMode)
+        {
+            MoveSongSection(1);
             return;
         }
 
@@ -3422,6 +3756,30 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private void MoveSongSection(int offset)
+    {
+        if (SelectedSongSection is null || SongSections.Count == 0)
+        {
+            return;
+        }
+
+        var currentIndex = SongSections.IndexOf(SelectedSongSection);
+        var nextIndex = currentIndex < 0
+            ? 0
+            : Math.Clamp(currentIndex + offset, 0, SongSections.Count - 1);
+
+        if (nextIndex == currentIndex)
+        {
+            StatusText = offset > 0
+                ? "Already at the last song section."
+                : "Already at the first song section.";
+            return;
+        }
+
+        SelectedSongSection = SongSections[nextIndex];
+        StatusText = $"Selected {SelectedSongSection.SectionLabel}.";
+    }
+
     private void CopySelectedParagraph()
     {
         if (IsBibleMode)
@@ -3435,6 +3793,20 @@ public sealed class MainViewModel : ObservableObject
             Clipboard.SetText(
                 $"{SelectedBibleVerse.ReferenceDisplay} {SelectedBibleVerse.TranslationAbbreviation}{Environment.NewLine}{SelectedBibleVerse.Text}");
             StatusText = "Bible verse copied.";
+            return;
+        }
+
+        if (IsSongsMode)
+        {
+            if (SelectedSong is null || SelectedSongSection is null)
+            {
+                StatusText = "Please select a song section before copying.";
+                return;
+            }
+
+            Clipboard.SetText(
+                $"{SelectedSong.Title} - {SelectedSongSection.SectionLabel}{Environment.NewLine}{SelectedSongSection.Text}");
+            StatusText = "Song section copied.";
             return;
         }
 
@@ -3452,6 +3824,12 @@ public sealed class MainViewModel : ObservableObject
         if (IsBibleMode)
         {
             await ProjectCurrentBibleSelectionAsync();
+            return;
+        }
+
+        if (IsSongsMode)
+        {
+            await ProjectCurrentSongSelectionAsync();
             return;
         }
 
@@ -3730,11 +4108,30 @@ public sealed class MainViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
+    private Task ProjectCurrentSongSelectionAsync()
+    {
+        if (SelectedSong is null || SelectedSongSection is null)
+        {
+            StatusText = "Please select a song section before projecting.";
+            return Task.CompletedTask;
+        }
+
+        StatusText = $"Projecting {SelectedSong.Title} - {SelectedSongSection.SectionLabel}.";
+        ProjectRequested?.Invoke();
+        return Task.CompletedTask;
+    }
+
     private async void ToggleFavorite()
     {
         if (IsBibleMode)
         {
             await ToggleBibleFavoriteAsync();
+            return;
+        }
+
+        if (IsSongsMode)
+        {
+            StatusText = "Song favorites are not enabled yet.";
             return;
         }
 
@@ -5136,9 +5533,71 @@ public sealed class MainViewModel : ObservableObject
         SearchText = string.Empty;
     }
 
+    private void ClearSelectedSong()
+    {
+        var changed = false;
+
+        if (selectedSong is not null)
+        {
+            selectedSong = null;
+            OnPropertyChanged(nameof(SelectedSong));
+            changed = true;
+        }
+
+        if (selectedSongSection is not null)
+        {
+            selectedSongSection = null;
+            OnPropertyChanged(nameof(SelectedSongSection));
+            changed = true;
+        }
+
+        if (changed)
+        {
+            RaiseCurrentSelectionProperties();
+        }
+    }
+
+    private void ClearNonSongSelection()
+    {
+        if (selectedParagraph is not null)
+        {
+            selectedParagraph = null;
+            OnPropertyChanged(nameof(SelectedParagraph));
+        }
+
+        if (selectedBibleVerse is not null)
+        {
+            selectedBibleVerse = null;
+            selectedBibleVerseIsFavorite = false;
+            OnPropertyChanged(nameof(SelectedBibleVerse));
+        }
+
+        if (selectedBibleNavigationItem is not null)
+        {
+            selectedBibleNavigationItem = null;
+            OnPropertyChanged(nameof(SelectedBibleNavigationItem));
+        }
+    }
+
+    private void RaiseCurrentSelectionProperties()
+    {
+        OnPropertyChanged(nameof(SelectedParagraphHeader));
+        OnPropertyChanged(nameof(SelectedParagraphMeta));
+        OnPropertyChanged(nameof(PreviewHeader));
+        OnPropertyChanged(nameof(PreviewMeta));
+        OnPropertyChanged(nameof(PreviewText));
+        OnPropertyChanged(nameof(ProjectionParagraphTitle));
+        OnPropertyChanged(nameof(ProjectionParagraphNumber));
+        OnPropertyChanged(nameof(SelectedParagraphText));
+    }
+
     private bool CanUseCurrentSelection()
     {
-        return IsBibleMode ? SelectedBibleVerse is not null : SelectedParagraph is not null;
+        return IsBibleMode
+            ? SelectedBibleVerse is not null
+            : IsSongsMode
+                ? SelectedSongSection is not null
+                : SelectedParagraph is not null;
     }
 
     private void RaiseCommandStates()

@@ -229,8 +229,22 @@ public partial class MainWindow : Window
 
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F)
         {
-            SearchBox.Focus();
-            SearchBox.SelectAll();
+            if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab))
+            {
+                BibleSearchBox.Focus();
+                BibleSearchBox.SelectAll();
+            }
+            else if (ReferenceEquals(LibraryTabs.SelectedItem, SongsTab))
+            {
+                SongSearchBox.Focus();
+                SongSearchBox.SelectAll();
+            }
+            else
+            {
+                SearchBox.Focus();
+                SearchBox.SelectAll();
+            }
+
             e.Handled = true;
             return;
         }
@@ -332,7 +346,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        viewModel.SetBibleMode(ReferenceEquals(LibraryTabs.SelectedItem, BibleTab));
+        var bibleSelected = ReferenceEquals(LibraryTabs.SelectedItem, BibleTab);
+        var songsSelected = ReferenceEquals(LibraryTabs.SelectedItem, SongsTab);
+        viewModel.SetBibleMode(bibleSelected);
+        viewModel.SetSongsMode(songsSelected);
+
+        if (bibleSelected)
+        {
+            BibleSearchBox.Focus();
+        }
+        else if (songsSelected)
+        {
+            SongSearchBox.Focus();
+        }
 
         if (ReferenceEquals(LibraryTabs.SelectedItem, HistoryTab))
         {

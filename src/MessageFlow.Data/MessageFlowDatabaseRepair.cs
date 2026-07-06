@@ -11,11 +11,15 @@ public sealed record MessageFlowDatabaseRepairResult(
     bool ContentSourcesExisted,
     bool SermonsContentSourceIdExisted,
     bool BibleFavoriteVersesExisted,
+    bool SongsExisted,
+    bool SongSectionsExisted,
     bool FavoriteParagraphsCreated,
     bool ProjectionHistoriesCreated,
     bool ContentSourcesCreated,
     bool SermonsContentSourceIdCreated,
-    bool BibleFavoriteVersesCreated);
+    bool BibleFavoriteVersesCreated,
+    bool SongsCreated,
+    bool SongSectionsCreated);
 
 public static class MessageFlowDatabaseRepair
 {
@@ -23,6 +27,7 @@ public static class MessageFlowDatabaseRepair
     private const string AddSearchPerformanceMigrationId = "20260627224500_AddSearchPerformanceIndexesAndFts";
     private const string AddBibleModuleMigrationId = "20260629090000_AddBibleModule";
     private const string AddBibleFavoriteVersesMigrationId = "20260630120500_AddBibleFavoriteVerses";
+    private const string AddSongsModuleMigrationId = "20260706103000_AddSongsModule";
     private const string ProductVersion = "10.0.9";
     private static readonly string[] ExpectedFtsColumns =
     [
@@ -113,6 +118,14 @@ public static class MessageFlowDatabaseRepair
                 connection,
                 "BibleFavoriteVerses",
                 cancellationToken);
+            var songsExisted = await TableExistsAsync(
+                connection,
+                "Songs",
+                cancellationToken);
+            var songSectionsExisted = await TableExistsAsync(
+                connection,
+                "SongSections",
+                cancellationToken);
 
             log?.Invoke($"FavoriteParagraphs exists before repair: {favoriteParagraphsExisted}");
             log?.Invoke($"ProjectionHistories exists before repair: {projectionHistoriesExisted}");
@@ -120,6 +133,7 @@ public static class MessageFlowDatabaseRepair
             log?.Invoke($"Sermons.ContentSourceId exists before repair: {sermonsContentSourceIdExisted}");
             log?.Invoke($"Bible tables exist before repair: translations={bibleTranslationsExisted}, books={bibleBooksExisted}, verses={bibleVersesExisted}");
             log?.Invoke($"BibleFavoriteVerses exists before repair: {bibleFavoriteVersesExisted}");
+            log?.Invoke($"Song tables exist before repair: songs={songsExisted}, sections={songSectionsExisted}");
 
             if (!favoriteParagraphsExisted)
             {
@@ -312,6 +326,13 @@ public static class MessageFlowDatabaseRepair
                 AddBibleFavoriteVersesMigrationId,
                 cancellationToken);
 
+            await EnsureSongTablesAsync(connection, log, cancellationToken);
+
+            await MarkMigrationAppliedIfHistoryExistsAsync(
+                connection,
+                AddSongsModuleMigrationId,
+                cancellationToken);
+
             var result = new MessageFlowDatabaseRepairResult(
                 databasePath,
                 favoriteParagraphsExisted,
@@ -319,11 +340,15 @@ public static class MessageFlowDatabaseRepair
                 contentSourcesExisted,
                 sermonsContentSourceIdExisted,
                 bibleFavoriteVersesExisted,
+                songsExisted,
+                songSectionsExisted,
                 !favoriteParagraphsExisted,
                 !projectionHistoriesExisted,
                 !contentSourcesExisted,
                 sermonsTableExists && !sermonsContentSourceIdExisted,
-                !bibleFavoriteVersesExisted);
+                !bibleFavoriteVersesExisted,
+                !songsExisted,
+                !songSectionsExisted);
 
             log?.Invoke($"FavoriteParagraphs created by repair: {result.FavoriteParagraphsCreated}");
             log?.Invoke($"ProjectionHistories created by repair: {result.ProjectionHistoriesCreated}");
@@ -331,6 +356,7 @@ public static class MessageFlowDatabaseRepair
             log?.Invoke($"Sermons.ContentSourceId created by repair: {result.SermonsContentSourceIdCreated}");
             log?.Invoke($"Bible tables created by repair: translations={!bibleTranslationsExisted}, books={!bibleBooksExisted}, verses={!bibleVersesExisted}");
             log?.Invoke($"BibleFavoriteVerses created by repair: {result.BibleFavoriteVersesCreated}");
+            log?.Invoke($"Song tables created by repair: songs={result.SongsCreated}, sections={result.SongSectionsCreated}");
             log?.Invoke("Database repair completed.");
 
             return result;
@@ -557,6 +583,56 @@ public static class MessageFlowDatabaseRepair
             ON "BibleFavoriteVerses" ("CreatedAt");
             """,
             cancellationToken);
+    }
+
+    private static async Task EnsureSongTablesAsync(
+        SqliteConnection connection,
+        Action<string>? log,
+        CancellationToken cancellationToken)
+    {
+        log?.Invoke("Ensuring song tables and indexes.");
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS "Songs" (
+                "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "Title" TEXT NOT NULL,
+                "NormalizedTitle" TEXT NOT NULL,
+                "SourceFilePath" TEXT NOT NULL,
+                "SourceFolder" TEXT NOT NULL,
+                "FileName" TEXT NOT NULL,
+                "ImportedAtUtc" TEXT NOT NULL,
+                "ContentHash" TEXT NOT NULL,
+                "WarningSummary" TEXT NOT NULL,
+                "IsActive" INTEGER NOT NULL DEFAULT 1
+            );
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS "SongSections" (
+                "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                "SongId" INTEGER NOT NULL,
+                "SectionOrder" INTEGER NOT NULL,
+                "SectionType" TEXT NOT NULL,
+                "SectionLabel" TEXT NOT NULL,
+                "Text" TEXT NOT NULL,
+                "NormalizedText" TEXT NOT NULL,
+                FOREIGN KEY ("SongId") REFERENCES "Songs" ("Id") ON DELETE CASCADE
+            );
+            """,
+            cancellationToken);
+
+        await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_Songs_SourceFilePath" ON "Songs" ("SourceFilePath");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_NormalizedTitle" ON "Songs" ("NormalizedTitle");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_ContentHash" ON "Songs" ("ContentHash");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_IsActive" ON "Songs" ("IsActive");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_SongSections_SongId_SectionOrder" ON "SongSections" ("SongId", "SectionOrder");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SongSections_SectionType" ON "SongSections" ("SectionType");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SongSections_NormalizedText" ON "SongSections" ("NormalizedText");""", cancellationToken);
     }
 
     private static async Task EnsureSearchPerformanceIndexesAsync(

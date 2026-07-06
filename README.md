@@ -1,6 +1,6 @@
 # MessageFlow
 
-MessageFlow is a Windows desktop application for a church media room. Its goal is to help operators quickly search sermons, books, letters, and Bible references, then project selected text onto church screens.
+MessageFlow is a Windows desktop application for a church media room. Its goal is to help operators quickly search sermons, books, letters, Bible references, and local song presentations, then project selected text onto church screens.
 
 This repository is the project foundation for local sermon storage, PDF import, search, and projection workflows. It does not scrape websites or download copyrighted material.
 
@@ -47,24 +47,42 @@ dotnet restore MessageFlow.sln
 dotnet build MessageFlow.sln
 ```
 
-## Song Presentation Inspection Prototype
+## Song Presentations
 
-`tools\InspectSongPresentations` is a read-only prototype for inspecting local song PowerPoint files before a real Songs feature is added. It does not import songs, modify PowerPoint files, or touch the MessageFlow database.
+MessageFlow includes a Songs tab built from local PowerPoint presentations. It does not modify the original PowerPoint files and does not read from the ignored `chruch service` folder.
 
-The prototype scans:
+Song import scans:
 
 ```text
 D:\SONG PRESENTATION
 D:\SONG PRESENTATION\choir
 ```
 
-It writes report and sample extraction files to:
+The controlled importer writes reports to:
 
 ```text
 D:\MessageFlow Archive\SongImportTest
 ```
 
-Run it from the repository root:
+Preview without database writes:
+
+```powershell
+dotnet run --project tools\ImportSongPresentations
+```
+
+Apply import after the required database backup exists:
+
+```powershell
+dotnet run --project tools\ImportSongPresentations -- --apply
+```
+
+Verify imported song data:
+
+```powershell
+dotnet run --project tools\VerifySongData
+```
+
+The read-only inspection prototype is still available:
 
 ```powershell
 dotnet run --project tools\InspectSongPresentations
@@ -92,6 +110,8 @@ The current schema stores:
 - Bible translations
 - Bible books
 - Bible verses
+- Songs
+- Song sections
 
 The initial migration seeds this author:
 
@@ -306,6 +326,7 @@ MessageFlow separates operator work into clear modes:
 
 - `Search` is for sermons and document paragraphs.
 - `Bible` is for Bible references, keyword lookup, preview, and verse projection.
+- `Songs` is for local song title/lyric search and section projection.
 - `Favorites` and `History` are sermon paragraph collections.
 - `Tools` is for local sources, Bible CSV import, and database backup/restore.
 
@@ -314,9 +335,10 @@ The main workflow is:
 ```text
 Search > Preview > Project
 Bible  > Preview > Project
+Songs  > Sections > Project
 ```
 
-Search mode keeps paragraph labels, paragraph counts, and Previous/Next Paragraph controls. Bible mode keeps Bible result counts, Bible Preview text, selected translation details, and Previous/Next Verse controls. Switching modes should not visually mix sermon labels with Bible labels.
+Search mode keeps paragraph labels, paragraph counts, and Previous/Next Paragraph controls. Bible mode keeps Bible result counts, Bible Preview text, selected translation details, and Previous/Next Verse controls. Songs mode keeps song result counts, section labels, source filenames, and Previous/Next Section controls. Switching modes should not visually mix sermon, Bible, or song labels.
 
 Bible import remains local CSV only. MessageFlow does not scrape websites or download Bible files automatically.
 
@@ -345,6 +367,7 @@ The first WPF screen includes:
 - Full paragraph preview
 - Copy, project, next/previous paragraph, and favorite actions
 - Bible tab for local Bible search, preview, copy, projection, and verse navigation
+- Songs tab for local PowerPoint song title/lyric search, section preview, copy, projection, and section navigation
 - Borderless black projection window with title, paragraph number, and large centered text
 
 Keyboard shortcuts:
@@ -357,6 +380,7 @@ Keyboard shortcuts:
 - `Left Arrow` moves to the previous paragraph
 - In the projection window, `Right Arrow` and `Left Arrow` move between paragraphs
 - When a Bible verse is selected, `Right Arrow` and `Left Arrow` move between verses in the same chapter
+- When a song section is selected, `Right Arrow` and `Left Arrow` move between song sections
 - In the projection window, `Esc` closes projection
 - In the projection window, `F11` toggles fullscreen
 
@@ -446,6 +470,8 @@ Before using MessageFlow in a live service, run this quick manual checklist:
 - Import Bible previews local CSV files before writing to the database.
 - Bible search finds references such as `John 3:16` after a translation is imported.
 - Bible projection, Copy, Next, and Previous work for selected Bible verses.
+- Songs tab finds local song titles and lyric phrases.
+- Song projection, Copy, Next Section, and Previous Section work for selected song sections.
 - Existing Quick Project sermon examples still work after Bible reference support is added.
 
 ## Current Status
@@ -459,7 +485,8 @@ Before using MessageFlow in a live service, run this quick manual checklist:
 - Importer scans local PDFs, extracts text from positioned PdfPig words, creates sermons and paragraphs, skips duplicates, supports `--force` and `--reset`, prints extraction diagnostics, and logs errors.
 - Search service supports title, code, year, paragraph number, keyword, and partial keyword search with SQLite FTS5.
 - Bible schema, local CSV import preview, Bible search, Bible projection, copy, and verse navigation are in place.
-- WPF app has a working dark-theme interface for searching, browsing paragraphs, Bible references, copying text, favorites, history, backup/restore, source management, and projection.
+- Songs schema, controlled local PowerPoint import, song search, song section navigation, copy, and projection are in place.
+- WPF app has a working dark-theme interface for searching, browsing paragraphs, Bible references, song sections, copying text, favorites, history, backup/restore, source management, and projection.
 
 ## Next Development Step
 

@@ -21,6 +21,15 @@ Use this checklist on the church computer before service.
 - [ ] Selecting Ruth shows Ruth chapters clearly.
 - [ ] Selecting Ruth 1 shows all Ruth 1 verses and the list scrolls correctly through every verse.
 - [ ] Bible search/select Matthew 1 and confirm the visible scrollbar can be dragged through the results.
+- [ ] Songs tab opens and shows local PowerPoint songs from `D:\SONG PRESENTATION` and `D:\SONG PRESENTATION\choir`.
+- [ ] Songs tab does not show songs from `D:\SONG PRESENTATION\chruch service`.
+- [ ] Song search for `tell`, `tell me the story`, `calvary`, `amazing love`, `great deliverer`, and `holy words` returns results.
+- [ ] Songs Library result list has a visible draggable vertical scrollbar.
+- [ ] Selecting a song shows ordered song sections in the center panel.
+- [ ] Selecting a song section shows the lyrics in the right preview panel without stale Bible or sermon text.
+- [ ] Project, Copy, Previous Section, and Next Section work for songs.
+- [ ] Song projection uses the same black background, white text, fit-to-screen sizing, and pagination as Bible/sermon projection.
+- [ ] Song source filename is visible or available without showing an ugly full path in the main result card.
 - [ ] Projection opens on the TV/projector.
 - [ ] On a one-screen laptop, Project opens a normal windowed Projection Preview that can be moved, resized, and minimized.
 - [ ] Admin > Open Projection Preview Window opens a windowed projection preview for the selected Bible verse or sermon paragraph.
@@ -41,6 +50,8 @@ Use this checklist on the church computer before service.
 - [ ] Favorites work.
 - [ ] History works.
 - [ ] Admin > Verify Production Data passes.
+- [ ] `dotnet run --project tools\VerifySongData` passes with 357 active songs and zero zero-text songs.
+- [ ] `dotnet run --project tools\ImportSongPresentations` runs in preview mode without database writes.
 - [ ] Admin > Test Projection Display works.
 - [ ] `dotnet run --project tools\AuditBranhamImportQuality` generates `D:\MessageFlow Archive\BranhamAudit\branham_import_quality_report.txt`.
 - [ ] Review the Branham audit report before any future text cleanup; do not clean or delete database content until the audit is reviewed.

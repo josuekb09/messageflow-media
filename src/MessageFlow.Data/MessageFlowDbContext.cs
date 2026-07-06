@@ -1,6 +1,7 @@
 using MessageFlow.Core.Bible;
 using MessageFlow.Core.ContentSources;
 using MessageFlow.Core.Sermons;
+using MessageFlow.Core.Songs;
 using Microsoft.EntityFrameworkCore;
 
 namespace MessageFlow.Data;
@@ -28,6 +29,10 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
     public DbSet<BibleVerse> BibleVerses => Set<BibleVerse>();
 
     public DbSet<BibleFavoriteVerse> BibleFavoriteVerses => Set<BibleFavoriteVerse>();
+
+    public DbSet<Song> Songs => Set<Song>();
+
+    public DbSet<SongSection> SongSections => Set<SongSection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -355,6 +360,85 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
             entity.HasOne(favorite => favorite.BibleVerse)
                 .WithMany(verse => verse.Favorites)
                 .HasForeignKey(favorite => favorite.BibleVerseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Song>(entity =>
+        {
+            entity.ToTable("Songs");
+            entity.HasKey(song => song.Id);
+
+            entity.Property(song => song.Title)
+                .HasMaxLength(300)
+                .IsRequired();
+
+            entity.Property(song => song.NormalizedTitle)
+                .HasMaxLength(300)
+                .IsRequired();
+
+            entity.Property(song => song.SourceFilePath)
+                .HasMaxLength(1024)
+                .IsRequired();
+
+            entity.Property(song => song.SourceFolder)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(song => song.FileName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(song => song.ImportedAtUtc)
+                .IsRequired();
+
+            entity.Property(song => song.ContentHash)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(song => song.WarningSummary)
+                .HasMaxLength(2000)
+                .IsRequired();
+
+            entity.Property(song => song.IsActive)
+                .HasDefaultValue(true)
+                .IsRequired();
+
+            entity.HasIndex(song => song.SourceFilePath)
+                .IsUnique();
+
+            entity.HasIndex(song => song.NormalizedTitle);
+            entity.HasIndex(song => song.ContentHash);
+            entity.HasIndex(song => song.IsActive);
+        });
+
+        modelBuilder.Entity<SongSection>(entity =>
+        {
+            entity.ToTable("SongSections");
+            entity.HasKey(section => section.Id);
+
+            entity.Property(section => section.SectionType)
+                .HasMaxLength(60)
+                .IsRequired();
+
+            entity.Property(section => section.SectionLabel)
+                .HasMaxLength(120)
+                .IsRequired();
+
+            entity.Property(section => section.Text)
+                .IsRequired();
+
+            entity.Property(section => section.NormalizedText)
+                .IsRequired();
+
+            entity.HasIndex(section => new { section.SongId, section.SectionOrder })
+                .IsUnique();
+
+            entity.HasIndex(section => section.SectionType);
+            entity.HasIndex(section => section.NormalizedText);
+
+            entity.HasOne(section => section.Song)
+                .WithMany(song => song.Sections)
+                .HasForeignKey(section => section.SongId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

@@ -8,6 +8,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ISermonSearchService, SermonSearchService>();
         services.AddScoped<IBibleSearchService, BibleSearchService>();
+        services.AddScoped<ISongSearchService, SongSearchService>();
         return services;
     }
 }

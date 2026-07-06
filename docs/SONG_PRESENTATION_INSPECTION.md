@@ -1,6 +1,6 @@
 # Song Presentation Inspection Prototype
 
-`tools\InspectSongPresentations` is a read-only prototype for checking whether MessageFlow can safely read song PowerPoint files before a real Songs feature is built.
+`tools\InspectSongPresentations` is a read-only prototype for checking whether MessageFlow can safely read song PowerPoint files. The real Songs feature now uses the same local-source policy through `tools\ImportSongPresentations`.
 
 ## Safety
 
@@ -57,3 +57,15 @@ dotnet build tools\InspectSongPresentations\InspectSongPresentations.csproj --no
 - Original song wording is preserved unless a character is clearly presentation formatting noise.
 
 Use the report and samples to decide whether it is safe to design the real Songs data model and projection flow.
+
+## Real Songs Import
+
+The real importer is controlled and report-first:
+
+```powershell
+dotnet run --project tools\ImportSongPresentations
+dotnet run --project tools\ImportSongPresentations -- --apply
+dotnet run --project tools\VerifySongData
+```
+
+It backs up/validates the database before apply, imports one song record per source presentation, preserves slide order as song sections, and keeps the source PowerPoint files read-only.
