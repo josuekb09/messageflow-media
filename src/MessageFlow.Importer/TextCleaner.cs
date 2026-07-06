@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using MessageFlow.Core.Text;
 
 namespace MessageFlow.Importer;
 
@@ -21,7 +22,7 @@ public static partial class TextCleaner
 
         if (!preserveLineBreaks)
         {
-            return WhiteSpaceRegex().Replace(normalized, " ").Trim();
+            return ProjectionTextCleaner.CleanSermonText(WhiteSpaceRegex().Replace(normalized, " ").Trim());
         }
 
         normalized = normalized
@@ -31,7 +32,7 @@ public static partial class TextCleaner
         normalized = WhiteSpaceAroundLineBreakRegex().Replace(normalized, "\n");
         normalized = ExcessiveBlankLineRegex().Replace(normalized, "\n\n");
 
-        return normalized.Trim();
+        return ProjectionTextCleaner.CleanSermonText(normalized.Trim());
     }
 
     public static string CleanToken(string value)

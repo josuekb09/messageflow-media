@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using MessageFlow.Core.Text;
 
 namespace MessageFlow.App.ViewModels;
 
@@ -30,7 +31,7 @@ public static partial class ParagraphDisplayTextCleaner
             cleaned = remainder;
         }
 
-        return cleaned;
+        return ProjectionTextCleaner.CleanSermonText(cleaned);
     }
 
     public static string CreatePreview(string text, int maxLength = 160)

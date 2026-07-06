@@ -53,7 +53,7 @@
             <TextBlock x:Name="ParagraphTextBlock"
                        Foreground="White"
                        FontWeight="SemiBold"
-                       TextAlignment="Center"
+                       TextAlignment="Left"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Stretch"
                        VerticalAlignment="Center" />

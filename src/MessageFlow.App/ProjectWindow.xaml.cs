@@ -353,7 +353,9 @@ public partial class ProjectWindow : Window
 
     private IReadOnlyList<string> SplitIntoProjectionPages(string text, WpfSize availableSize, double fontSize)
     {
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var words = text.Split(
+            [' ', '\t', '\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var pages = new List<string>();
         var start = 0;
 
@@ -436,7 +438,7 @@ public partial class ProjectWindow : Window
             FontStretch = ParagraphTextBlock.FontStretch,
             FontSize = fontSize,
             LineHeight = CalculateLineHeight(fontSize),
-            TextAlignment = TextAlignment.Center,
+            TextAlignment = TextAlignment.Left,
             TextWrapping = TextWrapping.Wrap,
             Width = availableSize.Width
         };
@@ -495,16 +497,27 @@ public partial class ProjectWindow : Window
 
     private static string NormalizeProjectionText(string text)
     {
-        return string.Join(' ', text.Split(
-            [' ', '\t', '\r', '\n'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        var normalized = text
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
+
+        var lines = normalized
+            .Split('\n', StringSplitOptions.TrimEntries)
+            .Select(line => string.Join(' ', line.Split(
+                [' ', '\t'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)))
+            .Where(line => !string.IsNullOrWhiteSpace(line));
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private static int CountWords(string text)
     {
         return string.IsNullOrWhiteSpace(text)
             ? 0
-            : text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
+            : text.Split(
+                [' ', '\t', '\r', '\n'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
     }
 
     private string GetProjectionText()
