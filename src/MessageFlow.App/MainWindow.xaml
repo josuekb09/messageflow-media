@@ -7,8 +7,8 @@
         Title="MessageFlow"
         Height="820"
         Width="1180"
-        MinHeight="640"
-        MinWidth="1080"
+        MinHeight="500"
+        MinWidth="880"
         WindowState="Maximized"
         Background="{StaticResource WindowBackgroundBrush}"
         Loaded="Window_Loaded"
@@ -29,10 +29,22 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-                Padding="22,18"
+                Padding="14,8"
                 Background="{StaticResource PanelBackgroundBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
+            <Border.Resources>
+                <Style x:Key="TopToolbarTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                    <Setter Property="MinHeight" Value="40" />
+                    <Setter Property="Padding" Value="12,7" />
+                    <Setter Property="FontSize" Value="14" />
+                </Style>
+                <Style x:Key="TopToolbarComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                    <Setter Property="MinHeight" Value="40" />
+                    <Setter Property="Padding" Value="10,6" />
+                    <Setter Property="FontSize" Value="14" />
+                </Style>
+            </Border.Resources>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -41,9 +53,9 @@
 
                 <TextBlock Grid.Column="0"
                            Text="MessageFlow"
-                           FontSize="28"
+                           FontSize="24"
                            FontWeight="SemiBold"
-                           Margin="0,0,24,8"
+                           Margin="0,0,18,4"
                            VerticalAlignment="Center" />
 
                 <WrapPanel Grid.Column="1"
@@ -51,14 +63,14 @@
                            VerticalAlignment="Center"
                            Orientation="Horizontal">
                 <TextBox x:Name="SearchBox"
-                         Margin="0,0,12,8"
-                         MinWidth="220"
-                         Width="300"
+                          Margin="0,0,10,6"
+                          MinWidth="170"
+                          Width="240"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="Search sermons by title, code, phrase, or paragraph number"
                          VerticalContentAlignment="Center">
                     <TextBox.Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Style TargetType="TextBox" BasedOn="{StaticResource TopToolbarTextBoxStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -69,16 +81,16 @@
                 </TextBox>
 
                 <ComboBox Grid.Column="2"
-                          Margin="0,0,12,8"
+                          Margin="0,0,10,6"
                           ItemsSource="{Binding AuthorFilters}"
                           SelectedItem="{Binding SelectedAuthor}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="180"
-                          Width="190"
+                          MinWidth="142"
+                          Width="154"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
-                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource TopToolbarComboBoxStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -89,16 +101,16 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="3"
-                          Margin="0,0,12,8"
+                          Margin="0,0,10,6"
                           ItemsSource="{Binding SourceFilters}"
                           SelectedItem="{Binding SelectedSourceFilter}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="180"
-                          Width="190"
+                          MinWidth="142"
+                          Width="154"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
-                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource TopToolbarComboBoxStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -109,16 +121,16 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="4"
-                          Margin="0,0,12,8"
+                          Margin="0,0,10,6"
                           ItemsSource="{Binding YearFilters}"
                           SelectedItem="{Binding SelectedYear}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
                           MinWidth="104"
-                          Width="108"
+                          Width="112"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
-                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource TopToolbarComboBoxStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsBibleMode}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -129,39 +141,40 @@
                 </ComboBox>
 
                 <ComboBox Grid.Column="5"
-                          Margin="0,0,8,8"
+                          Style="{StaticResource TopToolbarComboBoxStyle}"
+                          Margin="0,0,8,6"
                           ItemsSource="{Binding ProjectionFontSizes}"
                           SelectedItem="{Binding SelectedProjectionFontSize}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="150"
-                          Width="164"
+                          MinWidth="124"
+                          Width="132"
                           ToolTip="Projection font size"
                           VerticalContentAlignment="Center" />
 
                 <Button Content="A-"
                         Command="{Binding DecreaseProjectionTextSizeCommand}"
-                        Width="46"
-                        MinHeight="48"
-                        Margin="0,0,8,8"
+                        Width="38"
+                        MinHeight="40"
+                        Margin="0,0,6,6"
                         Padding="0"
                         FontSize="14"
                         ToolTip="Decrease projection text size" />
 
                 <Button Content="Fit"
                         Command="{Binding ResetProjectionTextSizeCommand}"
-                        Width="56"
-                        MinHeight="48"
-                        Margin="0,0,8,8"
+                        Width="46"
+                        MinHeight="40"
+                        Margin="0,0,6,6"
                         Padding="0"
                         FontSize="13"
                         ToolTip="Reset projection text size" />
 
                 <Button Content="A+"
                         Command="{Binding IncreaseProjectionTextSizeCommand}"
-                        Width="46"
-                        MinHeight="48"
-                        Margin="0,0,0,8"
+                        Width="38"
+                        MinHeight="40"
+                        Margin="0,0,0,6"
                         Padding="0"
                         FontSize="14"
                         ToolTip="Increase projection text size" />
@@ -170,14 +183,14 @@
         </Border>
 
         <Grid Grid.Row="1"
-              Margin="24"
+              Margin="12"
               ClipToBounds="True">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.95*" MinWidth="340" />
-                <ColumnDefinition Width="8" />
-                <ColumnDefinition Width="1.45*" MinWidth="320" />
-                <ColumnDefinition Width="8" />
-                <ColumnDefinition Width="1.05*" MinWidth="320" />
+                <ColumnDefinition Width="0.85*" MinWidth="260" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="1.35*" MinWidth="270" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="1.05*" MinWidth="240" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
@@ -807,7 +820,7 @@
             </Border>
 
             <GridSplitter Grid.Column="1"
-                          Width="8"
+                          Width="6"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Background="{StaticResource BorderBrush}"
@@ -820,27 +833,35 @@
                     Background="{StaticResource PanelBackgroundBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="{StaticResource BorderRadius}">
-                <Grid>
+                    CornerRadius="{StaticResource BorderRadius}"
+                    ClipToBounds="True">
+                <Grid MinHeight="0"
+                      ClipToBounds="True">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <DockPanel Grid.Row="0" Margin="16,14,16,10">
+                    <Grid Grid.Row="0" Margin="16,14,16,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding CenterPanelTitle}"
                                    FontSize="18"
-                                   FontWeight="SemiBold"
-                                   DockPanel.Dock="Left" />
-                        <TextBlock Text="{Binding StatusText}"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1"
+                                   Margin="14,0,0,0"
+                                   Text="{Binding StatusText}"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    FontSize="13"
                                    HorizontalAlignment="Right"
                                    TextTrimming="CharacterEllipsis" />
-                    </DockPanel>
+                    </Grid>
 
                     <ListBox Grid.Row="1"
                              Margin="10,0,10,10"
+                             MinHeight="0"
                              ScrollViewer.VerticalScrollBarVisibility="Visible"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ItemsSource="{Binding ParagraphResults}"
@@ -926,6 +947,7 @@
 
                     <ScrollViewer Grid.Row="1"
                                   Margin="20,8,20,20"
+                                  MinHeight="0"
                                   VerticalScrollBarVisibility="Visible"
                                   HorizontalScrollBarVisibility="Disabled">
                         <ScrollViewer.Style>
@@ -990,7 +1012,7 @@
             </Border>
 
             <GridSplitter Grid.Column="3"
-                          Width="8"
+                          Width="6"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Background="{StaticResource BorderBrush}"
@@ -1003,8 +1025,20 @@
                     Background="{StaticResource PanelBackgroundBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="{StaticResource BorderRadius}">
-                <Grid Margin="22">
+                    CornerRadius="{StaticResource BorderRadius}"
+                    ClipToBounds="True">
+                <Grid Margin="12"
+                      MinHeight="0"
+                      ClipToBounds="True">
+                    <Grid.Resources>
+                        <Style x:Key="RightPanelButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Setter Property="MinHeight" Value="34" />
+                            <Setter Property="Padding" Value="6,3" />
+                            <Setter Property="FontSize" Value="12" />
+                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                        </Style>
+                    </Grid.Resources>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -1013,49 +1047,59 @@
 
                     <StackPanel Grid.Row="0">
                         <TextBlock Text="{Binding PreviewHeader}"
-                                   FontSize="20"
+                                   FontSize="16"
                                    FontWeight="SemiBold"
+                                   LineHeight="20"
                                    TextWrapping="Wrap" />
                         <TextBlock Text="{Binding PreviewMeta}"
-                                   Margin="0,8,0,0"
+                                   Margin="0,4,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="14"
+                                   FontSize="12"
+                                   LineHeight="16"
                                    TextWrapping="Wrap" />
                     </StackPanel>
 
                     <ScrollViewer Grid.Row="1"
-                                  Margin="0,18,0,20"
-                                  VerticalScrollBarVisibility="Visible"
+                                  Margin="0,8,0,8"
+                                  MinHeight="0"
+                                  VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <TextBlock Text="{Binding PreviewText}"
-                                   FontSize="23"
-                                   LineHeight="34"
+                                   FontSize="19"
+                                   LineHeight="26"
                                    TextWrapping="Wrap"
                                    Foreground="{StaticResource PrimaryTextBrush}" />
                     </ScrollViewer>
 
                     <StackPanel Grid.Row="2">
                         <TextBlock Text="{Binding RightPanelTitle}"
-                                   Margin="2,0,2,12"
+                                   Margin="2,0,2,4"
                                    Foreground="{StaticResource MutedTextBrush}"
                                    FontSize="13"
                                    FontWeight="SemiBold" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0"
-                                    Content="Project"
                                     Command="{Binding ProjectCommand}"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
+                                    Style="{StaticResource RightPanelButtonStyle}">
+                                <TextBlock Text="Project"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </Button>
                             <Button Grid.Column="2"
-                                    Content="Copy"
-                                    Command="{Binding CopyCommand}" />
+                                    Command="{Binding CopyCommand}"
+                                    Style="{StaticResource RightPanelButtonStyle}">
+                                <TextBlock Text="Copy"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </Button>
                         </Grid>
 
-                        <Grid Margin="0,10,0,0">
+                        <Grid Margin="0,4,0,0">
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -1075,19 +1119,21 @@
                                        FontSize="13"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center" />
-                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                            <Grid Grid.Row="1" Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="8" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Button Grid.Column="0"
+                                        Style="{StaticResource RightPanelButtonStyle}"
                                         Command="{Binding PreviousProjectionPageCommand}">
                                     <TextBlock Text="Previous Page"
                                                TextAlignment="Center"
                                                TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="2"
+                                        Style="{StaticResource RightPanelButtonStyle}"
                                         Command="{Binding NextProjectionPageCommand}">
                                     <TextBlock Text="Next Page"
                                                TextAlignment="Center"
@@ -1096,19 +1142,21 @@
                             </Grid>
                         </Grid>
 
-                        <Grid Margin="0,10,0,0">
+                        <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0"
+                                    Style="{StaticResource RightPanelButtonStyle}"
                                     Command="{Binding PreviousParagraphCommand}">
                                 <TextBlock Text="{Binding PreviousButtonText}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap" />
                             </Button>
                             <Button Grid.Column="2"
+                                    Style="{StaticResource RightPanelButtonStyle}"
                                     Command="{Binding NextParagraphCommand}">
                                 <TextBlock Text="{Binding NextButtonText}"
                                            TextAlignment="Center"
@@ -1116,16 +1164,20 @@
                             </Button>
                         </Grid>
 
-                        <Button Margin="0,10,0,0"
-                                Content="{Binding FavoriteButtonText}"
-                                Command="{Binding ToggleFavoriteCommand}" />
+                        <Button Margin="0,4,0,0"
+                                Style="{StaticResource RightPanelButtonStyle}"
+                                Command="{Binding ToggleFavoriteCommand}">
+                            <TextBlock Text="{Binding FavoriteButtonText}"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Border>
         </Grid>
 
         <Border Grid.Row="2"
-                Padding="18,8"
+                Padding="14,5"
                 Background="{StaticResource PanelBackgroundBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -1143,7 +1195,7 @@
                            TextTrimming="CharacterEllipsis" />
 
                 <TextBlock Grid.Column="1"
-                           Margin="18,0,0,0"
+                           Margin="14,0,0,0"
                            Text="{Binding ProjectionStatusText}"
                            Foreground="{StaticResource AccentBrush}"
                            FontSize="13"
@@ -1151,9 +1203,9 @@
 
                 <Button Grid.Column="2"
                         Content="Admin"
-                        Margin="18,0,0,0"
-                        MinHeight="30"
-                        Padding="12,5"
+                        Margin="14,0,0,0"
+                        MinHeight="28"
+                        Padding="12,4"
                         FontSize="12"
                         Click="Admin_Click"
                         ToolTip="Open Admin Tools (Ctrl+Shift+A)" />
