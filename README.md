@@ -24,6 +24,7 @@ MessageFlow/
     MessageFlow.Data/      SQLite database and EF Core infrastructure
     MessageFlow.Importer/  Console app for importing local PDFs
     MessageFlow.Search/    Search service
+  tools/                  Read-only verification, release, and prototype utilities
   database/                Local database location
   docs/                    Project documentation
 ```
@@ -45,6 +46,31 @@ From the repository root:
 dotnet restore MessageFlow.sln
 dotnet build MessageFlow.sln
 ```
+
+## Song Presentation Inspection Prototype
+
+`tools\InspectSongPresentations` is a read-only prototype for inspecting local song PowerPoint files before a real Songs feature is added. It does not import songs, modify PowerPoint files, or touch the MessageFlow database.
+
+The prototype scans:
+
+```text
+D:\SONG PRESENTATION
+D:\SONG PRESENTATION\choir
+```
+
+It writes report and sample extraction files to:
+
+```text
+D:\MessageFlow Archive\SongImportTest
+```
+
+Run it from the repository root:
+
+```powershell
+dotnet run --project tools\InspectSongPresentations
+```
+
+See `docs\SONG_PRESENTATION_INSPECTION.md` for details.
 
 ## Database
 
