@@ -27,6 +27,9 @@ Use this checklist on the church computer before service.
 - [ ] Songs Library result list has a visible draggable vertical scrollbar.
 - [ ] Selecting a song shows ordered song sections in the center panel.
 - [ ] Selecting a song section shows the lyrics in the right preview panel without stale Bible or sermon text.
+- [ ] Songs preserve repeated lyric lines exactly as they appear in the PowerPoint slide.
+- [ ] Search `116`, open `116. WON’T IT BE WONDERFUL`, select Slide 2, and confirm the final line is `Won’t it be wonderful there?` after `storyland,`.
+- [ ] Song sections do not miss trailing lines.
 - [ ] Project, Copy, Previous Section, and Next Section work for songs.
 - [ ] Song projection uses the same black background, white text, fit-to-screen sizing, and pagination as Bible/sermon projection.
 - [ ] Song source filename is visible or available without showing an ugly full path in the main result card.
@@ -52,6 +55,7 @@ Use this checklist on the church computer before service.
 - [ ] Admin > Verify Production Data passes.
 - [ ] `dotnet run --project tools\VerifySongData` passes with 357 active songs and zero zero-text songs.
 - [ ] `dotnet run --project tools\ImportSongPresentations` runs in preview mode without database writes.
+- [ ] `dotnet run --project tools\AuditSongImportAccuracy` passes and writes `D:\MessageFlow Archive\SongImportTest\song_import_accuracy_report.txt`.
 - [ ] Admin > Test Projection Display works.
 - [ ] `dotnet run --project tools\AuditBranhamImportQuality` generates `D:\MessageFlow Archive\BranhamAudit\branham_import_quality_report.txt`.
 - [ ] Review the Branham audit report before any future text cleanup; do not clean or delete database content until the audit is reviewed.

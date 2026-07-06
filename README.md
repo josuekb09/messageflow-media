@@ -82,6 +82,21 @@ Verify imported song data:
 dotnet run --project tools\VerifySongData
 ```
 
+Audit imported song text against the source PowerPoint slides:
+
+```powershell
+dotnet run --project tools\AuditSongImportAccuracy
+```
+
+The audit writes:
+
+```text
+D:\MessageFlow Archive\SongImportTest\song_import_accuracy_report.txt
+D:\MessageFlow Archive\SongImportTest\song_import_accuracy_issues.csv
+```
+
+Song import preserves repeated lyric lines and joins PowerPoint formatting runs inside a paragraph so words such as `Saviour` are not split into fake lyric lines.
+
 The read-only inspection prototype is still available:
 
 ```powershell
@@ -472,6 +487,7 @@ Before using MessageFlow in a live service, run this quick manual checklist:
 - Bible projection, Copy, Next, and Previous work for selected Bible verses.
 - Songs tab finds local song titles and lyric phrases.
 - Song projection, Copy, Next Section, and Previous Section work for selected song sections.
+- Song lyrics preserve repeated lines and trailing lines from the source PowerPoint slides.
 - Existing Quick Project sermon examples still work after Bible reference support is added.
 
 ## Current Status

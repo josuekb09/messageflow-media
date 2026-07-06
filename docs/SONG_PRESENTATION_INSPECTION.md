@@ -69,3 +69,11 @@ dotnet run --project tools\VerifySongData
 ```
 
 It backs up/validates the database before apply, imports one song record per source presentation, preserves slide order as song sections, and keeps the source PowerPoint files read-only.
+
+Run the accuracy audit after song import:
+
+```powershell
+dotnet run --project tools\AuditSongImportAccuracy
+```
+
+The audit compares local PowerPoint slide text to imported `SongSections`, including repeated lyric lines and trailing lines.

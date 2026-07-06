@@ -30,5 +30,5 @@ public sealed class SongSectionViewModel
 
     public string Text { get; }
 
-    public string PreviewText => Text.Length <= 220 ? Text : $"{Text[..220]}...";
+    public string PreviewText => Text;
 }

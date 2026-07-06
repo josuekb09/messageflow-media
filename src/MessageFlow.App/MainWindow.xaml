@@ -1141,8 +1141,7 @@
                                                        FontSize="17"
                                                        Foreground="{StaticResource SecondaryTextBrush}"
                                                        TextWrapping="Wrap"
-                                                       LineHeight="24"
-                                                       MaxHeight="120" />
+                                                       LineHeight="24" />
                                         </Grid>
                                     </Grid>
                                 </Border>

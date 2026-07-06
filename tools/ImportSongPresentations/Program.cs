@@ -135,7 +135,6 @@ static ImportedSongCandidate ExtractSong(string sourceFile)
         var cleanedLines = slide.Lines
             .Select(CleanLine)
             .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (cleanedLines.Count == 0)
@@ -311,8 +310,8 @@ static List<string> ExtractTextFromSlideXml(ZipArchiveEntry entry)
     XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
 
     return document
-        .Descendants(a + "t")
-        .Select(element => (element.Value ?? string.Empty).Trim())
+        .Descendants(a + "p")
+        .Select(paragraph => string.Concat(paragraph.Descendants(a + "t").Select(element => element.Value ?? string.Empty)).Trim())
         .Where(value => !string.IsNullOrWhiteSpace(value))
         .ToList();
 }
@@ -545,6 +544,14 @@ static async Task WriteReportAsync(
     builder.AppendLine("- Preserve each slide as an ordered song section for projection navigation.");
     builder.AppendLine("- Use title and lyric LIKE search now; add FTS later only if song volume grows meaningfully.");
     builder.AppendLine("- Do not auto-delete songs when a source file disappears; mark inactive only after operator review.");
+    builder.AppendLine();
+    builder.AppendLine("116. WON’T IT BE WONDERFUL slide 2 preview:");
+    var regressionSong = candidates.FirstOrDefault(candidate =>
+        candidate.FileName.StartsWith("116.", StringComparison.OrdinalIgnoreCase) &&
+        candidate.FileName.Contains("WON", StringComparison.OrdinalIgnoreCase));
+    var regressionSlide = regressionSong?.Sections.FirstOrDefault(section =>
+        section.SectionLabel.EndsWith("Slide 2", StringComparison.OrdinalIgnoreCase));
+    builder.AppendLine(regressionSlide?.Text ?? "Not found.");
     builder.AppendLine();
     builder.AppendLine("Samples:");
 
