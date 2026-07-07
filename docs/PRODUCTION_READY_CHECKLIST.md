@@ -13,7 +13,7 @@
 ## Service Use
 
 1. Open MessageFlow.
-2. Use Search for Brother Branham sermons by title, code, phrase, or paragraph number.
+2. Use Sermons for Brother Branham sermons by title, code, phrase, or paragraph number.
 3. Use Bible for references or keywords such as `John 3:16`.
 4. Select a result and review it in the preview/live area.
 5. Click Project to send it to the projection window.

@@ -238,7 +238,7 @@
                                 MinHeight="0"
                                 ClipToBounds="True"
                                 SelectionChanged="LibraryTabs_SelectionChanged">
-                        <TabItem Header="Search">
+                        <TabItem Header="Sermons">
                             <Grid Margin="0,10,0,0"
                                   MinHeight="0"
                                   ClipToBounds="True">

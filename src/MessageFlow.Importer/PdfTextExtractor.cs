@@ -19,7 +19,7 @@ public sealed class PdfTextExtractor
     {
         var words = page.GetWords()
             .Where(word => !string.IsNullOrWhiteSpace(word.Text))
-            .Select(word => new PositionedWord(word, TextCleaner.CleanToken(word.Text)))
+            .Select(word => new PositionedWord(word, TextCleaner.CleanToken(RebuildWordTextFromLetters(word))))
             .Where(word => !string.IsNullOrWhiteSpace(word.Text))
             .ToList();
 
@@ -114,6 +114,57 @@ public sealed class PdfTextExtractor
         }
 
         return TextCleaner.CleanExtractedText(builder.ToString());
+    }
+
+    private static string RebuildWordTextFromLetters(Word word)
+    {
+        var letters = word.Letters
+            .Where(letter => !string.IsNullOrEmpty(letter.Value))
+            .OrderBy(letter => letter.GlyphRectangle.Left)
+            .ThenByDescending(letter => letter.GlyphRectangle.Top)
+            .ToList();
+
+        if (letters.Count <= 1)
+        {
+            return word.Text;
+        }
+
+        var medianLetterWidth = CalculateMedianLetterWidth(letters);
+        var internalSpaceGap = Math.Max(1.25, medianLetterWidth * 0.55);
+        var builder = new StringBuilder(word.Text.Length + 4);
+        Letter? previousLetter = null;
+
+        foreach (var letter in letters)
+        {
+            var value = letter.Value;
+            if (string.IsNullOrEmpty(value))
+            {
+                continue;
+            }
+
+            if (builder.Length > 0 &&
+                previousLetter is not null &&
+                letter.GlyphRectangle.Left - previousLetter.GlyphRectangle.Right > internalSpaceGap)
+            {
+                builder.Append(' ');
+            }
+
+            builder.Append(value);
+            previousLetter = letter;
+        }
+
+        return builder.Length == 0 ? word.Text : builder.ToString();
+    }
+
+    private static double CalculateMedianLetterWidth(IReadOnlyCollection<Letter> letters)
+    {
+        var widths = letters
+            .Select(letter => letter.GlyphRectangle.Width)
+            .Where(width => width > 0)
+            .Order()
+            .ToList();
+
+        return widths.Count == 0 ? 4 : widths[widths.Count / 2];
     }
 
     private static void AppendWord(StringBuilder builder, string word)

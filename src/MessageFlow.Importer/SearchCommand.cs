@@ -1,6 +1,5 @@
 using MessageFlow.Data;
 using MessageFlow.Search;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MessageFlow.Importer;
@@ -31,9 +30,6 @@ public static class SearchCommand
             .BuildServiceProvider();
 
         await using var scope = services.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
-        await dbContext.Database.MigrateAsync(cancellationToken);
-
         var search = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
         var results = options.IsStructured
             ? await search.SearchAsync(options.Query, cancellationToken)

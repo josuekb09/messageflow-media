@@ -339,7 +339,7 @@ Bible projection workflow:
 
 MessageFlow separates operator work into clear modes:
 
-- `Search` is for sermons and document paragraphs.
+- `Sermons` is for sermons and document paragraphs.
 - `Bible` is for Bible references, keyword lookup, preview, and verse projection.
 - `Songs` is for local song title/lyric search and section projection.
 - `Favorites` and `History` are sermon paragraph collections.
@@ -348,12 +348,12 @@ MessageFlow separates operator work into clear modes:
 The main workflow is:
 
 ```text
-Search > Preview > Project
+Sermons > Preview > Project
 Bible  > Preview > Project
 Songs  > Sections > Project
 ```
 
-Search mode keeps paragraph labels, paragraph counts, and Previous/Next Paragraph controls. Bible mode keeps Bible result counts, Bible Preview text, selected translation details, and Previous/Next Verse controls. Songs mode keeps song result counts, section labels, source filenames, and Previous/Next Section controls. Switching modes should not visually mix sermon, Bible, or song labels.
+Sermons mode keeps paragraph labels, paragraph counts, and Previous/Next Paragraph controls. Bible mode keeps Bible result counts, Bible Preview text, selected translation details, and Previous/Next Verse controls. Songs mode keeps song result counts, section labels, source filenames, and Previous/Next Section controls. Switching modes should not visually mix sermon, Bible, or song labels.
 
 Bible import remains local CSV only. MessageFlow does not scrape websites or download Bible files automatically.
 

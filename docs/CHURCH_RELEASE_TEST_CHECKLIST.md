@@ -3,19 +3,22 @@
 Use this checklist on the church computer before service.
 
 - [ ] App opens by running `MessageFlow.App.exe` without VS Code, Codex, or the source project.
+- [ ] Library tab label says `Sermons`, not `Search`.
 - [ ] Brother Branham sermon search works.
 - [ ] Sermon search for `Faith` shows readable results and scrolls smoothly.
 - [ ] Project a `Faith` search result and confirm the sermon body is readable and left-aligned cleanly.
 - [ ] Sermon search for `Faith Is The Substance` shows readable results and scrolls smoothly.
 - [ ] Sermon search for `47-0412 4` finds the expected sermon/paragraph result.
-- [ ] Search `wedd`, open `Wedding Ceremony VGR`, and confirm projected text does not contain broken words such as `T H E`, `S P OKEN`, or `W O RD`.
+- [ ] Sermons search `why li`, open `63-1214 Why Little Bethlehem VGR`, and confirm paragraph 1 starts with `Nice to be here this morning`.
+- [ ] In `63-1214 Why Little Bethlehem VGR`, confirm paragraph 4 continues across the PDF page break and includes `winter is past, then comes back again`.
+- [ ] Sermons search `wedd`, open `Wedding Ceremony VGR`, and confirm projected text does not contain broken words such as `T H E`, `S P OKEN`, or `W O RD`.
 - [ ] Project `Wedding Ceremony VGR` and confirm the body text is aligned cleanly, with no weird spaces inside words.
-- [ ] Search Library result list has a visible draggable vertical scrollbar.
-- [ ] Search Library scrollbar has a full-height track like a normal app scrollbar.
-- [ ] Search Library result list does not show a tiny stray grey scroll indicator inside the results.
+- [ ] Sermons Library result list has a visible draggable vertical scrollbar.
+- [ ] Sermons Library scrollbar has a full-height track like a normal app scrollbar.
+- [ ] Sermons Library result list does not show a tiny stray grey scroll indicator inside the results.
 - [ ] Top filter dropdown text is readable and not clipped, including `Brother Branham`.
 - [ ] With no search text, Author `Brother Branham` and Year `1965` lists all matching sermons and scrolls.
-- [ ] Switching from Bible mode back to Search mode does not leave stale Bible status text in Sermon Results.
+- [ ] Switching from Bible mode back to Sermons mode does not leave stale Bible status text in Sermon Results.
 - [ ] Bible search for `John 3:16` works.
 - [ ] Bible book/chapter/verse results are readable and scroll smoothly.
 - [ ] Bible Library result list has a visible draggable vertical scrollbar.
@@ -31,6 +34,7 @@ Use this checklist on the church computer before service.
 - [ ] Selecting a song shows ordered song sections in the center panel.
 - [ ] Selecting a song section shows the lyrics in the right preview panel without stale Bible or sermon text.
 - [ ] Songs preserve repeated lyric lines exactly as they appear in the PowerPoint slide.
+- [ ] Songs data and projection are unchanged after the sermon rebuild.
 - [ ] Search `116`, open `116. WON’T IT BE WONDERFUL`, select Slide 2, and confirm the final line is `Won’t it be wonderful there?` after `storyland,`.
 - [ ] Search `110`, open `110. THEY COME...`, and compare with the original PowerPoint for line order and missing lines.
 - [ ] Song sections do not miss trailing lines.
@@ -43,6 +47,7 @@ Use this checklist on the church computer before service.
 - [ ] Projection uses the full TV/projector screen with only safe margins.
 - [ ] Project `John 3:16`; it appears large and readable, not small in the middle of the screen.
 - [ ] Project `John 3:16` and confirm no weird spaces are inserted into the KJV wording.
+- [ ] Bible data is unchanged: KJV has 66 books and 31,102 verses.
 - [ ] Project `Romans 8:4`, `Romans 8:28`, and `Matthew 1:12`; each short verse fills the screen well and remains readable.
 - [ ] Project one sermon paragraph; it is readable from the back of the room.
 - [ ] Project a long sermon paragraph; it paginates instead of shrinking to tiny text.

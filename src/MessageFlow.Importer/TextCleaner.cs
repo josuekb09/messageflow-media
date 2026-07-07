@@ -15,6 +15,9 @@ public static partial class TextCleaner
         }
 
         var normalized = NormalizeCharacters(value);
+        normalized = IsPastArtifactRegex().Replace(
+            normalized,
+            match => char.IsUpper(match.Value[0]) ? "Is past" : "is past");
         normalized = HyphenLineBreakRegex().Replace(normalized, string.Empty);
         normalized = MissingSpaceAfterPunctuationRegex().Replace(normalized, "$1 ");
         normalized = MissingSpaceAfterPeriodRegex().Replace(normalized, "$1. $2");
@@ -104,6 +107,9 @@ public static partial class TextCleaner
 
     [GeneratedRegex(@"-\s*(?:\r\n|\r|\n)\s*")]
     private static partial Regex HyphenLineBreakRegex();
+
+    [GeneratedRegex(@"\bispast\b", RegexOptions.IgnoreCase)]
+    private static partial Regex IsPastArtifactRegex();
 
     [GeneratedRegex(@"([,;:!?])(?=\p{L}|\p{N})")]
     private static partial Regex MissingSpaceAfterPunctuationRegex();
