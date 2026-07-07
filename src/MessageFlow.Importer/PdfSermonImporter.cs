@@ -128,7 +128,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         var pages = textExtractor.ExtractPages(filePath);
         var metadata = SermonMetadataParser.Parse(filePath, options.SourceRoot, sourceContext);
         var extractedParagraphs = SermonMetadataParser.IsBrotherBranhamSource(sourceContext)
-            ? BranhamParagraphExtractor.Split(pages, metadata)
+            ? PdfFirstBranhamBlockExtractor.Split(pages, metadata)
             : ParagraphSplitter.Split(pages);
         var qualitySummary = ParagraphQualitySummary.Empty;
         var paragraphs = extractedParagraphs;

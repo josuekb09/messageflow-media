@@ -70,7 +70,7 @@ foreach (var pdfFile in pdfFiles)
     }
 
     var pages = extractor.ExtractPages(pdfFile);
-    var paragraphs = BranhamParagraphExtractor.Split(pages, metadata);
+    var paragraphs = PdfFirstBranhamBlockExtractor.Split(pages, metadata);
     var oldParagraphs = await LoadParagraphsAsync(connection, databaseSermon.Id);
     var changed = ParagraphsChanged(oldParagraphs, paragraphs);
     rebuilds.Add(new SermonRebuildPlan(databaseSermon, metadata, pdfFile, oldParagraphs, paragraphs, changed));

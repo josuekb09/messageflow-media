@@ -98,7 +98,9 @@ if (kjvTranslationId is not null)
 {
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Genesis", 1, 1));
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "John", 3, 16));
+    checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Romans", 8, 4));
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Romans", 8, 28));
+    checks.Add(await CheckChapterAsync(connection, kjvTranslationId.Value, "Psalms", 23));
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Revelation", 22, 21));
 }
 
@@ -173,6 +175,30 @@ static async Task<CheckResult> CheckVerseAsync(
 
     var reference = $"{bookName} {chapter}:{verse}";
     return new CheckResult(reference, exists > 0, exists > 0 ? "Verse found." : "Verse missing.");
+}
+
+static async Task<CheckResult> CheckChapterAsync(
+    SqliteConnection connection,
+    int translationId,
+    string bookName,
+    int chapter)
+{
+    var count = await ExecuteScalarLongAsync(
+        connection,
+        """
+        SELECT COUNT(1)
+        FROM "BibleVerses" v
+        JOIN "BibleBooks" b ON b."Id" = v."BookId"
+        WHERE v."TranslationId" = $translationId
+          AND b."Name" = $bookName
+          AND v."Chapter" = $chapter;
+        """,
+        new SqliteParameter("$translationId", translationId),
+        new SqliteParameter("$bookName", bookName),
+        new SqliteParameter("$chapter", chapter));
+
+    var reference = $"{bookName} {chapter}";
+    return new CheckResult(reference, count > 0, count > 0 ? $"{count:N0} verse(s) found." : "Chapter missing.");
 }
 
 static CheckResult CheckReferenceParser(

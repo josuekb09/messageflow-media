@@ -9,8 +9,10 @@ Use this checklist on the church computer before service.
 - [ ] Project a `Faith` search result and confirm the sermon body is readable and left-aligned cleanly.
 - [ ] Sermon search for `Faith Is The Substance` shows readable results and scrolls smoothly.
 - [ ] Sermon search for `47-0412 4` finds the expected sermon/paragraph result.
-- [ ] Sermons search `why li`, open `63-1214 Why Little Bethlehem VGR`, and confirm paragraph 1 starts with `Nice to be here this morning`.
-- [ ] In `63-1214 Why Little Bethlehem VGR`, confirm paragraph 4 continues across the PDF page break and includes `winter is past, then comes back again`.
+- [ ] Sermons search `why little bethlehem`, open `58-1228 Why Little Bethlehem VGR`, and confirm block 1 starts with `It might look kind of funny`.
+- [ ] In `58-1228 Why Little Bethlehem VGR`, confirm block 2 starts with `You know, I believe we never grow up`, block 3 starts with `[Brother Neville says`, and block 4 starts with `Well, I'll say it's`.
+- [ ] Sermons search `wedding ceremony`, open `63-1201X Wedding Ceremony VGR`, and confirm block 1 starts with `[Wedding music plays for three minutes-Ed.]`.
+- [ ] Confirm `THE SPOKEN WORD` and copyright/publisher pages are not projected as sermon body.
 - [ ] Sermons search `wedd`, open `Wedding Ceremony VGR`, and confirm projected text does not contain broken words such as `T H E`, `S P OKEN`, or `W O RD`.
 - [ ] Project `Wedding Ceremony VGR` and confirm the body text is aligned cleanly, with no weird spaces inside words.
 - [ ] Sermons Library result list has a visible draggable vertical scrollbar.
@@ -67,6 +69,8 @@ Use this checklist on the church computer before service.
 - [ ] `dotnet run --project tools\VerifySongData` passes with 357 active songs and zero zero-text songs.
 - [ ] `dotnet run --project tools\ImportSongPresentations` runs in preview mode without database writes.
 - [ ] `dotnet run --project tools\AuditSongImportAccuracy` passes and writes `D:\MessageFlow Archive\SongImportTest\song_import_accuracy_report.txt`.
+- [ ] `dotnet run --project tools\AuditBranhamPdfAgainstDatabase` passes with zero high-severity issues.
+- [ ] `dotnet run --project tools\ResetAndImportBranhamPdfs` previews the PDF-first Brother Branham import without database writes.
 - [ ] `dotnet run --project tools\AuditTextProjectionQuality` reports zero high-severity text-spacing issues and writes `D:\MessageFlow Archive\FinalQualityAudit\projection_text_quality_report.txt`.
 - [ ] Rebuild the final release package with `tools\CreateChurchRelease\create_church_release.cmd`.
 - [ ] Rebuild the installer after the final release package and confirm `D:\MessageFlow Release\Installer\MessageFlowMediaSetup.exe` exists.

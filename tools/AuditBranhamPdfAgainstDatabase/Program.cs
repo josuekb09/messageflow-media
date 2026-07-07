@@ -77,7 +77,7 @@ foreach (var pdfFile in pdfFiles)
     }
 
     auditedSermonIds.Add(databaseSermon.Id);
-    var pdfParagraphs = BranhamParagraphExtractor.Split(extractor.ExtractPages(pdfFile), metadata);
+    var pdfParagraphs = PdfFirstBranhamBlockExtractor.Split(extractor.ExtractPages(pdfFile), metadata);
     var databaseParagraphs = await LoadParagraphsAsync(connection, databaseSermon.Id);
     AuditSermon(databaseSermon, pdfFile, databaseParagraphs, pdfParagraphs, issues);
 }
@@ -523,8 +523,9 @@ static async Task WriteReportAsync(
     builder.AppendLine();
     builder.AppendLine("Focused regression status");
     builder.AppendLine("-------------------------");
-    AppendFocusStatus(builder, issues, "63-1214", "Why Little Bethlehem", "Paragraph 1 opening and paragraph 4 page-break continuation");
-    AppendFocusStatus(builder, issues, "Wedding Ceremony", "Wedding Ceremony", "Wedding Ceremony letter spacing");
+    AppendFocusStatus(builder, issues, "58-1228", "Why Little Bethlehem", "58-1228 Why Little Bethlehem opening order");
+    AppendFocusStatus(builder, issues, "63-1201X", "Wedding Ceremony", "63-1201X Wedding Ceremony opening order");
+    AppendFocusStatus(builder, issues, "63-1214", "Why Little Bethlehem", "63-1214 page-break continuation");
     AppendFocusStatus(builder, issues, "47-0412", "Faith Is The Substance", "Faith Is The Substance paragraph lookup");
     builder.AppendLine();
 

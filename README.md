@@ -191,6 +191,20 @@ Clear imported sermons and paragraphs, then re-import all local PDFs with the im
 dotnet run --project .\src\MessageFlow.Importer -- --reset "D:\Br William Marrion Branham\PDF"
 ```
 
+PDF-first emergency Brother Branham reset preview, without database writes:
+
+```powershell
+dotnet run --project tools\ResetAndImportBranhamPdfs
+```
+
+Apply the PDF-first reset/import after the required database backup exists:
+
+```powershell
+dotnet run --project tools\ResetAndImportBranhamPdfs -- --apply
+```
+
+The PDF-first reset uses the local VGR PDFs as the authority, stores Brother Branham blocks in PDF reading order, skips repeated PDF headers and VGR publication/copyright pages, and does not touch Bible, Songs, Brother Frank, or The Table data.
+
 Show importer help:
 
 ```powershell
