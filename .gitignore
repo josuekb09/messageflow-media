@@ -3,6 +3,7 @@ bin/
 obj/
 **/bin/
 **/obj/
+artifacts/
 
 # IDE/user files
 .vs/
@@ -11,10 +12,6 @@ obj/
 
 # Local installer tooling and external release/archive folders
 Inno Setup 6/
-D:/MessageFlow Archive/
-D:/MessageFlow Release/
-D:\MessageFlow Archive\
-D:\MessageFlow Release\
 
 # Logs, temporary files, and backups
 *.log
@@ -30,8 +27,7 @@ database/*.db-wal
 # Local database backups are not source artifacts. Keep the production
 # database explicit so it can be intentionally tracked or release-only.
 database/*.db
-!database/messageflow.db
+/database/messageflow.db
 
-# Do not blanket-ignore database/messageflow.db here. If the production
-# database is intentionally bundled, decide explicitly whether it belongs in
-# source control or only in release installer assets.
+# The production database is validated and bundled by the release tooling,
+# but is intentionally excluded from source control.

@@ -18,7 +18,6 @@
     </Window.Resources>
 
     <Window.InputBindings>
-        <KeyBinding Key="Enter" Command="{Binding ProjectCommand}" />
         <KeyBinding Key="P" Modifiers="Control" Command="{Binding ProjectCommand}" />
         <KeyBinding Key="C" Modifiers="Control" Command="{Binding CopyCommand}" />
         <KeyBinding Key="Right" Command="{Binding NextParagraphCommand}" />

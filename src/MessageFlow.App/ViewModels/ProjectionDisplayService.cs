@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using Forms = System.Windows.Forms;
@@ -55,6 +56,49 @@ public static partial class ProjectionDisplayService
                targets.First(target => target.IsPrimary);
     }
 
+    public static ProjectionDisplayTarget ResolveLiveProjectionTarget(string? preferenceKey)
+    {
+        var targets = GetDisplayTargets().Where(HasValidBounds).ToList();
+        if (targets.Count == 0)
+        {
+            throw new InvalidOperationException("No usable Windows display was detected.");
+        }
+
+        if (targets.Count > 1 &&
+            !string.IsNullOrWhiteSpace(preferenceKey) &&
+            !string.Equals(preferenceKey, AutoPreferenceKey, StringComparison.OrdinalIgnoreCase))
+        {
+            var preferredExternal = targets.FirstOrDefault(target =>
+                !target.IsPrimary &&
+                string.Equals(target.PreferenceKey, preferenceKey, StringComparison.OrdinalIgnoreCase));
+            if (preferredExternal is not null)
+            {
+                return preferredExternal;
+            }
+        }
+
+        var external = targets
+            .Where(target => !target.IsPrimary)
+            .OrderByDescending(target => target.WorkingAreaWidth * target.WorkingAreaHeight)
+            .ThenBy(target => target.DisplayNumber)
+            .FirstOrDefault();
+        if (external is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(preferenceKey) &&
+                !string.Equals(preferenceKey, AutoPreferenceKey, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(preferenceKey, external.PreferenceKey, StringComparison.OrdinalIgnoreCase))
+            {
+                App.LogStartupMessage(
+                    $"Saved projection display '{preferenceKey}' is unavailable or unsafe; " +
+                    $"using {external.StatusDisplayName}.");
+            }
+
+            return external;
+        }
+
+        return targets.FirstOrDefault(target => target.IsPrimary) ?? targets[0];
+    }
+
     public static string LoadPreference()
     {
         try
@@ -89,15 +133,49 @@ public static partial class ProjectionDisplayService
 
     public static void PrepareFullscreenWindow(Window window, ProjectionDisplayTarget target)
     {
+        window.WindowState = WindowState.Normal;
         window.WindowStartupLocation = WindowStartupLocation.Manual;
         window.WindowStyle = WindowStyle.None;
         window.ResizeMode = ResizeMode.NoResize;
         window.ShowInTaskbar = false;
-        window.ShowActivated = true;
+        window.ShowActivated = false;
         window.Topmost = true;
-        window.WindowState = WindowState.Normal;
         ApplyTargetBounds(window, target);
         window.WindowState = WindowState.Maximized;
+    }
+
+    public static void ConfigureAdaptiveWindowedProjection(
+        Window window,
+        ProjectionDisplayTarget target,
+        bool preserveExistingWindowBounds)
+    {
+        var canPreserve = preserveExistingWindowBounds &&
+                          window.WindowStyle == WindowStyle.SingleBorderWindow &&
+                          IsWindowAtLeastPartlyVisible(window, GetDisplayTargets());
+
+        if (!canPreserve)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        window.Topmost = false;
+        window.ShowInTaskbar = true;
+        window.ShowActivated = true;
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.WindowStyle = WindowStyle.SingleBorderWindow;
+        window.ResizeMode = ResizeMode.CanResize;
+
+        if (canPreserve)
+        {
+            return;
+        }
+
+        ApplyWindowedPreviewBounds(window, target);
+    }
+
+    public static bool ShouldUseFullscreenProjection(ProjectionDisplayTarget target)
+    {
+        return target.ScreenCount > 1 && !target.IsPrimary && HasValidBounds(target);
     }
 
     public static void PrepareWindowedPreviewWindow(Window window, ProjectionDisplayTarget target)
@@ -118,8 +196,6 @@ public static partial class ProjectionDisplayService
         ApplyTargetBounds(window, target);
         window.WindowState = WindowState.Maximized;
         window.Topmost = true;
-        window.Activate();
-        window.Focus();
     }
 
     public static void ShowWindowedPreviewOnTarget(Window window, ProjectionDisplayTarget target)
@@ -138,10 +214,10 @@ public static partial class ProjectionDisplayService
 
     private static void ApplyTargetBounds(Window window, ProjectionDisplayTarget target)
     {
-        window.Left = target.Left;
-        window.Top = target.Top;
-        window.Width = target.Width;
-        window.Height = target.Height;
+        window.Left = ToWpfX(target.Left, target);
+        window.Top = ToWpfY(target.Top, target);
+        window.Width = ToWpfX(target.Width, target);
+        window.Height = ToWpfY(target.Height, target);
     }
 
     private static void ApplyWindowedPreviewBounds(Window window, ProjectionDisplayTarget target)
@@ -153,10 +229,10 @@ public static partial class ProjectionDisplayService
         var width = Math.Clamp(target.WorkingAreaWidth * 0.78, minimumWidth, maximumWidth);
         var height = Math.Clamp(target.WorkingAreaHeight * 0.72, minimumHeight, maximumHeight);
 
-        window.Left = target.Left + ((target.Width - width) / 2);
-        window.Top = target.Top + ((target.Height - height) / 2);
-        window.Width = width;
-        window.Height = height;
+        window.Left = ToWpfX(target.WorkingAreaLeft + ((target.WorkingAreaWidth - width) / 2), target);
+        window.Top = ToWpfY(target.WorkingAreaTop + ((target.WorkingAreaHeight - height) / 2), target);
+        window.Width = ToWpfX(width, target);
+        window.Height = ToWpfY(height, target);
     }
 
     public static IReadOnlyList<ProjectionDisplayTarget> GetDisplayTargets()
@@ -182,6 +258,7 @@ public static partial class ProjectionDisplayService
         var selectorLabel = $"Display {displayNumber}: {role}";
         var statusDisplayName = screen.Primary ? "Primary Display" : $"Display {displayNumber}";
 
+        var (dpiX, dpiY) = GetEffectiveDpi(screen);
         return new ProjectionDisplayTarget(
             screen.DeviceName,
             screen.DeviceName,
@@ -194,9 +271,82 @@ public static partial class ProjectionDisplayService
             screen.Bounds.Top,
             screen.Bounds.Width,
             screen.Bounds.Height,
+            screen.WorkingArea.Left,
+            screen.WorkingArea.Top,
             screen.WorkingArea.Width,
-            screen.WorkingArea.Height);
+            screen.WorkingArea.Height,
+            dpiX,
+            dpiY);
     }
+
+    private static bool HasValidBounds(ProjectionDisplayTarget target)
+    {
+        return target.Width > 0 && target.Height > 0 &&
+               target.WorkingAreaWidth > 0 && target.WorkingAreaHeight > 0;
+    }
+
+    private static bool IsWindowAtLeastPartlyVisible(
+        Window window,
+        IReadOnlyCollection<ProjectionDisplayTarget> targets)
+    {
+        var left = window.RestoreBounds.Left;
+        var top = window.RestoreBounds.Top;
+        var right = left + window.RestoreBounds.Width;
+        var bottom = top + window.RestoreBounds.Height;
+
+        return targets.Any(target =>
+            right > ToWpfX(target.WorkingAreaLeft, target) &&
+            left < ToWpfX(target.WorkingAreaLeft + target.WorkingAreaWidth, target) &&
+            bottom > ToWpfY(target.WorkingAreaTop, target) &&
+            top < ToWpfY(target.WorkingAreaTop + target.WorkingAreaHeight, target));
+    }
+
+    private static double ToWpfX(double pixels, ProjectionDisplayTarget target) =>
+        pixels * 96d / Math.Max(96d, target.DpiX);
+
+    private static double ToWpfY(double pixels, ProjectionDisplayTarget target) =>
+        pixels * 96d / Math.Max(96d, target.DpiY);
+
+    private static (double DpiX, double DpiY) GetEffectiveDpi(Forms.Screen screen)
+    {
+        try
+        {
+            var point = new NativePoint(
+                screen.Bounds.Left + (screen.Bounds.Width / 2),
+                screen.Bounds.Top + (screen.Bounds.Height / 2));
+            var monitor = MonitorFromPoint(point, 2);
+            if (monitor != IntPtr.Zero &&
+                GetDpiForMonitor(monitor, 0, out var dpiX, out var dpiY) == 0)
+            {
+                return (dpiX, dpiY);
+            }
+        }
+        catch (DllNotFoundException)
+        {
+        }
+        catch (EntryPointNotFoundException)
+        {
+        }
+
+        return (96d, 96d);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct NativePoint(int x, int y)
+    {
+        public readonly int X = x;
+        public readonly int Y = y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(
+        IntPtr monitor,
+        int dpiType,
+        out uint dpiX,
+        out uint dpiY);
 
     private static int? TryParseDisplayNumber(string deviceName)
     {

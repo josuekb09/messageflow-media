@@ -97,7 +97,9 @@ checks.Add(new CheckResult(
 if (kjvTranslationId is not null)
 {
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Genesis", 1, 1));
+    checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "1 Samuel", 2, 2));
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "John", 3, 16));
+    checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "James", 4, 2));
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Romans", 8, 4));
     checks.Add(await CheckVerseAsync(connection, kjvTranslationId.Value, "Romans", 8, 28));
     checks.Add(await CheckChapterAsync(connection, kjvTranslationId.Value, "Psalms", 23));
@@ -110,6 +112,7 @@ checks.Add(CheckReferenceParser("Romans 12", "Romans", 12, null));
 checks.Add(CheckReferenceParser("Jn 3 16", "John", 3, 16));
 checks.Add(CheckReferenceParser("Ps 23", "Psalms", 23, null));
 checks.Add(CheckReferenceParser("Exo 3 15", "Exodus", 3, 15));
+checks.Add(CheckReferenceParser("1 Samuel 2:2", "1 Samuel", 2, 2));
 checks.Add(CheckBookSuggestion("ro", "Romans"));
 checks.Add(CheckBookSuggestion("ex", "Exodus"));
 

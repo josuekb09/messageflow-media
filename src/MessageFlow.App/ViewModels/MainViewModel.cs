@@ -53,6 +53,7 @@ public sealed class MainViewModel : ObservableObject
     private double projectionFontSizeAdjustment;
     private int projectionPageIndex;
     private int projectionPageCount;
+    private ProjectedContentSnapshot? activeProjectionContent;
     private string bibleSearchText = string.Empty;
     private string songSearchText = string.Empty;
     private string statusText = "Ready";
@@ -433,10 +434,6 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(SelectedParagraphText));
                 OnPropertyChanged(nameof(FavoriteButtonText));
                 _ = RefreshSelectedFavoriteStateAsync(value?.ParagraphId);
-                if (IsProjectionOpen && value is not null)
-                {
-                    _ = RecordProjectionHistoryAsync(value, SearchText);
-                }
 
                 RaiseCommandStates();
             }
@@ -929,37 +926,42 @@ public sealed class MainViewModel : ObservableObject
             : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
 
     public string ProjectionParagraphTitle =>
-        IsBibleMode && SelectedBibleVerse is not null
-            ? SelectedBibleVerse.ReferenceDisplay
-            : IsBibleMode
-                ? "MessageFlow Bible"
-                : IsSongsMode
-                    ? SelectedSong?.Title ?? "MessageFlow Songs"
-                : SelectedParagraph?.SermonTitle ?? "MessageFlow";
+        ActiveProjectionContent?.Title ?? "MessageFlow";
 
     public string ProjectionParagraphNumber =>
-        IsBibleMode && SelectedBibleVerse is not null
-            ? SelectedBibleVerse.TranslationAbbreviation
-            : IsBibleMode
-                ? string.Empty
-                : IsSongsMode
-                    ? SelectedSongSection?.SectionLabel ?? string.Empty
-            : SelectedParagraph is null
-                ? string.Empty
-                : $"Paragraph {SelectedParagraph.ParagraphNumber}";
+        ActiveProjectionContent?.Subtitle ?? string.Empty;
 
     public string SelectedParagraphText =>
-        IsBibleMode
-            ? SelectedBibleVerse?.Text ?? string.Empty
-            : IsSongsMode
-                ? SelectedSongSection?.Text ?? string.Empty
-                : SelectedParagraph?.FullParagraphText ?? string.Empty;
+        ActiveProjectionContent?.BodyText ?? string.Empty;
+
+    public ProjectedContentSnapshot? ActiveProjectionContent
+    {
+        get => activeProjectionContent;
+        private set
+        {
+            if (SetProperty(ref activeProjectionContent, value))
+            {
+                OnPropertyChanged(nameof(ProjectionParagraphTitle));
+                OnPropertyChanged(nameof(ProjectionParagraphNumber));
+                OnPropertyChanged(nameof(SelectedParagraphText));
+                OnPropertyChanged(nameof(IsLiveBibleProjection));
+                OnPropertyChanged(nameof(IsLiveSongProjection));
+            }
+        }
+    }
+
+    public bool IsLiveBibleProjection => ActiveProjectionContent?.ContentType == ProjectionContentType.Bible;
+
+    public bool IsLiveSongProjection => ActiveProjectionContent?.ContentType == ProjectionContentType.Song;
 
     public double ProjectionFontSize =>
         Math.Max(24, (SelectedProjectionFontSize?.FontSize ?? 62) + projectionFontSizeAdjustment);
 
     public double ProjectionLineHeight =>
         ProjectionFontSize * ((SelectedProjectionFontSize?.LineHeight ?? 76) / (SelectedProjectionFontSize?.FontSize ?? 62));
+
+    // Fit is 1.0. A- lowers the maximum-fit result; A+ never permits clipping beyond it.
+    public double ProjectionFontScale => Math.Pow(2, projectionFontSizeAdjustment / 48d);
 
     public string FavoriteButtonText =>
         IsBibleMode
@@ -3689,6 +3691,18 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        var shouldUpdateLive = IsProjectionOpen &&
+                               ActiveProjectionContent is
+                               {
+                                   ContentType: ProjectionContentType.Bible
+                               } liveSnapshot &&
+                               liveSnapshot.SourceId == currentVerse.TranslationId &&
+                               string.Equals(
+                                   liveSnapshot.SourceKey,
+                                   currentVerse.TranslationAbbreviation,
+                                   StringComparison.OrdinalIgnoreCase) &&
+                               liveSnapshot.ItemId == currentVerse.VerseId;
+
         try
         {
             await using var scope = scopeFactory.CreateAsyncScope();
@@ -3747,7 +3761,15 @@ public sealed class MainViewModel : ObservableObject
 
             SelectedBibleNavigationItem = existingNavigationItem;
             SelectedBibleVerse = existing;
-            StatusText = $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
+            if (shouldUpdateLive)
+            {
+                ActiveProjectionContent = CreateBibleSnapshot(existing);
+                StatusText = $"Projecting {existing.ReferenceDisplay} ({existing.TranslationAbbreviation}).";
+            }
+            else
+            {
+                StatusText = $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
+            }
         }
         catch (Exception ex)
         {
@@ -3763,7 +3785,21 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var currentIndex = SongSections.IndexOf(SelectedSongSection);
+        var currentSection = SelectedSongSection;
+        var shouldUpdateLive = IsProjectionOpen &&
+                               SelectedSong is not null &&
+                               ActiveProjectionContent is
+                               {
+                                   ContentType: ProjectionContentType.Song
+                               } liveSnapshot &&
+                               liveSnapshot.SourceId == SelectedSong.SongId &&
+                               string.Equals(
+                                   liveSnapshot.SourceKey,
+                                   SelectedSong.Title,
+                                   StringComparison.Ordinal) &&
+                               liveSnapshot.ItemId == currentSection.SectionId;
+
+        var currentIndex = SongSections.IndexOf(currentSection);
         var nextIndex = currentIndex < 0
             ? 0
             : Math.Clamp(currentIndex + offset, 0, SongSections.Count - 1);
@@ -3777,7 +3813,15 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedSongSection = SongSections[nextIndex];
-        StatusText = $"Selected {SelectedSongSection.SectionLabel}.";
+        if (shouldUpdateLive && SelectedSong is not null)
+        {
+            ActiveProjectionContent = CreateSongSnapshot(SelectedSong, SelectedSongSection);
+            StatusText = $"Projecting {SelectedSong.Title} - {SelectedSongSection.SectionLabel}.";
+        }
+        else
+        {
+            StatusText = $"Selected {SelectedSongSection.SectionLabel}.";
+        }
     }
 
     private void CopySelectedParagraph()
@@ -3862,13 +3906,18 @@ public sealed class MainViewModel : ObservableObject
     public void ReportProjectionOpened(
         ProjectionDisplayTarget displayTarget,
         bool isTest,
-        bool isWindowedPreview = false)
+        bool isWindowedPreview = false,
+        bool isAdaptiveWindowed = false)
     {
         SetProjectionOpen(true, displayTarget);
 
         var messagePrefix = isTest
             ? isWindowedPreview ? "Projection test preview opened" : "Projection test opened"
-            : isWindowedPreview ? "Projection preview opened" : "Projection opened";
+            : isWindowedPreview
+                ? "Projection preview opened"
+                : isAdaptiveWindowed
+                    ? "Projection opened in windowed mode"
+                    : "Projection opened";
         StatusText =
             $"{messagePrefix} on {displayTarget.StatusDisplayName}. Screens detected: {displayTarget.ScreenCount:N0}. Bounds: {displayTarget.BoundsDisplay}.";
 
@@ -3878,7 +3927,7 @@ public sealed class MainViewModel : ObservableObject
             $"{Environment.NewLine}Selected display: {displayTarget.StatusDisplayName}" +
             $"{Environment.NewLine}Device: {displayTarget.DeviceName}" +
             $"{Environment.NewLine}Bounds: {displayTarget.BoundsDisplay}" +
-            $"{Environment.NewLine}Windowed preview: {isWindowedPreview}" +
+            $"{Environment.NewLine}Windowed output: {isWindowedPreview || isAdaptiveWindowed}" +
             $"{Environment.NewLine}Preference: {SelectedProjectionDisplayOption?.Label ?? "Auto"}");
     }
 
@@ -3911,6 +3960,11 @@ public sealed class MainViewModel : ObservableObject
     public ProjectionDisplayTarget ResolveProjectionDisplayTarget()
     {
         return ProjectionDisplayService.ResolveTarget(SelectedProjectionDisplayOption?.PreferenceKey);
+    }
+
+    public ProjectionDisplayTarget ResolveLiveProjectionDisplayTarget()
+    {
+        return ProjectionDisplayService.ResolveLiveProjectionTarget(SelectedProjectionDisplayOption?.PreferenceKey);
     }
 
     public async Task ProjectSelectedSavedParagraphAsync()
@@ -4082,16 +4136,29 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        var paragraph = SelectedParagraph;
+        var snapshot = new ProjectedContentSnapshot(
+            ProjectionContentType.Sermon,
+            paragraph.SermonTitle,
+            $"Paragraph {paragraph.ParagraphNumber}",
+            paragraph.FullParagraphText)
+        {
+            SourceId = paragraph.SermonId,
+            ItemId = paragraph.ParagraphId,
+            SourceKey = paragraph.SermonCode
+        };
+
         if (recordHistory)
         {
-            await RecordProjectionHistoryAsync(SelectedParagraph, SearchText);
+            await RecordProjectionHistoryAsync(paragraph, SearchText);
         }
 
         if (!recordHistory)
         {
-            StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
+            StatusText = $"Projecting Paragraph {paragraph.ParagraphNumber}.";
         }
 
+        ActiveProjectionContent = snapshot;
         ProjectRequested?.Invoke();
     }
 
@@ -4103,7 +4170,11 @@ public sealed class MainViewModel : ObservableObject
             return Task.CompletedTask;
         }
 
-        StatusText = $"Projecting {SelectedBibleVerse.ReferenceDisplay} ({SelectedBibleVerse.TranslationAbbreviation}).";
+        var verse = SelectedBibleVerse;
+        var snapshot = CreateBibleSnapshot(verse);
+
+        StatusText = $"Projecting {verse.ReferenceDisplay} ({verse.TranslationAbbreviation}).";
+        ActiveProjectionContent = snapshot;
         ProjectRequested?.Invoke();
         return Task.CompletedTask;
     }
@@ -4116,9 +4187,44 @@ public sealed class MainViewModel : ObservableObject
             return Task.CompletedTask;
         }
 
-        StatusText = $"Projecting {SelectedSong.Title} - {SelectedSongSection.SectionLabel}.";
+        var song = SelectedSong;
+        var section = SelectedSongSection;
+        var snapshot = CreateSongSnapshot(song, section);
+
+        StatusText = $"Projecting {song.Title} - {section.SectionLabel}.";
+        ActiveProjectionContent = snapshot;
         ProjectRequested?.Invoke();
         return Task.CompletedTask;
+    }
+
+    private static ProjectedContentSnapshot CreateBibleSnapshot(BibleVerseResultViewModel verse)
+    {
+        return new ProjectedContentSnapshot(
+            ProjectionContentType.Bible,
+            verse.ReferenceDisplay,
+            string.Empty,
+            verse.Text)
+        {
+            SourceId = verse.TranslationId,
+            ItemId = verse.VerseId,
+            SourceKey = verse.TranslationAbbreviation
+        };
+    }
+
+    private static ProjectedContentSnapshot CreateSongSnapshot(
+        SongResultViewModel song,
+        SongSectionViewModel section)
+    {
+        return new ProjectedContentSnapshot(
+            ProjectionContentType.Song,
+            song.Title,
+            section.SectionLabel,
+            section.Text)
+        {
+            SourceId = song.SongId,
+            ItemId = section.SectionId,
+            SourceKey = song.Title
+        };
     }
 
     private async void ToggleFavorite()
@@ -4847,6 +4953,7 @@ public sealed class MainViewModel : ObservableObject
         projectionFontSizeAdjustment = nextAdjustment;
         OnPropertyChanged(nameof(ProjectionFontSize));
         OnPropertyChanged(nameof(ProjectionLineHeight));
+        OnPropertyChanged(nameof(ProjectionFontScale));
         RaiseProjectionTextSizeCommandStates();
 
         StatusText = Math.Abs(projectionFontSizeAdjustment) <= 0.1

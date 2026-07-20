@@ -3,6 +3,13 @@
 #define MyAppPublisher "MessageFlow Media"
 #define MyAppExeName "MessageFlow.App.exe"
 
+#ifndef ReleaseDir
+  #error ReleaseDir must be supplied to ISCC, for example /DReleaseDir="D:\MessageFlow Release\RC-YYYYMMDD-HHMMSS\MessageFlow"
+#endif
+#ifndef InstallerOutputDir
+  #error InstallerOutputDir must be supplied to ISCC.
+#endif
+
 [Setup]
 AppId={{9B80F0B7-51E2-4B42-9E0F-4E0D5C4F6B91}
 AppName={#MyAppName}
@@ -12,9 +19,9 @@ AppCopyright=Copyright (c) 2026 MessageFlow Media project author. Distributed fr
 DefaultDirName={localappdata}\MessageFlow Media
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-OutputDir=D:\MessageFlow Release\Installer
+OutputDir={#InstallerOutputDir}
 OutputBaseFilename=MessageFlowMediaSetup
-InfoBeforeFile=D:\MessageFlow Release\MessageFlow\README_CHURCH_INSTALL.txt
+InfoBeforeFile={#ReleaseDir}\README_CHURCH_INSTALL.txt
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -28,7 +35,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: checkedonce
 
 [Files]
-Source: "D:\MessageFlow Release\MessageFlow\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#ReleaseDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\MessageFlow Media"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"

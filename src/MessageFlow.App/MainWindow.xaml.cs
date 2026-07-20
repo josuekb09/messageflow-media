@@ -12,6 +12,8 @@ public partial class MainWindow : Window
     private ProjectWindow? projectWindow;
     private ProjectWindow? testProjectionWindow;
     private AdminToolsWindow? adminToolsWindow;
+    private bool? liveProjectionIsFullscreen;
+    private string? liveProjectionTargetKey;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -49,41 +51,64 @@ public partial class MainWindow : Window
     {
         try
         {
-            var displayTarget = viewModel.ResolveProjectionDisplayTarget();
+            var displayTarget = viewModel.ResolveLiveProjectionDisplayTarget();
+            var useFullscreen = ProjectionDisplayService.ShouldUseFullscreenProjection(displayTarget);
+            var targetSignature = CreateDisplayTargetSignature(displayTarget);
             CloseTestProjectionWindow();
 
+            var isNewWindow = projectWindow is null;
             if (projectWindow is null)
             {
                 projectWindow = new ProjectWindow(viewModel);
                 projectWindow.Closed += (_, _) =>
                 {
                     projectWindow = null;
+                    liveProjectionIsFullscreen = null;
+                    liveProjectionTargetKey = null;
                     UpdateProjectionClosedStatus();
                 };
+            }
 
-                if (ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget))
-                {
-                    ProjectionDisplayService.PrepareWindowedPreviewWindow(projectWindow, displayTarget);
-                }
-                else
+            var targetChanged = !string.Equals(
+                liveProjectionTargetKey,
+                targetSignature,
+                StringComparison.OrdinalIgnoreCase);
+            var modeChanged = liveProjectionIsFullscreen != useFullscreen;
+            if (isNewWindow || targetChanged || modeChanged)
+            {
+                if (useFullscreen)
                 {
                     ProjectionDisplayService.PrepareFullscreenWindow(projectWindow, displayTarget);
                 }
+                else
+                {
+                    ProjectionDisplayService.ConfigureAdaptiveWindowedProjection(
+                        projectWindow,
+                        displayTarget,
+                        preserveExistingWindowBounds: !isNewWindow && liveProjectionIsFullscreen == false);
+                }
 
-                projectWindow.Show();
+                liveProjectionIsFullscreen = useFullscreen;
+                liveProjectionTargetKey = targetSignature;
             }
 
-            var useWindowedPreview = ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget);
-            if (useWindowedPreview)
+            if (isNewWindow)
             {
-                ProjectionDisplayService.ShowWindowedPreviewOnTarget(projectWindow, displayTarget);
+                projectWindow.Show();
+                if (useFullscreen)
+                {
+                    ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
+                }
             }
-            else
+            else if (useFullscreen && (targetChanged || modeChanged))
             {
                 ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
             }
 
-            viewModel.ReportProjectionOpened(displayTarget, isTest: false, isWindowedPreview: useWindowedPreview);
+            viewModel.ReportProjectionOpened(
+                displayTarget,
+                isTest: false,
+                isAdaptiveWindowed: !useFullscreen);
         }
         catch (Exception ex)
         {
@@ -162,6 +187,8 @@ public partial class MainWindow : Window
             }
 
             ProjectionDisplayService.ShowWindowedPreviewOnTarget(projectWindow, displayTarget);
+            liveProjectionIsFullscreen = false;
+            liveProjectionTargetKey = CreateDisplayTargetSignature(displayTarget);
             viewModel.ReportProjectionOpened(displayTarget, isTest: false, isWindowedPreview: true);
         }
         catch (Exception ex)
@@ -180,6 +207,12 @@ public partial class MainWindow : Window
     private void CloseTestProjectionWindow()
     {
         testProjectionWindow?.Close();
+    }
+
+    private static string CreateDisplayTargetSignature(ProjectionDisplayTarget target)
+    {
+        return $"{target.PreferenceKey}|{target.Left:0}|{target.Top:0}|{target.Width:0}|{target.Height:0}|" +
+               $"{target.DpiX:0}|{target.DpiY:0}";
     }
 
     private void UpdateProjectionClosedStatus()
@@ -223,7 +256,7 @@ public partial class MainWindow : Window
             SearchBox.IsKeyboardFocusWithin)
         {
             e.Handled = true;
-            await viewModel.QuickProjectAsync();
+            await viewModel.SearchNowAsync();
             return;
         }
 

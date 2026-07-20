@@ -7,7 +7,8 @@ for %%I in ("%SCRIPT_DIR%..\..") do set "REPO_ROOT=%%~fI"
 set "SOLUTION=%REPO_ROOT%\MessageFlow.sln"
 set "APP_PROJECT=%REPO_ROOT%\src\MessageFlow.App\MessageFlow.App.csproj"
 set "SOURCE_DB=%REPO_ROOT%\database\messageflow.db"
-set "RELEASE_DIR=D:\MessageFlow Release\MessageFlow"
+if not defined MESSAGEFLOW_RELEASE_DIR set "MESSAGEFLOW_RELEASE_DIR=D:\MessageFlow Release\MessageFlow"
+set "RELEASE_DIR=%MESSAGEFLOW_RELEASE_DIR%"
 set "RELEASE_DB_DIR=%RELEASE_DIR%\database"
 set "RELEASE_DB=%RELEASE_DB_DIR%\messageflow.db"
 set "README=%RELEASE_DIR%\README_CHURCH_INSTALL.txt"
@@ -94,7 +95,7 @@ echo Writing church install README...
 >> "%README%" echo.
 >> "%README%" echo Basic troubleshooting:
 >> "%README%" echo - If projection appears on the wrong screen, check Windows Display Settings and keep Windows + P set to Extend.
->> "%README%" echo - If only one screen is connected, use the windowed projection preview for testing.
+>> "%README%" echo - If only one screen is connected, Project opens a normal resizable desktop window so MessageFlow remains usable.
 >> "%README%" echo - If content is missing, confirm the database folder is still beside MessageFlow.App.exe.
 >> "%README%" echo - If Windows shows a security warning, confirm the installer came from the official GitHub Release before running it.
 >> "%README%" echo.
