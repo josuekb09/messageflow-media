@@ -18,7 +18,7 @@ using Microsoft.Win32;
 
 namespace MessageFlow.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject
 {
     private const int SearchDebounceMilliseconds = 400;
     private const double ProjectionFontAdjustmentStep = 6;
@@ -28,9 +28,11 @@ public sealed class MainViewModel : ObservableObject
     private CancellationTokenSource? searchDebounce;
     private CancellationTokenSource? bibleSearchDebounce;
     private CancellationTokenSource? songSearchDebounce;
+    private CancellationTokenSource? sermonWithinSearchDebounce;
     private int searchRequestVersion;
     private int bibleSearchRequestVersion;
     private int songSearchRequestVersion;
+    private int sermonWithinSearchRequestVersion;
     private int sourceDetailsRequestVersion;
     private string searchText = string.Empty;
     private FilterOption? selectedAuthor;
@@ -56,6 +58,8 @@ public sealed class MainViewModel : ObservableObject
     private ProjectedContentSnapshot? activeProjectionContent;
     private string bibleSearchText = string.Empty;
     private string songSearchText = string.Empty;
+    private string sermonWithinSearchText = string.Empty;
+    private string sermonWithinSearchStatus = "Find in selected Sermon.";
     private string statusText = "Ready";
     private string? latestBackupPath;
     private int currentBibleVerseCount;
@@ -73,6 +77,10 @@ public sealed class MainViewModel : ObservableObject
     private bool suppressProjectionDisplayPreferenceSave;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
+    private List<ParagraphResultViewModel> sermonWithinMatches = [];
+    private string sermonWithinSearchAppliedText = string.Empty;
+    private int? sermonWithinSearchAppliedSermonId;
+    private int sermonWithinMatchIndex = -1;
     private string projectionOpenDisplayText = "Primary Display";
 
     public MainViewModel(IServiceScopeFactory scopeFactory)
@@ -134,6 +142,9 @@ public sealed class MainViewModel : ObservableObject
         RepairSourceMetadataCommand = new RelayCommand(
             () => _ = RepairSelectedSourceMetadataAsync(),
             () => SelectedContentSource is not null && !IsDatabaseOperationRunning);
+        RebuildSermonSearchIndexCommand = new RelayCommand(
+            () => _ = RebuildSermonSearchIndexAsync(),
+            () => !IsDatabaseOperationRunning);
         ImportBibleCommand = new RelayCommand(
             () => _ = ImportBibleAsync(),
             () => !IsDatabaseOperationRunning);
@@ -169,6 +180,13 @@ public sealed class MainViewModel : ObservableObject
         NextProjectionPageCommand = new RelayCommand(
             RequestNextProjectionPage,
             () => HasProjectionPages && projectionPageIndex < projectionPageCount - 1);
+        PreviousSermonWithinMatchCommand = new RelayCommand(
+            () => _ = SelectPreviousSermonWithinMatchAsync(),
+            CanNavigateSermonWithinMatches);
+        NextSermonWithinMatchCommand = new RelayCommand(
+            () => _ = SelectNextSermonWithinMatchAsync(),
+            CanNavigateSermonWithinMatches);
+        ClearSermonWithinSearchCommand = new RelayCommand(ClearSermonWithinSearch);
 
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 48, 60));
         ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 62, 76));
@@ -305,6 +323,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand RepairSourceMetadataCommand { get; }
 
+    public RelayCommand RebuildSermonSearchIndexCommand { get; }
+
     public RelayCommand ImportBibleCommand { get; }
 
     public RelayCommand ClearHistoryCommand { get; }
@@ -330,6 +350,12 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand PreviousProjectionPageCommand { get; }
 
     public RelayCommand NextProjectionPageCommand { get; }
+
+    public RelayCommand PreviousSermonWithinMatchCommand { get; }
+
+    public RelayCommand NextSermonWithinMatchCommand { get; }
+
+    public RelayCommand ClearSermonWithinSearchCommand { get; }
 
     public string SearchText
     {
@@ -393,10 +419,29 @@ public sealed class MainViewModel : ObservableObject
                 }
                 else
                 {
+                    ClearSermonWithinSearch(resetText: true);
                     _ = SelectSermonDocumentAsync(value);
                 }
             }
         }
+    }
+
+    public string SermonWithinSearchText
+    {
+        get => sermonWithinSearchText;
+        set
+        {
+            if (SetProperty(ref sermonWithinSearchText, value))
+            {
+                QueueSermonWithinSearch();
+            }
+        }
+    }
+
+    public string SermonWithinSearchStatus
+    {
+        get => sermonWithinSearchStatus;
+        private set => SetProperty(ref sermonWithinSearchStatus, value);
     }
 
     public ParagraphResultViewModel? SelectedParagraph
@@ -818,6 +863,7 @@ public sealed class MainViewModel : ObservableObject
 
                 OnPropertyChanged(nameof(IsNotBibleMode));
                 OnPropertyChanged(nameof(IsNotBibleOrSongsMode));
+                OnPropertyChanged(nameof(IsSermonMode));
                 OnPropertyChanged(nameof(CenterPanelTitle));
                 OnPropertyChanged(nameof(RightPanelTitle));
                 OnPropertyChanged(nameof(LibraryCountText));
@@ -848,6 +894,7 @@ public sealed class MainViewModel : ObservableObject
                 }
 
                 OnPropertyChanged(nameof(IsNotBibleOrSongsMode));
+                OnPropertyChanged(nameof(IsSermonMode));
                 OnPropertyChanged(nameof(CenterPanelTitle));
                 OnPropertyChanged(nameof(LibraryCountText));
                 OnPropertyChanged(nameof(IsFavoriteButtonVisible));
@@ -861,6 +908,8 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public bool IsNotBibleOrSongsMode => !IsBibleMode && !IsSongsMode;
+
+    public bool IsSermonMode => !IsBibleMode && !IsSongsMode;
 
     public string CenterPanelTitle =>
         IsBibleMode
@@ -1289,6 +1338,44 @@ public sealed class MainViewModel : ObservableObject
 
         var result = await command.ExecuteScalarAsync();
         return Convert.ToInt64(result) > 0;
+    }
+
+    private async Task RebuildSermonSearchIndexAsync()
+    {
+        var confirmation = MessageBox.Show(
+            "Rebuild the Sermon search index? This does not modify Sermon text, PDF imports, Bible verses, songs, favorites, or projection history.",
+            "Rebuild Sermon Search Index",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            StatusText = "Sermon search index rebuild canceled.";
+            return;
+        }
+
+        try
+        {
+            IsDatabaseOperationRunning = true;
+            StatusText = "Rebuilding Sermon search index...";
+            await MessageFlowDatabaseRepair.RebuildSearchIndexAsync(MessageFlowDatabase.DefaultDatabasePath, App.LogStartupMessage);
+            StatusText = "Sermon search index rebuilt.";
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Sermon search index rebuild failed.", ex);
+            StatusText = $"Sermon search index rebuild failed: {ex.Message}";
+            MessageBox.Show(
+                $"Sermon search index rebuild failed:{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                "Rebuild Sermon Search Index",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsDatabaseOperationRunning = false;
+        }
     }
 
     private async Task CleanupTestDataAsync()
@@ -3525,7 +3612,8 @@ public sealed class MainViewModel : ObservableObject
                               group.Count(),
                               group.First().Result.AuthorDisplayName,
                               group.First().Result.SourceDisplayName,
-                              group.First().Result.SourceType)
+                              group.First().Result.SourceType,
+                              group.First().Result.ParagraphTextPreview)
                       })
                      .OrderBy(item => item.Rank))
         {
@@ -3574,6 +3662,290 @@ public sealed class MainViewModel : ObservableObject
             ? ParagraphResults.FirstOrDefault()
             : ParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value) ??
               ParagraphResults.FirstOrDefault();
+
+        QueueSermonWithinSearch();
+    }
+
+    private void QueueSermonWithinSearch()
+    {
+        sermonWithinSearchDebounce?.Cancel();
+        var queryText = SermonWithinSearchText;
+        var version = Interlocked.Increment(ref sermonWithinSearchRequestVersion);
+        InvalidateSermonWithinSearchResults(queryText);
+
+        if (string.IsNullOrWhiteSpace(queryText) || SelectedSermon is null)
+        {
+            return;
+        }
+
+        sermonWithinSearchDebounce = new CancellationTokenSource();
+        var cancellationToken = sermonWithinSearchDebounce.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(220, cancellationToken);
+                var operation = System.Windows.Application.Current.Dispatcher.InvokeAsync(
+                    () => ApplySermonWithinSearchAsync(queryText, version, cancellationToken));
+
+                await operation.Task.Unwrap();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }, cancellationToken);
+    }
+
+    private async Task ApplySermonWithinSearchAsync(
+        string queryText,
+        int version,
+        CancellationToken cancellationToken = default)
+    {
+        if (version != Volatile.Read(ref sermonWithinSearchRequestVersion))
+        {
+            return;
+        }
+
+        sermonWithinMatches = [];
+        sermonWithinMatchIndex = -1;
+
+        var selectedSermon = SelectedSermon;
+        if (selectedSermon is null)
+        {
+            SermonWithinSearchStatus = "Select a Sermon to search inside it.";
+            RaiseSermonWithinSearchCommandStates();
+            return;
+        }
+
+        var query = SermonTextSearchPattern.Create(queryText);
+        if (query.IsEmpty)
+        {
+            SermonWithinSearchStatus = "Find in selected Sermon.";
+            RaiseSermonWithinSearchCommandStates();
+            return;
+        }
+
+        var selectedSermonId = selectedSermon.SermonId;
+        var previousSelectedParagraphId = SelectedParagraph?.SermonId == selectedSermonId
+            ? SelectedParagraph.ParagraphId
+            : (int?)null;
+        var selectedSermonParagraphs = await LoadSermonParagraphsAsync(selectedSermonId, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (version != Volatile.Read(ref sermonWithinSearchRequestVersion) ||
+            SelectedSermon?.SermonId != selectedSermonId)
+        {
+            return;
+        }
+
+        ReplaceParagraphResultsForSelectedSermon(selectedSermonParagraphs, previousSelectedParagraphId);
+
+        sermonWithinSearchAppliedText = queryText;
+        sermonWithinSearchAppliedSermonId = selectedSermonId;
+        sermonWithinMatches = selectedSermonParagraphs
+            .Select(paragraph => new
+            {
+                Paragraph = paragraph,
+                Match = query.Match(paragraph.FullParagraphText)
+            })
+            .Where(item => item.Match is not null)
+            .OrderBy(item => item.Match!.Value.Score)
+            .ThenBy(item => item.Paragraph.ParagraphNumber)
+            .Select(item => item.Paragraph)
+            .ToList();
+
+        if (sermonWithinMatches.Count == 0)
+        {
+            SermonWithinSearchStatus = $"No matches in selected Sermon - {BuildSermonIdentity(selectedSermon)}.";
+            RaiseSermonWithinSearchCommandStates();
+            return;
+        }
+
+        var selectedIndex = SelectedParagraph is null
+            ? -1
+            : sermonWithinMatches.FindIndex(match => match.ParagraphId == SelectedParagraph.ParagraphId);
+        sermonWithinMatchIndex = selectedIndex >= 0 ? selectedIndex : 0;
+        SelectCurrentSermonWithinMatch();
+        RaiseSermonWithinSearchCommandStates();
+    }
+
+    private void InvalidateSermonWithinSearchResults(string queryText)
+    {
+        sermonWithinMatches = [];
+        sermonWithinSearchAppliedText = string.Empty;
+        sermonWithinSearchAppliedSermonId = null;
+        sermonWithinMatchIndex = -1;
+
+        SermonWithinSearchStatus = SelectedSermon is null
+            ? "Select a Sermon to search inside it."
+            : string.IsNullOrWhiteSpace(queryText)
+                ? "Find in selected Sermon."
+                : "Searching selected Sermon...";
+
+        RaiseSermonWithinSearchCommandStates();
+    }
+
+    private async Task<bool> EnsureCurrentSermonWithinMatchesAsync()
+    {
+        if (!IsCurrentSermonWithinSearchResultSet())
+        {
+            await ApplySermonWithinSearchNowAsync();
+        }
+
+        return IsCurrentSermonWithinSearchResultSet() && sermonWithinMatches.Count > 0;
+    }
+
+    private async Task ApplySermonWithinSearchNowAsync()
+    {
+        sermonWithinSearchDebounce?.Cancel();
+        var version = Interlocked.Increment(ref sermonWithinSearchRequestVersion);
+        await ApplySermonWithinSearchAsync(SermonWithinSearchText, version);
+    }
+
+    private bool CanNavigateSermonWithinMatches()
+    {
+        return IsCurrentSermonWithinSearchResultSet() && sermonWithinMatches.Count > 0;
+    }
+
+    private bool IsCurrentSermonWithinSearchResultSet()
+    {
+        return string.Equals(sermonWithinSearchAppliedText, SermonWithinSearchText, StringComparison.Ordinal) &&
+               sermonWithinSearchAppliedSermonId == SelectedSermon?.SermonId;
+    }
+
+    private async Task SelectNextSermonWithinMatchAsync()
+    {
+        if (!await EnsureCurrentSermonWithinMatchesAsync())
+        {
+            return;
+        }
+
+        sermonWithinMatchIndex = (sermonWithinMatchIndex + 1) % sermonWithinMatches.Count;
+        SelectCurrentSermonWithinMatch();
+    }
+
+    private async Task SelectPreviousSermonWithinMatchAsync()
+    {
+        if (!await EnsureCurrentSermonWithinMatchesAsync())
+        {
+            return;
+        }
+
+        sermonWithinMatchIndex = sermonWithinMatchIndex <= 0
+            ? sermonWithinMatches.Count - 1
+            : sermonWithinMatchIndex - 1;
+        SelectCurrentSermonWithinMatch();
+    }
+
+    private void SelectCurrentSermonWithinMatch()
+    {
+        if (sermonWithinMatchIndex < 0 || sermonWithinMatchIndex >= sermonWithinMatches.Count)
+        {
+            return;
+        }
+
+        var match = sermonWithinMatches[sermonWithinMatchIndex];
+        SelectedParagraph = ParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == match.ParagraphId) ?? match;
+        SermonWithinSearchStatus = BuildSermonWithinMatchStatus(SelectedParagraph);
+    }
+
+    private void ReplaceParagraphResultsForSelectedSermon(
+        IReadOnlyList<ParagraphResultViewModel> paragraphs,
+        int? preferredParagraphId)
+    {
+        ParagraphResults.Clear();
+        foreach (var paragraph in paragraphs.OrderBy(paragraph => paragraph.ParagraphNumber))
+        {
+            ParagraphResults.Add(paragraph);
+        }
+
+        if (ParagraphResults.Count == 0)
+        {
+            SelectedParagraph = null;
+            return;
+        }
+
+        SelectedParagraph = preferredParagraphId is null
+            ? SelectedParagraph is not null
+                ? ParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == SelectedParagraph.ParagraphId) ??
+                  ParagraphResults.FirstOrDefault()
+                : ParagraphResults.FirstOrDefault()
+            : ParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value) ??
+              ParagraphResults.FirstOrDefault();
+    }
+
+    private string BuildSermonWithinMatchStatus(ParagraphResultViewModel paragraph)
+    {
+        var matchCountText = $"{sermonWithinMatches.Count:N0} {(sermonWithinMatches.Count == 1 ? "match" : "matches")}";
+        return $"{matchCountText} - Match {sermonWithinMatchIndex + 1:N0} of {sermonWithinMatches.Count:N0} - " +
+               $"Paragraph {paragraph.ParagraphNumber} - {BuildSermonIdentity(paragraph)}: {CreateSearchStatusSnippet(paragraph.ParagraphTextPreview)}";
+    }
+
+    private static string BuildSermonIdentity(SermonResultViewModel sermon)
+    {
+        var parts = new List<string> { sermon.Title };
+        if (!string.IsNullOrWhiteSpace(sermon.SermonCode))
+        {
+            parts.Add(sermon.SermonCode);
+        }
+
+        if (sermon.Year > 0)
+        {
+            parts.Add(sermon.Year.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return string.Join(" | ", parts);
+    }
+
+    private static string BuildSermonIdentity(ParagraphResultViewModel paragraph)
+    {
+        var parts = new List<string> { paragraph.SermonTitle };
+        if (!string.IsNullOrWhiteSpace(paragraph.SermonCode))
+        {
+            parts.Add(paragraph.SermonCode);
+        }
+
+        if (paragraph.Year > 0)
+        {
+            parts.Add(paragraph.Year.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return string.Join(" | ", parts);
+    }
+
+    private static string CreateSearchStatusSnippet(string text)
+    {
+        var snippet = string.Join(' ', text.Split(
+            [' ', '\t', '\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        return snippet.Length <= 110 ? snippet : $"{snippet[..110].TrimEnd()}...";
+    }
+
+    private void ClearSermonWithinSearch()
+    {
+        ClearSermonWithinSearch(resetText: true);
+    }
+
+    private void ClearSermonWithinSearch(bool resetText)
+    {
+        sermonWithinSearchDebounce?.Cancel();
+        Interlocked.Increment(ref sermonWithinSearchRequestVersion);
+        sermonWithinMatches = [];
+        sermonWithinSearchAppliedText = string.Empty;
+        sermonWithinSearchAppliedSermonId = null;
+        sermonWithinMatchIndex = -1;
+        SermonWithinSearchStatus = SelectedSermon is null
+            ? "Select a Sermon to search inside it."
+            : "Find in selected Sermon.";
+
+        if (resetText && !string.IsNullOrEmpty(sermonWithinSearchText))
+        {
+            sermonWithinSearchText = string.Empty;
+            OnPropertyChanged(nameof(SermonWithinSearchText));
+        }
+
+        RaiseSermonWithinSearchCommandStates();
     }
 
     private async Task SelectSermonDocumentAsync(SermonResultViewModel? sermon)
@@ -3652,6 +4024,13 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        var shouldUpdateLive = SelectedSermon?.SermonId == currentParagraph.SermonId &&
+                               ProjectionNavigationRules.ShouldUpdateLiveSermonParagraph(
+                                   IsProjectionOpen,
+                                   ActiveProjectionContent,
+                                   currentParagraph.SermonId,
+                                   currentParagraph.ParagraphId);
+
         try
         {
             var adjacentParagraph = await LoadAdjacentParagraphAsync(currentParagraph, offset);
@@ -3675,7 +4054,15 @@ public sealed class MainViewModel : ObservableObject
                                     paragraph => paragraph.ParagraphId == adjacentParagraph.ParagraphId) ??
                                 adjacentParagraph;
 
-            StatusText = $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
+            if (shouldUpdateLive)
+            {
+                ActiveProjectionContent = CreateSermonSnapshot(SelectedParagraph);
+                StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
+            }
+            else
+            {
+                StatusText = $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
+            }
         }
         catch (Exception ex)
         {
@@ -3691,17 +4078,12 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var shouldUpdateLive = IsProjectionOpen &&
-                               ActiveProjectionContent is
-                               {
-                                   ContentType: ProjectionContentType.Bible
-                               } liveSnapshot &&
-                               liveSnapshot.SourceId == currentVerse.TranslationId &&
-                               string.Equals(
-                                   liveSnapshot.SourceKey,
-                                   currentVerse.TranslationAbbreviation,
-                                   StringComparison.OrdinalIgnoreCase) &&
-                               liveSnapshot.ItemId == currentVerse.VerseId;
+        var shouldUpdateLive = ProjectionNavigationRules.ShouldUpdateLiveBibleVerse(
+            IsProjectionOpen,
+            ActiveProjectionContent,
+            currentVerse.TranslationId,
+            currentVerse.TranslationAbbreviation,
+            currentVerse.VerseId);
 
         try
         {
@@ -3786,18 +4168,13 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var currentSection = SelectedSongSection;
-        var shouldUpdateLive = IsProjectionOpen &&
-                               SelectedSong is not null &&
-                               ActiveProjectionContent is
-                               {
-                                   ContentType: ProjectionContentType.Song
-                               } liveSnapshot &&
-                               liveSnapshot.SourceId == SelectedSong.SongId &&
-                               string.Equals(
-                                   liveSnapshot.SourceKey,
+        var shouldUpdateLive = SelectedSong is not null &&
+                               ProjectionNavigationRules.ShouldUpdateLiveSongSection(
+                                   IsProjectionOpen,
+                                   ActiveProjectionContent,
+                                   SelectedSong.SongId,
                                    SelectedSong.Title,
-                                   StringComparison.Ordinal) &&
-                               liveSnapshot.ItemId == currentSection.SectionId;
+                                   currentSection.SectionId);
 
         var currentIndex = SongSections.IndexOf(currentSection);
         var nextIndex = currentIndex < 0
@@ -4137,16 +4514,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var paragraph = SelectedParagraph;
-        var snapshot = new ProjectedContentSnapshot(
-            ProjectionContentType.Sermon,
-            paragraph.SermonTitle,
-            $"Paragraph {paragraph.ParagraphNumber}",
-            paragraph.FullParagraphText)
-        {
-            SourceId = paragraph.SermonId,
-            ItemId = paragraph.ParagraphId,
-            SourceKey = paragraph.SermonCode
-        };
+        var snapshot = CreateSermonSnapshot(paragraph);
 
         if (recordHistory)
         {
@@ -4197,6 +4565,24 @@ public sealed class MainViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
+    private static ProjectedContentSnapshot CreateSermonSnapshot(ParagraphResultViewModel paragraph)
+    {
+        return new ProjectedContentSnapshot(
+            ProjectionContentType.Sermon,
+            paragraph.SermonTitle,
+            $"Paragraph {paragraph.ParagraphNumber}",
+            paragraph.FullParagraphText)
+        {
+            SourceId = paragraph.SermonId,
+            ItemId = paragraph.ParagraphId,
+            ItemOrder = paragraph.ParagraphNumber,
+            ItemNumber = paragraph.ParagraphNumber,
+            SourceYear = paragraph.Year > 0 ? paragraph.Year : null,
+            SourceKey = paragraph.SermonCode,
+            MetadataText = paragraph.MetadataLine
+        };
+    }
+
     private static ProjectedContentSnapshot CreateBibleSnapshot(BibleVerseResultViewModel verse)
     {
         return new ProjectedContentSnapshot(
@@ -4207,6 +4593,8 @@ public sealed class MainViewModel : ObservableObject
         {
             SourceId = verse.TranslationId,
             ItemId = verse.VerseId,
+            ItemOrder = verse.Verse,
+            ItemNumber = verse.Verse,
             SourceKey = verse.TranslationAbbreviation
         };
     }
@@ -4223,6 +4611,8 @@ public sealed class MainViewModel : ObservableObject
         {
             SourceId = song.SongId,
             ItemId = section.SectionId,
+            ItemOrder = section.SectionOrder,
+            IsTitleSlide = section.SectionOrder <= 1,
             SourceKey = song.Title
         };
     }
@@ -4437,7 +4827,9 @@ public sealed class MainViewModel : ObservableObject
         return paragraphId is null ? null : await LoadParagraphAsync(paragraphId.Value);
     }
 
-    private async Task<List<ParagraphResultViewModel>> LoadSermonParagraphsAsync(int sermonId)
+    private async Task<List<ParagraphResultViewModel>> LoadSermonParagraphsAsync(
+        int sermonId,
+        CancellationToken cancellationToken = default)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
@@ -4468,7 +4860,7 @@ public sealed class MainViewModel : ObservableObject
                     : paragraph.Sermon.ContentSource.SourceType,
                 IsFavorite = paragraph.Favorites.Any()
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return rows
             .Select(row => new ParagraphResultViewModel(
@@ -5722,6 +6114,7 @@ public sealed class MainViewModel : ObservableObject
         ManageSourcesCommand.RaiseCanExecuteChanged();
         ImportSourceCommand.RaiseCanExecuteChanged();
         RepairSourceMetadataCommand.RaiseCanExecuteChanged();
+        RebuildSermonSearchIndexCommand.RaiseCanExecuteChanged();
         ImportBibleCommand.RaiseCanExecuteChanged();
         ClearHistoryCommand.RaiseCanExecuteChanged();
         VerifyProductionDataCommand.RaiseCanExecuteChanged();
@@ -5750,6 +6143,12 @@ public sealed class MainViewModel : ObservableObject
     {
         PreviousProjectionPageCommand.RaiseCanExecuteChanged();
         NextProjectionPageCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RaiseSermonWithinSearchCommandStates()
+    {
+        PreviousSermonWithinMatchCommand.RaiseCanExecuteChanged();
+        NextSermonWithinMatchCommand.RaiseCanExecuteChanged();
     }
 
     private sealed record SearchSnapshot(

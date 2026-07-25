@@ -21,5 +21,15 @@ public sealed record ProjectedContentSnapshot(
 
     public int? ItemId { get; init; }
 
+    public int? ItemOrder { get; init; }
+
+    public int? ItemNumber { get; init; }
+
+    public int? SourceYear { get; init; }
+
+    public string MetadataText { get; init; } = string.Empty;
+
     public string SourceKey { get; init; } = string.Empty;
+
+    public bool IsTitleSlide { get; init; }
 }
