@@ -4,8 +4,8 @@
         Title="Admin Tools"
         Height="820"
         Width="1180"
-        MinHeight="720"
-        MinWidth="1040"
+        MinHeight="560"
+        MinWidth="760"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackgroundBrush}">
     <Grid Margin="28">
@@ -15,180 +15,76 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0"
-                    Margin="0,0,0,22">
-            <TextBlock Text="Admin Tools"
-                       FontSize="28"
-                       FontWeight="SemiBold" />
-            <TextBlock Text="Admin tools are for setup and maintenance. They are not needed during normal service."
+        <StackPanel Margin="0,0,0,22">
+            <TextBlock Text="Admin Tools" FontSize="28" FontWeight="SemiBold" />
+            <TextBlock Text="Setup and maintenance tools for an administrator. These controls are not needed during a normal service."
                        Margin="0,6,0,0"
                        Foreground="{StaticResource SecondaryTextBrush}"
                        FontSize="14"
                        TextWrapping="Wrap" />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-            <UniformGrid Columns="2"
-                         Rows="3">
-                <Border Margin="0,0,14,14"
-                        Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource BorderRadius}">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <UniformGrid Columns="2" Rows="3">
+                <Border Margin="0,0,14,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <TextBlock Text="Content Sources"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="Manage local content sources."
-                                   Margin="0,7,0,16"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="13"
-                                   TextWrapping="Wrap" />
-                        <Button Content="Manage Sources"
-                                Command="{Binding ManageSourcesCommand}" />
-                        <Button Content="Add Source"
-                                Margin="0,10,0,0"
-                                Command="{Binding AddNewSourceCommand}" />
-                        <Button Content="Import Source"
-                                Margin="0,10,0,0"
-                                Command="{Binding ImportSourceCommand}" />
+                        <TextBlock Text="1. Displays" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Choose and verify the church projection display." Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <ComboBox ItemsSource="{Binding ProjectionDisplayOptions}" SelectedItem="{Binding SelectedProjectionDisplayOption}" DisplayMemberPath="Label" TextSearch.TextPath="Label" MinHeight="36" VerticalContentAlignment="Center" />
+                        <Button Content="Test Projection Display" Margin="0,10,0,0" Command="{Binding TestProjectionDisplayCommand}" ToolTip="Show a test pattern on the configured display" />
+                        <Button Content="Open Projection Preview" Margin="0,10,0,0" Command="{Binding OpenProjectionPreviewCommand}" ToolTip="Open a resizable local preview window" />
+                        <Button Content="Refresh Displays" Margin="0,10,0,0" Command="{Binding RefreshProjectionDisplaysCommand}" ToolTip="Detect connected monitors again" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="14,0,0,14"
-                        Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="14,0,0,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <TextBlock Text="Bible"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding CurrentBibleTranslationDisplay}"
-                                   Margin="0,7,0,4"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="13"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding CurrentBibleVerseCountDisplay}"
-                                   Margin="0,0,0,16"
-                                   Foreground="{StaticResource MutedTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-                        <Button Content="Import Bible"
-                                Command="{Binding ImportBibleCommand}" />
+                        <TextBlock Text="2. Library Import" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Scan and review local content before it enters the searchable library." Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <Button Content="Open Library Import" Click="OpenLibraryImport_Click" ToolTip="Import local Brother Frank PDFs or additional Song files into managed storage" />
+                        <Button Content="Manage Existing Sources" Margin="0,10,0,0" Command="{Binding ManageSourcesCommand}" ToolTip="Review configured Sermon content sources" />
+                        <Button Content="Add Sermon Source" Margin="0,10,0,0" Command="{Binding AddNewSourceCommand}" ToolTip="Configure a legacy local PDF folder source" />
+                        <Button Content="Import Selected Source" Margin="0,10,0,0" Command="{Binding ImportSourceCommand}" ToolTip="Scan and import the selected configured source" />
+                        <Button Content="Import Bible" Margin="0,10,0,0" Command="{Binding ImportBibleCommand}" ToolTip="Import a reviewed Bible CSV file" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="0,14,14,14"
-                        Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="0,14,14,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <TextBlock Text="Database Safety"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="Keep a safe copy before big imports or cleanup."
-                                   Margin="0,7,0,16"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="13"
-                                   TextWrapping="Wrap" />
-                        <Button Content="Backup Database"
-                                Command="{Binding BackupDatabaseCommand}" />
-                        <Button Content="Restore Database"
-                                Margin="0,10,0,0"
-                                Command="{Binding RestoreDatabaseCommand}" />
-                        <Button Content="Open Backup Folder"
-                                Margin="0,10,0,0"
-                                Command="{Binding OpenBackupFolderCommand}" />
+                        <TextBlock Text="3. Search Maintenance" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Repair metadata or rebuild the local Sermon search index without changing religious text." Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <Button Content="Repair Selected Source Metadata" Command="{Binding RepairSourceMetadataCommand}" ToolTip="Re-read titles and codes from source filenames; paragraph text is unchanged" />
+                        <Button Content="Rebuild Sermon Search Index" Margin="0,10,0,0" Command="{Binding RebuildSermonSearchIndexCommand}" ToolTip="Rebuild the SQLite Sermon index from stored paragraph text" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="14,14,0,14"
-                        Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="14,14,0,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <TextBlock Text="Maintenance"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="Run checks and careful cleanup before production use."
-                                   Margin="0,7,0,16"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="13"
-                                   TextWrapping="Wrap" />
-                        <Button Content="Verify Production Data"
-                                Command="{Binding VerifyProductionDataCommand}" />
-                        <Button Content="Cleanup Test Data"
-                                Margin="0,10,0,0"
-                                Command="{Binding CleanupTestDataCommand}" />
-                        <Button Content="Repair Source Metadata"
-                                Margin="0,10,0,0"
-                                Command="{Binding RepairSourceMetadataCommand}" />
-                        <Button Content="Cleanup Brother Frank Circular Letters"
-                                Margin="0,10,0,0"
-                                Command="{Binding CleanupBrotherFrankCircularLettersCommand}" />
+                        <TextBlock Text="4. Database / Backup" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Protect the library before large imports or maintenance." Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <Button Content="Backup Database" Command="{Binding BackupDatabaseCommand}" />
+                        <Button Content="Restore Database" Margin="0,10,0,0" Command="{Binding RestoreDatabaseCommand}" />
+                        <Button Content="Open Backup Folder" Margin="0,10,0,0" Command="{Binding OpenBackupFolderCommand}" />
+                        <Button Content="Verify Production Data" Margin="0,10,0,0" Command="{Binding VerifyProductionDataCommand}" ToolTip="Run protected Bible, Song, and Sermon count checks" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="0,14,14,0"
-                        Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="0,14,14,0" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <TextBlock Text="Projection Display"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding ProjectionStatusText}"
-                                   Margin="0,7,0,16"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="13"
-                                   TextWrapping="Wrap" />
-                        <ComboBox ItemsSource="{Binding ProjectionDisplayOptions}"
-                                  SelectedItem="{Binding SelectedProjectionDisplayOption}"
-                                  DisplayMemberPath="Label"
-                                  TextSearch.TextPath="Label"
-                                  MinHeight="36"
-                                  VerticalContentAlignment="Center" />
-                        <Button Content="Test Projection Display"
-                                Margin="0,10,0,0"
-                                Command="{Binding TestProjectionDisplayCommand}" />
-                        <Button Content="Open Projection Preview Window"
-                                Margin="0,10,0,0"
-                                Command="{Binding OpenProjectionPreviewCommand}" />
-                        <Button Content="Refresh Displays"
-                                Margin="0,10,0,0"
-                                Command="{Binding RefreshProjectionDisplaysCommand}" />
+                        <TextBlock Text="5. About / System Information" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ProjectionStatusText}" Margin="0,7,0,4" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding CurrentBibleTranslationDisplay}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding CurrentBibleVerseCountDisplay}" Margin="0,4,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="14,14,0,0"
-                        Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="14,14,0,0" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <Expander Header="Advanced"
-                                  Foreground="{StaticResource SecondaryTextBrush}">
+                        <Expander Header="Advanced cleanup (administrator only)" Foreground="{StaticResource SecondaryTextBrush}">
                             <StackPanel Margin="0,12,0,0">
-                                <TextBlock Text="KJV converter"
-                                           FontSize="15"
-                                           FontWeight="SemiBold" />
-                                <TextBlock Text="Local converter: tools\ConvertKjvToCsv. It is not run automatically."
-                                           Margin="0,7,0,0"
-                                           Foreground="{StaticResource MutedTextBrush}"
-                                           FontSize="12"
-                                           TextWrapping="Wrap" />
+                                <TextBlock Text="These actions always show a review or confirmation before changing data." Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
+                                <Button Content="Cleanup Test Data" Margin="0,10,0,0" Command="{Binding CleanupTestDataCommand}" ToolTip="Review and remove records identified as test data" />
+                                <Button Content="Cleanup Brother Frank Circular Letters" Margin="0,10,0,0" Command="{Binding CleanupBrotherFrankCircularLettersCommand}" ToolTip="Review and remove imported circular-letter records only" />
                             </StackPanel>
                         </Expander>
                     </StackPanel>
@@ -196,19 +92,10 @@
             </UniformGrid>
         </ScrollViewer>
 
-        <Border Grid.Row="2"
-                Margin="0,20,0,0"
-                Padding="0,16,0,0"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Margin="0,20,0,0" Padding="0,16,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="118" />
-                </Grid.ColumnDefinitions>
-                <Button Grid.Column="1"
-                        Content="Close"
-                        Click="Close_Click" />
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="118" /></Grid.ColumnDefinitions>
+                <Button Grid.Column="1" Content="Close" Click="Close_Click" />
             </Grid>
         </Border>
     </Grid>

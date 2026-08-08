@@ -20,7 +20,7 @@ public static partial class ProjectionDisplayService
     {
         var options = new List<ProjectionDisplayOption>
         {
-            new(AutoPreferenceKey, "Auto", IsAuto: true)
+            new(AutoPreferenceKey, "Auto - prefer secondary projection display", IsAuto: true)
         };
 
         options.AddRange(GetDisplayTargets()
@@ -59,6 +59,7 @@ public static partial class ProjectionDisplayService
     public static ProjectionDisplayTarget ResolveLiveProjectionTarget(string? preferenceKey)
     {
         var targets = GetDisplayTargets().Where(HasValidBounds).ToList();
+        LogDisplayTargets(targets, preferenceKey);
         if (targets.Count == 0)
         {
             throw new InvalidOperationException("No usable Windows display was detected.");
@@ -96,6 +97,7 @@ public static partial class ProjectionDisplayService
             return external;
         }
 
+        App.LogStartupMessage("Live projection fallback: only the primary/operator display is available; using windowed mode.");
         return targets.FirstOrDefault(target => target.IsPrimary) ?? targets[0];
     }
 
@@ -141,13 +143,13 @@ public static partial class ProjectionDisplayService
         window.ShowActivated = false;
         window.Topmost = true;
         ApplyTargetBounds(window, target);
-        window.WindowState = WindowState.Maximized;
     }
 
     public static void ConfigureAdaptiveWindowedProjection(
         Window window,
         ProjectionDisplayTarget target,
-        bool preserveExistingWindowBounds)
+        bool preserveExistingWindowBounds,
+        Rect? savedWindowedBounds = null)
     {
         var canPreserve = preserveExistingWindowBounds &&
                           window.WindowStyle == WindowStyle.SingleBorderWindow &&
@@ -166,6 +168,12 @@ public static partial class ProjectionDisplayService
         window.ResizeMode = ResizeMode.CanResize;
 
         if (canPreserve)
+        {
+            return;
+        }
+
+        if (savedWindowedBounds is not null &&
+            TryApplySavedWindowedBounds(window, target, savedWindowedBounds.Value))
         {
             return;
         }
@@ -194,8 +202,23 @@ public static partial class ProjectionDisplayService
     {
         window.WindowState = WindowState.Normal;
         ApplyTargetBounds(window, target);
-        window.WindowState = WindowState.Maximized;
         window.Topmost = true;
+    }
+
+    public static void BringWindowedProjectionToFront(Window window)
+    {
+        window.Topmost = false;
+        window.ShowActivated = true;
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        window.Activate();
+        window.Focus();
+        window.Topmost = true;
+        window.Topmost = false;
+        window.Activate();
     }
 
     public static void ShowWindowedPreviewOnTarget(Window window, ProjectionDisplayTarget target)
@@ -222,17 +245,47 @@ public static partial class ProjectionDisplayService
 
     private static void ApplyWindowedPreviewBounds(Window window, ProjectionDisplayTarget target)
     {
-        var maximumWidth = Math.Max(640, target.WorkingAreaWidth - 80);
-        var maximumHeight = Math.Max(420, target.WorkingAreaHeight - 90);
+        var maximumWidth = Math.Max(640, target.WorkingAreaWidth);
+        var maximumHeight = Math.Max(420, target.WorkingAreaHeight);
         var minimumWidth = Math.Min(860, maximumWidth);
         var minimumHeight = Math.Min(560, maximumHeight);
-        var width = Math.Clamp(target.WorkingAreaWidth * 0.78, minimumWidth, maximumWidth);
-        var height = Math.Clamp(target.WorkingAreaHeight * 0.72, minimumHeight, maximumHeight);
+        var width = Math.Clamp(target.WorkingAreaWidth * 0.88, minimumWidth, maximumWidth);
+        var height = Math.Clamp(target.WorkingAreaHeight * 0.84, minimumHeight, maximumHeight);
 
         window.Left = ToWpfX(target.WorkingAreaLeft + ((target.WorkingAreaWidth - width) / 2), target);
         window.Top = ToWpfY(target.WorkingAreaTop + ((target.WorkingAreaHeight - height) / 2), target);
         window.Width = ToWpfX(width, target);
         window.Height = ToWpfY(height, target);
+    }
+
+    private static bool TryApplySavedWindowedBounds(
+        Window window,
+        ProjectionDisplayTarget target,
+        Rect savedBounds)
+    {
+        var workLeft = ToWpfX(target.WorkingAreaLeft, target);
+        var workTop = ToWpfY(target.WorkingAreaTop, target);
+        var workWidth = ToWpfX(target.WorkingAreaWidth, target);
+        var workHeight = ToWpfY(target.WorkingAreaHeight, target);
+
+        if (workWidth <= 0 ||
+            workHeight <= 0 ||
+            savedBounds.Width < 360 ||
+            savedBounds.Height < 300)
+        {
+            return false;
+        }
+
+        var width = Math.Clamp(savedBounds.Width, Math.Min(360, workWidth), workWidth);
+        var height = Math.Clamp(savedBounds.Height, Math.Min(300, workHeight), workHeight);
+        var maxLeft = workLeft + workWidth - width;
+        var maxTop = workTop + workHeight - height;
+
+        window.Left = Math.Clamp(savedBounds.Left, workLeft, Math.Max(workLeft, maxLeft));
+        window.Top = Math.Clamp(savedBounds.Top, workTop, Math.Max(workTop, maxTop));
+        window.Width = width;
+        window.Height = height;
+        return true;
     }
 
     public static IReadOnlyList<ProjectionDisplayTarget> GetDisplayTargets()
@@ -254,9 +307,11 @@ public static partial class ProjectionDisplayService
         int screenCount)
     {
         var displayNumber = TryParseDisplayNumber(screen.DeviceName) ?? fallbackDisplayNumber;
-        var role = screen.Primary ? "Primary" : "External / TV";
-        var selectorLabel = $"Display {displayNumber}: {role}";
-        var statusDisplayName = screen.Primary ? "Primary Display" : $"Display {displayNumber}";
+        var role = screen.Primary ? "Primary / Operator" : "Secondary / Projection";
+        var selectorLabel = $"Display {displayNumber} - {role} - {screen.Bounds.Width}x{screen.Bounds.Height}";
+        var statusDisplayName = screen.Primary
+            ? $"Display {displayNumber} Primary / Operator"
+            : $"Display {displayNumber} Secondary / Projection";
 
         var (dpiX, dpiY) = GetEffectiveDpi(screen);
         return new ProjectionDisplayTarget(
@@ -283,6 +338,20 @@ public static partial class ProjectionDisplayService
     {
         return target.Width > 0 && target.Height > 0 &&
                target.WorkingAreaWidth > 0 && target.WorkingAreaHeight > 0;
+    }
+
+    private static void LogDisplayTargets(
+        IReadOnlyCollection<ProjectionDisplayTarget> targets,
+        string? preferenceKey)
+    {
+        var details = string.Join(
+            Environment.NewLine,
+            targets.Select(target =>
+                $"{target.DeviceName}: primary={target.IsPrimary}, bounds={target.BoundsDisplay}, working={target.WorkingAreaWidth:0}x{target.WorkingAreaHeight:0}"));
+
+        App.LogStartupMessage(
+            $"Projection displays enumerated: {targets.Count:N0}. Selected preference: {preferenceKey ?? AutoPreferenceKey}." +
+            (string.IsNullOrWhiteSpace(details) ? string.Empty : $"{Environment.NewLine}{details}"));
     }
 
     private static bool IsWindowAtLeastPartlyVisible(

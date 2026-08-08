@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuditSongImportAccuracy", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VerifyProductionData", "tools\VerifyProductionData\VerifyProductionData.csproj", "{EA74AA84-4C0E-4C3D-ADC7-A4B7B477FD79}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VerifyChurchUxHotfix", "tools\VerifyChurchUxHotfix\VerifyChurchUxHotfix.csproj", "{F9207AC8-D06B-45E8-92FC-425FE2112EDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -185,6 +187,18 @@ Global
 		{EA74AA84-4C0E-4C3D-ADC7-A4B7B477FD79}.Release|x64.Build.0 = Release|Any CPU
 		{EA74AA84-4C0E-4C3D-ADC7-A4B7B477FD79}.Release|x86.ActiveCfg = Release|Any CPU
 		{EA74AA84-4C0E-4C3D-ADC7-A4B7B477FD79}.Release|x86.Build.0 = Release|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Debug|x64.Build.0 = Debug|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Debug|x86.Build.0 = Debug|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Release|x64.ActiveCfg = Release|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Release|x64.Build.0 = Release|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Release|x86.ActiveCfg = Release|Any CPU
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -202,5 +216,6 @@ Global
 		{AA498272-6A7D-4A5D-BBD0-217280C56C00} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{5EA09582-4385-47FB-8ED2-7F6EDF63FEDB} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{EA74AA84-4C0E-4C3D-ADC7-A4B7B477FD79} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
+		{F9207AC8-D06B-45E8-92FC-425FE2112EDD} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal

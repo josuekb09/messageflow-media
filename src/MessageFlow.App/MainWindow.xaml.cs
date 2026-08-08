@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     private AdminToolsWindow? adminToolsWindow;
     private bool? liveProjectionIsFullscreen;
     private string? liveProjectionTargetKey;
+    private Rect? savedLiveProjectionWindowedBounds;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -60,8 +61,13 @@ public partial class MainWindow : Window
             if (projectWindow is null)
             {
                 projectWindow = new ProjectWindow(viewModel);
-                projectWindow.Closed += (_, _) =>
+                projectWindow.Closed += (closedSender, _) =>
                 {
+                    if (closedSender is Window closedWindow)
+                    {
+                        CaptureLiveProjectionWindowedBounds(closedWindow);
+                    }
+
                     projectWindow = null;
                     liveProjectionIsFullscreen = null;
                     liveProjectionTargetKey = null;
@@ -85,7 +91,8 @@ public partial class MainWindow : Window
                     ProjectionDisplayService.ConfigureAdaptiveWindowedProjection(
                         projectWindow,
                         displayTarget,
-                        preserveExistingWindowBounds: !isNewWindow && liveProjectionIsFullscreen == false);
+                        preserveExistingWindowBounds: !isNewWindow && liveProjectionIsFullscreen == false,
+                        savedWindowedBounds: isNewWindow ? savedLiveProjectionWindowedBounds : null);
                 }
 
                 liveProjectionIsFullscreen = useFullscreen;
@@ -97,18 +104,30 @@ public partial class MainWindow : Window
                 projectWindow.Show();
                 if (useFullscreen)
                 {
-                    ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
+                    Activate();
+                    Focus();
+                }
+                else
+                {
+                    ProjectionDisplayService.BringWindowedProjectionToFront(projectWindow);
                 }
             }
             else if (useFullscreen && (targetChanged || modeChanged))
             {
                 ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
             }
+            else if (!useFullscreen)
+            {
+                ProjectionDisplayService.BringWindowedProjectionToFront(projectWindow);
+            }
 
             viewModel.ReportProjectionOpened(
                 displayTarget,
                 isTest: false,
                 isAdaptiveWindowed: !useFullscreen);
+            App.LogStartupMessage(
+                $"Live projection mode: {(useFullscreen ? "fullscreen" : "windowed")}; " +
+                $"selected={displayTarget.DeviceName}; bounds={displayTarget.BoundsDisplay}; screens={displayTarget.ScreenCount:N0}.");
         }
         catch (Exception ex)
         {
@@ -144,6 +163,8 @@ public partial class MainWindow : Window
                 }
 
                 testProjectionWindow.Show();
+                Activate();
+                Focus();
             }
 
             var useWindowedPreview = ProjectionDisplayService.ShouldUseWindowedPreview(displayTarget);
@@ -223,6 +244,24 @@ public partial class MainWindow : Window
         }
     }
 
+    private void CaptureLiveProjectionWindowedBounds(Window window)
+    {
+        if (liveProjectionIsFullscreen != false ||
+            window.WindowStyle != WindowStyle.SingleBorderWindow)
+        {
+            return;
+        }
+
+        var bounds = window.WindowState == WindowState.Normal
+            ? new Rect(window.Left, window.Top, window.Width, window.Height)
+            : window.RestoreBounds;
+
+        if (bounds.Width >= 360 && bounds.Height >= 300)
+        {
+            savedLiveProjectionWindowedBounds = bounds;
+        }
+    }
+
     private async void Window_PreviewKeyDown(object sender, WpfKeyEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control &&
@@ -272,6 +311,11 @@ public partial class MainWindow : Window
                 SongSearchBox.Focus();
                 SongSearchBox.SelectAll();
             }
+            else if (viewModel.IsSermonReadingMode)
+            {
+                SermonWithinSearchBox.Focus();
+                SermonWithinSearchBox.SelectAll();
+            }
             else
             {
                 SearchBox.Focus();
@@ -280,6 +324,32 @@ public partial class MainWindow : Window
 
             e.Handled = true;
             return;
+        }
+
+        if (ReferenceEquals(LibraryTabs.SelectedItem, SermonsTab) &&
+            SermonWithinSearchBox.IsKeyboardFocusWithin)
+        {
+            if (e.Key == Key.Escape)
+            {
+                viewModel.ClearSermonWithinSearchCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Enter || e.Key == Key.Return)
+            {
+                if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                {
+                    viewModel.PreviousSermonWithinMatchCommand.Execute(null);
+                }
+                else
+                {
+                    viewModel.NextSermonWithinMatchCommand.Execute(null);
+                }
+
+                e.Handled = true;
+                return;
+            }
         }
 
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A)
@@ -335,6 +405,14 @@ public partial class MainWindow : Window
         BibleNavigationList.ScrollIntoView(viewModel.SelectedBibleNavigationItem);
     }
 
+    private void ParagraphResultsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ParagraphResultsList.SelectedItem is not null)
+        {
+            ParagraphResultsList.ScrollIntoView(ParagraphResultsList.SelectedItem);
+        }
+    }
+
     private async void FavoritesList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (FavoritesList.SelectedItem is SavedParagraphViewModel savedParagraph)
@@ -381,6 +459,13 @@ public partial class MainWindow : Window
 
         var bibleSelected = ReferenceEquals(LibraryTabs.SelectedItem, BibleTab);
         var songsSelected = ReferenceEquals(LibraryTabs.SelectedItem, SongsTab);
+        var sermonsSelected = ReferenceEquals(LibraryTabs.SelectedItem, SermonsTab);
+        if (!sermonsSelected)
+        {
+            Keyboard.ClearFocus();
+        }
+
+        viewModel.SetSermonWorkspaceActive(sermonsSelected);
         viewModel.SetBibleMode(bibleSelected);
         viewModel.SetSongsMode(songsSelected);
 

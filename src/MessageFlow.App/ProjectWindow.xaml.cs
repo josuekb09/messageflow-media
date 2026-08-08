@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using MessageFlow.App.ViewModels;
 using Forms = System.Windows.Forms;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -24,6 +25,7 @@ public partial class ProjectWindow : Window
     private const double FontStep = 2;
     private const double EmergencyMinimumFontSize = 12;
     private const double MaximumFitPrecision = 0.25;
+    private const int MaximumDeferredLayoutAttempts = 12;
     private const string ProjectionTestTitle = "MessageFlow Projection Test";
     private const string ProjectionTestText = "If you can see this on the TV, projection is ready.";
 
@@ -32,6 +34,7 @@ public partial class ProjectWindow : Window
     private readonly List<string> projectionPages = [];
     private bool isFullscreen;
     private bool updateQueued;
+    private int deferredLayoutAttempts;
     private int currentPageIndex;
     private double restoreLeft;
     private double restoreTop;
@@ -76,6 +79,12 @@ public partial class ProjectWindow : Window
     }
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        UpdateProjectionSafeMargins();
+        QueueProjectionUpdate(resetPage: false);
+    }
+
+    private void Window_DpiChanged(object sender, DpiChangedEventArgs e)
     {
         UpdateProjectionSafeMargins();
         QueueProjectionUpdate(resetPage: false);
@@ -172,7 +181,7 @@ public partial class ProjectWindow : Window
 
         if (e.PropertyName == nameof(MainViewModel.ProjectionFontSize) ||
             e.PropertyName == nameof(MainViewModel.ProjectionLineHeight) ||
-            e.PropertyName == nameof(MainViewModel.ProjectionFontScale))
+            e.PropertyName == nameof(MainViewModel.ProjectionFontSizeOffset))
         {
             QueueProjectionUpdate(resetPage: false);
         }
@@ -195,7 +204,7 @@ public partial class ProjectWindow : Window
         {
             updateQueued = false;
             UpdateProjectionLayout();
-        }));
+        }), DispatcherPriority.Loaded);
     }
 
     private void UpdateProjectionSafeMargins()
@@ -205,19 +214,8 @@ public partial class ProjectWindow : Window
             return;
         }
 
-        var usesSingleScreenFit = !isTestProjection &&
-                                  (viewModel.IsLiveBibleProjection || viewModel.IsLiveSongProjection);
-        var usesTitleOnlySongLayout = IsSongTitleOnlySlide(GetProjectionTextForDisplay());
-        var horizontalMargin = usesSingleScreenFit
-            ? usesTitleOnlySongLayout
-                ? Math.Clamp(ActualWidth * 0.04, 28, 78)
-                : Math.Clamp(ActualWidth * 0.03, 24, 58)
-            : Math.Clamp(ActualWidth * 0.045, 36, 86);
-        var verticalMargin = usesSingleScreenFit
-            ? usesTitleOnlySongLayout
-                ? Math.Clamp(ActualHeight * 0.04, 24, 72)
-                : Math.Clamp(ActualHeight * 0.03, 20, 58)
-            : Math.Clamp(ActualHeight * 0.04, 28, 70);
+        var horizontalMargin = Math.Clamp(ActualWidth * 0.03, 24, 58);
+        var verticalMargin = Math.Clamp(ActualHeight * 0.03, 20, 58);
         var safeMargin = new Thickness(
             horizontalMargin,
             verticalMargin,
@@ -240,49 +238,54 @@ public partial class ProjectWindow : Window
         ProjectionRoot.UpdateLayout();
 
         var text = GetProjectionTextForDisplay();
-        if (string.IsNullOrWhiteSpace(text) ||
-            ParagraphStage.ActualWidth <= 0 ||
-            ParagraphStage.ActualHeight <= 0)
+        if (string.IsNullOrWhiteSpace(text))
         {
             projectionPages.Clear();
             ParagraphTextBlock.Text = text;
             PageIndicatorTextBlock.Text = string.Empty;
             viewModel.ClearProjectionPageState();
+            deferredLayoutAttempts = 0;
             return;
         }
 
-        var availableSize = new WpfSize(ParagraphStage.ActualWidth, ParagraphStage.ActualHeight);
+        if (!TryGetAvailableProjectionSize(out var availableSize, out var fullAvailableSize))
+        {
+            ApplyPendingProjectionText(text);
+            if (deferredLayoutAttempts < MaximumDeferredLayoutAttempts)
+            {
+                deferredLayoutAttempts++;
+                Dispatcher.BeginInvoke(new Action(() => QueueProjectionUpdate(resetPage: false)), DispatcherPriority.Render);
+            }
+            else
+            {
+                App.LogStartupMessage(
+                    $"Projection layout deferred {deferredLayoutAttempts:N0} times without valid dimensions. " +
+                    $"Window={ActualWidth:0}x{ActualHeight:0}; root={ProjectionRoot.ActualWidth:0}x{ProjectionRoot.ActualHeight:0}; " +
+                    $"stage={ParagraphStage.ActualWidth:0}x{ParagraphStage.ActualHeight:0}.");
+            }
+
+            return;
+        }
+
+        deferredLayoutAttempts = 0;
 
         if (!isTestProjection && (viewModel.IsLiveBibleProjection || viewModel.IsLiveSongProjection))
         {
-            var fullAvailableSize = new WpfSize(
-                Math.Max(0, ProjectionRoot.ActualWidth),
-                Math.Max(0, ProjectionRoot.ActualHeight));
             UpdateSingleScreenProjection(text, fullAvailableSize);
             return;
         }
 
-        // Sermons remain paginated because their paragraphs can be too long for a readable single screen.
-        var minimumFontSize = GetMinimumReadableFontSize();
-        var selectedFontSize = Math.Max(viewModel.ProjectionFontSize, minimumFontSize);
-        var preferredFontSize = GetPreferredParagraphFontSize(text, selectedFontSize);
-        var singlePageMinimumFontSize = ShouldPreferPaging(text, preferredFontSize, selectedFontSize)
-            ? Math.Max(minimumFontSize, preferredFontSize - 10)
-            : minimumFontSize;
-        var fontSize = FindLargestFittingFontSize(
-            text,
-            availableSize,
-            preferredFontSize,
-            singlePageMinimumFontSize);
+        // Sermons use one stable church-readable body size. Overflow creates pages;
+        // short paragraphs are never magnified into a poster-sized block.
+        var fontSize = viewModel.SermonProjectionFontSize;
 
         projectionPages.Clear();
-        if (fontSize >= singlePageMinimumFontSize)
+        if (DoesTextFit(text, availableSize, fontSize))
         {
             projectionPages.Add(text);
         }
         else
         {
-            fontSize = Math.Max(minimumFontSize, preferredFontSize);
             projectionPages.AddRange(SplitIntoProjectionPages(text, availableSize, fontSize));
         }
 
@@ -293,7 +296,58 @@ public partial class ProjectWindow : Window
 
         currentPageIndex = Math.Clamp(currentPageIndex, 0, projectionPages.Count - 1);
         ApplyProjectionPage(fontSize);
-        ApplyResponsiveSermonTitle(fontSize);
+    }
+
+    private bool TryGetAvailableProjectionSize(out WpfSize paragraphSize, out WpfSize fullSize)
+    {
+        paragraphSize = new WpfSize(
+            Math.Max(0, ParagraphStage.ActualWidth),
+            Math.Max(0, ParagraphStage.ActualHeight));
+        fullSize = new WpfSize(
+            Math.Max(0, ProjectionRoot.ActualWidth),
+            Math.Max(0, ProjectionRoot.ActualHeight));
+
+        if (paragraphSize.Width > 1 && paragraphSize.Height > 1 && fullSize.Width > 1 && fullSize.Height > 1)
+        {
+            return true;
+        }
+
+        var rootWidth = ProjectionRoot.ActualWidth > 1 ? ProjectionRoot.ActualWidth : Math.Max(0, ActualWidth - ProjectionRoot.Margin.Left - ProjectionRoot.Margin.Right);
+        var rootHeight = ProjectionRoot.ActualHeight > 1 ? ProjectionRoot.ActualHeight : Math.Max(0, ActualHeight - ProjectionRoot.Margin.Top - ProjectionRoot.Margin.Bottom);
+        if (rootWidth <= 1 || rootHeight <= 1)
+        {
+            return false;
+        }
+
+        TitleTextBlock.Measure(new WpfSize(rootWidth, double.PositiveInfinity));
+        ParagraphNumberTextBlock.Measure(new WpfSize(rootWidth, double.PositiveInfinity));
+        PageIndicatorTextBlock.Measure(new WpfSize(rootWidth, double.PositiveInfinity));
+
+        var headerHeight = TitleTextBlock.Visibility == Visibility.Visible
+            ? TitleTextBlock.DesiredSize.Height + TitleTextBlock.Margin.Top + TitleTextBlock.Margin.Bottom
+            : 0;
+        var numberHeight = ParagraphNumberTextBlock.Visibility == Visibility.Visible
+            ? ParagraphNumberTextBlock.DesiredSize.Height + ParagraphNumberTextBlock.Margin.Top + ParagraphNumberTextBlock.Margin.Bottom
+            : 0;
+        var indicatorHeight = PageIndicatorTextBlock.Visibility == Visibility.Visible
+            ? PageIndicatorTextBlock.DesiredSize.Height + PageIndicatorTextBlock.Margin.Top + PageIndicatorTextBlock.Margin.Bottom
+            : 0;
+        var stageHeight = Math.Max(0, rootHeight - headerHeight - numberHeight - indicatorHeight);
+
+        paragraphSize = new WpfSize(rootWidth, stageHeight);
+        fullSize = new WpfSize(rootWidth, rootHeight);
+        return paragraphSize.Width > 1 && paragraphSize.Height > 1 && fullSize.Width > 1 && fullSize.Height > 1;
+    }
+
+    private void ApplyPendingProjectionText(string text)
+    {
+        var fontSize = !isTestProjection && viewModel.IsLiveSermonProjection
+            ? viewModel.SermonProjectionFontSize
+            : Math.Max(EmergencyMinimumFontSize, viewModel.ProjectionFontSize);
+        ParagraphTextBlock.FontSize = fontSize;
+        ParagraphTextBlock.LineHeight = CalculateLineHeight(fontSize);
+        ParagraphTextBlock.Text = text;
+        PageIndicatorTextBlock.Text = string.Empty;
     }
 
     private void ConfigureContentLayout()
@@ -311,7 +365,7 @@ public partial class ProjectWindow : Window
                 : viewModel.ActiveProjectionContent?.Title ?? string.Empty;
         TitleTextBlock.Visibility = usesSongLayout ? Visibility.Collapsed : Visibility.Visible;
         TitleTextBlock.FontWeight = usesSingleScreenFit ? FontWeights.Bold : FontWeights.SemiBold;
-        TitleTextBlock.FontSize = usesSingleScreenFit ? 48 : 30;
+        TitleTextBlock.FontSize = usesSingleScreenFit ? 48 : 38;
         TitleTextBlock.MaxHeight = usesSingleScreenFit ? double.PositiveInfinity : 96;
         TitleTextBlock.Margin = usesSongLayout
             ? new Thickness(0)
@@ -320,7 +374,8 @@ public partial class ProjectWindow : Window
             : new Thickness(0);
         ParagraphNumberTextBlock.Margin = usesSingleScreenFit
             ? new Thickness(0, 0, 0, 8)
-            : new Thickness(0, 12, 0, 28);
+            : new Thickness(0, 8, 0, 18);
+        ParagraphNumberTextBlock.FontSize = usesSingleScreenFit ? 22 : 28;
         ParagraphNumberTextBlock.Visibility = usesSongLayout ||
                                               (usesSingleScreenFit &&
                                                string.IsNullOrWhiteSpace(viewModel.ProjectionParagraphNumber))
@@ -331,7 +386,7 @@ public partial class ProjectWindow : Window
         PageIndicatorTextBlock.Visibility = usesSingleScreenFit
             ? Visibility.Collapsed
             : Visibility.Visible;
-        ParagraphTextBlock.TextAlignment = usesTitleOnlySongLayout ? TextAlignment.Center : TextAlignment.Left;
+        ParagraphTextBlock.TextAlignment = usesSongLayout ? TextAlignment.Center : TextAlignment.Left;
         ParagraphTextBlock.HorizontalAlignment = HorizontalAlignment.Stretch;
         ParagraphTextBlock.VerticalAlignment = VerticalAlignment.Center;
     }
@@ -344,6 +399,14 @@ public partial class ProjectWindow : Window
             return;
         }
 
+
+        if (viewModel.IsLiveBibleProjection)
+        {
+            var referenceFontSize = GetBibleReferenceFontSize(availableSize);
+            TitleTextBlock.FontSize = referenceFontSize;
+            TitleTextBlock.LineHeight = referenceFontSize * 1.08;
+        }
+
         var minimumFontSize = viewModel.IsLiveBibleProjection ? 46d : 42d;
         var viewportMaximum = GetSingleScreenMaximumFontSize(availableSize);
         var maximumFit = FindMaximumFittingFontSize(
@@ -351,9 +414,9 @@ public partial class ProjectWindow : Window
             availableSize,
             EmergencyMinimumFontSize,
             viewportMaximum);
-        var manualScale = Math.Min(1d, viewModel.ProjectionFontScale);
+        var manualOffset = Math.Min(0d, viewModel.ProjectionFontSizeOffset);
         var fontSize = maximumFit > 0
-            ? Math.Max(EmergencyMinimumFontSize, maximumFit * manualScale)
+            ? Math.Max(EmergencyMinimumFontSize, maximumFit + manualOffset)
             : 0;
 
         if (fontSize <= 0)
@@ -374,16 +437,13 @@ public partial class ProjectWindow : Window
         projectionPages.Add(text);
         currentPageIndex = 0;
         ApplyProjectionPage(fontSize);
-        if (viewModel.IsLiveBibleProjection)
-        {
-            TitleTextBlock.FontSize = fontSize;
-            TitleTextBlock.LineHeight = CalculateLineHeight(fontSize);
-        }
-
         App.LogStartupMessage(
             $"{(viewModel.IsLiveBibleProjection ? "Bible" : "Song")} maximum-fit projection: " +
             $"{fontSize:0.##}px in {availableSize.Width:0}x{availableSize.Height:0}.");
     }
+
+    private static double GetBibleReferenceFontSize(WpfSize availableSize) =>
+        Math.Clamp(availableSize.Height * 0.085, 38, 78);
 
     private void UpdateSongTitleProjection(string text, WpfSize availableSize)
     {
@@ -393,9 +453,9 @@ public partial class ProjectWindow : Window
             availableSize,
             34,
             viewportMaximum);
-        var manualScale = Math.Min(1d, viewModel.ProjectionFontScale);
+        var manualOffset = Math.Min(0d, viewModel.ProjectionFontSizeOffset);
         var fontSize = maximumFit > 0
-            ? Math.Max(EmergencyMinimumFontSize, maximumFit * manualScale)
+            ? Math.Max(EmergencyMinimumFontSize, maximumFit + manualOffset)
             : EmergencyMinimumFontSize;
 
         projectionPages.Clear();
@@ -425,7 +485,7 @@ public partial class ProjectWindow : Window
         double minimumFontSize,
         double maximumFontSize)
     {
-        if (!DoesTextFit(text, availableSize, minimumFontSize))
+        if (!DoesProjectionFit(text, availableSize, minimumFontSize))
         {
             return 0;
         }
@@ -706,7 +766,13 @@ public partial class ProjectWindow : Window
     {
         if (!isTestProjection && (viewModel.IsLiveBibleProjection || viewModel.IsLiveSongProjection))
         {
-            return fontSize * (viewModel.IsLiveBibleProjection ? 1.2 : 1.18);
+            return fontSize * (viewModel.IsLiveBibleProjection ? 1.1 : 1.12);
+        }
+
+
+        if (!isTestProjection && viewModel.IsLiveSermonProjection)
+        {
+            return fontSize * 1.14;
         }
 
         var ratio = viewModel.ProjectionFontSize > 0

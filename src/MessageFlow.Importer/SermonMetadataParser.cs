@@ -53,6 +53,9 @@ public static partial class SermonMetadataParser
     {
         return sourceContext is not null &&
                (ContainsIgnoreCase(sourceContext.DisplayName, EwaldFrankFullName) ||
+                ContainsIgnoreCase(sourceContext.DisplayName, EwaldFrankDisplayName) ||
+                ContainsIgnoreCase(sourceContext.Name, "brother_frank") ||
+                ContainsIgnoreCase(sourceContext.Name, "frank") ||
                 ContainsIgnoreCase(sourceContext.Name, "ewald_frank") ||
                 ContainsIgnoreCase(sourceContext.Name, "ewald"));
     }
@@ -99,6 +102,18 @@ public static partial class SermonMetadataParser
         }
 
         var fileName = Path.GetFileNameWithoutExtension(filePath);
+        if (IsEwaldFrankSource(sourceContext) &&
+            fileName.Contains("Revelation", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SermonMetadata(
+                "The Revelation \u2014 A Book With 7 Seals?",
+                SafeCodeFromFileName(fileName),
+                0,
+                Date: null,
+                Location: null,
+                Language: "en");
+        }
+
         var monthYear = TryFindMonthYear(fileName);
         var yearFromFile = monthYear?.Year ?? TryFindYearFromFileName(fileName);
         var treatAsCircularLetter = ShouldTreatAsCircularLetter(sourceContext, fileName, monthYear);

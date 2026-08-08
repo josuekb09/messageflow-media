@@ -1,6 +1,7 @@
 <Window x:Class="MessageFlow.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:MessageFlow.App.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -174,7 +175,7 @@
                         Margin="0,0,6,6"
                         Padding="0"
                         FontSize="14"
-                        ToolTip="Decrease projection text size" />
+                        ToolTip="Decrease text size" />
 
                 <Button Content="Fit"
                         Command="{Binding ResetProjectionTextSizeCommand}"
@@ -183,7 +184,7 @@
                         Margin="0,0,6,6"
                         Padding="0"
                         FontSize="13"
-                        ToolTip="Reset projection text size" />
+                        ToolTip="Fit text to screen" />
 
                 <Button Content="A+"
                         Command="{Binding IncreaseProjectionTextSizeCommand}"
@@ -192,7 +193,7 @@
                         Margin="0,0,0,6"
                         Padding="0"
                         FontSize="14"
-                        ToolTip="Increase projection text size" />
+                        ToolTip="Increase text size" />
                 </WrapPanel>
             </Grid>
         </Border>
@@ -237,7 +238,8 @@
                                 MinHeight="0"
                                 ClipToBounds="True"
                                 SelectionChanged="LibraryTabs_SelectionChanged">
-                        <TabItem Header="Sermons">
+                        <TabItem x:Name="SermonsTab"
+                                 Header="Sermons">
                             <Grid Margin="0,10,0,0"
                                   MinHeight="0"
                                   ClipToBounds="True">
@@ -250,7 +252,18 @@
                                            Margin="4,0,4,12"
                                            Foreground="{StaticResource MutedTextBrush}"
                                            FontSize="13"
-                                           TextWrapping="Wrap" />
+                                           TextWrapping="Wrap">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSermonReadingMode}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
 
                                 <ListBox Grid.Row="1"
                                          MinHeight="0"
@@ -258,6 +271,16 @@
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          ItemsSource="{Binding SermonResults}"
                                          SelectedItem="{Binding SelectedSermon}">
+                                    <ListBox.Style>
+                                        <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSermonReadingMode}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListBox.Style>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="{StaticResource CardPadding}"
@@ -268,6 +291,8 @@
                                                 CornerRadius="{StaticResource BorderRadius}">
                                                  <Grid>
                                                      <Grid.RowDefinitions>
+                                                         <RowDefinition Height="Auto" />
+                                                         <RowDefinition Height="Auto" />
                                                          <RowDefinition Height="Auto" />
                                                          <RowDefinition Height="Auto" />
                                                          <RowDefinition Height="Auto" />
@@ -290,11 +315,25 @@
                                                                 FontSize="13"
                                                                 LineHeight="19"
                                                                 TextWrapping="Wrap" />
+                                                     <controls:HighlightedTextBlock Grid.Row="3"
+                                                                                    Margin="0,7,0,0"
+                                                                                    SourceText="{Binding BestMatchLine}"
+                                                                                    HighlightQuery="{Binding DataContext.SearchText, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                                    Foreground="{StaticResource MutedTextBrush}"
+                                                                                    FontSize="12"
+                                                                                    LineHeight="17"
+                                                                                    TextWrapping="Wrap" />
+                                                     <Button Grid.Row="4"
+                                                             Margin="0,10,0,0"
+                                                             Content="Open Sermon"
+                                                             ToolTip="Open every paragraph in this Sermon for focused reading"
+                                                             Command="{Binding DataContext.OpenSermonCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                             CommandParameter="{Binding}" />
                                                  </Grid>
                                              </Border>
                                          </DataTemplate>
                                      </ListBox.ItemTemplate>
-                                </ListBox>
+                                 </ListBox>
                             </Grid>
                         </TabItem>
 
@@ -969,29 +1008,56 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="16,14,16,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding CenterPanelTitle}"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
+                        <Button Grid.Column="0"
+                                Margin="0,0,10,0"
+                                Padding="8,4"
+                                Content="← Back"
+                                ToolTip="Return to the previous global Sermon results"
+                                Command="{Binding BackToSermonSearchResultsCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSermonReadingMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <TextBlock Grid.Column="1"
-                                   Margin="14,0,0,0"
+                                   Text="{Binding CenterPanelTitle}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   ToolTip="{Binding CenterPanelTitle}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   Margin="0,5,0,0"
                                    Text="{Binding StatusText}"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    FontSize="13"
                                    HorizontalAlignment="Right"
-                                   TextTrimming="CharacterEllipsis" />
+                                   TextWrapping="Wrap" />
                     </Grid>
 
-                    <ListBox Grid.Row="1"
+                    <ListBox x:Name="ParagraphResultsList"
+                             Grid.Row="1"
                              Margin="10,0,10,10"
                              MinHeight="0"
                              ScrollViewer.VerticalScrollBarVisibility="Visible"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ItemsSource="{Binding ParagraphResults}"
-                             SelectedItem="{Binding SelectedParagraph}">
+                             SelectedItem="{Binding SelectedParagraph}"
+                             SelectionChanged="ParagraphResultsList_SelectionChanged">
                         <ListBox.Style>
                             <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                 <Setter Property="Visibility" Value="Visible" />
@@ -1048,14 +1114,15 @@
                                                         Foreground="{StaticResource MutedTextBrush}"
                                                         FontSize="13"
                                                         TextWrapping="Wrap" />
-                                            <TextBlock Grid.Row="2"
-                                                       Margin="0,9,0,0"
-                                                       Text="{Binding ParagraphTextPreview}"
-                                                       FontSize="17"
-                                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                                       TextWrapping="Wrap"
-                                                       LineHeight="24"
-                                                       MaxHeight="96" />
+                                            <controls:HighlightedTextBlock Grid.Row="2"
+                                                                           Margin="0,9,0,0"
+                                                                           SourceText="{Binding ParagraphTextPreview}"
+                                                                           HighlightQuery="{Binding DataContext.SermonHighlightQuery, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                           FontSize="17"
+                                                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                                                           TextWrapping="Wrap"
+                                                                           LineHeight="24"
+                                                                           MaxHeight="96" />
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -1272,6 +1339,54 @@
                                    FontSize="12"
                                    LineHeight="16"
                                    TextWrapping="Wrap" />
+                        <Button Margin="0,8,0,0"
+                                Content="Open Sermon"
+                                ToolTip="Open every paragraph in the selected Sermon for focused reading"
+                                Command="{Binding OpenSermonCommand}"
+                                CommandParameter="{Binding SelectedSermon}"
+                                Visibility="{Binding IsSermonGlobalSearchMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <Grid Margin="0,8,0,0"
+                              Visibility="{Binding IsSermonReadingMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBox x:Name="SermonWithinSearchBox"
+                                     Text="{Binding SermonWithinSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Find in selected sermon"
+                                     VerticalContentAlignment="Center" />
+                            <Grid Grid.Row="1" Margin="0,5,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0"
+                                        Command="{Binding PreviousSermonWithinMatchCommand}"
+                                        Style="{StaticResource RightPanelButtonStyle}">
+                                    <TextBlock Text="Previous Match" TextAlignment="Center" TextWrapping="Wrap" />
+                                </Button>
+                                <Button Grid.Column="2"
+                                        Command="{Binding NextSermonWithinMatchCommand}"
+                                        Style="{StaticResource RightPanelButtonStyle}">
+                                    <TextBlock Text="Next Match" TextAlignment="Center" TextWrapping="Wrap" />
+                                </Button>
+                                <Button Grid.Column="4"
+                                        Command="{Binding ClearSermonWithinSearchCommand}"
+                                        Style="{StaticResource RightPanelButtonStyle}">
+                                    <TextBlock Text="Clear" TextAlignment="Center" TextWrapping="Wrap" />
+                                </Button>
+                            </Grid>
+                            <TextBlock Grid.Row="2"
+                                       Margin="0,5,0,0"
+                                       Text="{Binding SermonWithinSearchStatus}"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap" />
+                        </Grid>
                     </StackPanel>
 
                     <ScrollViewer Grid.Row="1"
@@ -1279,11 +1394,12 @@
                                   MinHeight="0"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
-                        <TextBlock Text="{Binding PreviewText}"
-                                   FontSize="19"
-                                   LineHeight="26"
-                                   TextWrapping="Wrap"
-                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                        <controls:HighlightedTextBlock SourceText="{Binding PreviewText}"
+                                                       HighlightQuery="{Binding PreviewHighlightQuery}"
+                                                       FontSize="19"
+                                                       LineHeight="26"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{StaticResource PrimaryTextBrush}" />
                     </ScrollViewer>
 
                     <StackPanel Grid.Row="2">
@@ -1357,7 +1473,8 @@
                             </Grid>
                         </Grid>
 
-                        <Grid Margin="0,4,0,0">
+                        <Grid Margin="0,4,0,0"
+                              Visibility="{Binding CanShowSelectionNavigation, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="8" />

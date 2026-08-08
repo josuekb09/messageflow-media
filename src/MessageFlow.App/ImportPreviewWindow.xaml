@@ -4,8 +4,8 @@
         Title="Import Preview"
         Height="620"
         Width="700"
-        MinHeight="560"
-        MinWidth="620"
+        MinHeight="500"
+        MinWidth="560"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackgroundBrush}"
         ResizeMode="CanResize">

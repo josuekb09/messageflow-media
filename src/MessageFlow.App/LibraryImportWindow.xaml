@@ -1,0 +1,93 @@
+<Window x:Class="MessageFlow.App.LibraryImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Library Import"
+        Width="1060"
+        Height="720"
+        MinWidth="900"
+        MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource WindowBackgroundBrush}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="Library Import"
+                       FontSize="26"
+                       FontWeight="SemiBold" />
+            <TextBlock Margin="0,6,0,0"
+                       Text="Import files already downloaded to this computer. Accepted files are copied into MessageFlow-managed storage. No Internet access, AI completion, or OCR is used."
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,18,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="ContentTypeBox"
+                      SelectedIndex="0"
+                      MinHeight="38">
+                <ComboBoxItem Content="Brother Frank Publications" />
+                <ComboBoxItem Content="Additional Songs" />
+            </ComboBox>
+            <Button Grid.Column="2"
+                    Content="Browse Files"
+                    ToolTip="Choose one or more local files"
+                    Click="BrowseFiles_Click" />
+            <Button Grid.Column="4"
+                    Content="Browse Folder"
+                    ToolTip="Choose a local folder to scan"
+                    Click="BrowseFolder_Click" />
+        </Grid>
+
+        <DataGrid x:Name="CandidatesGrid"
+                  Grid.Row="2"
+                  ItemsSource="{Binding Candidates}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  SelectionMode="Single"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal">
+            <DataGrid.Columns>
+                <DataGridCheckBoxColumn Header="Import" Binding="{Binding IsSelected}" Width="64" />
+                <DataGridTextColumn Header="File" Binding="{Binding FileName}" IsReadOnly="True" Width="190" />
+                <DataGridTextColumn Header="Title (editable)" Binding="{Binding Title, UpdateSourceTrigger=PropertyChanged}" Width="240" />
+                <DataGridTextColumn Header="Items" Binding="{Binding ItemCount}" IsReadOnly="True" Width="70" />
+                <DataGridTextColumn Header="Scan / Import status" Binding="{Binding Status}" IsReadOnly="True" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="110" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusTextBlock"
+                       Text="Choose files or a folder, then review the scan results."
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+            <Button x:Name="ImportButton"
+                    Grid.Column="1"
+                    Content="Import Selected"
+                    ToolTip="Copy and transactionally import checked files"
+                    Click="ImportSelected_Click" />
+            <Button Grid.Column="3"
+                    Content="Close"
+                    Click="Close_Click" />
+        </Grid>
+    </Grid>
+</Window>

@@ -8,8 +8,15 @@ public sealed record SermonResultViewModel(
     int ParagraphCount,
     string AuthorDisplayName = "",
     string SourceDisplayName = "",
-    string SourceType = "")
+    string SourceType = "",
+    string BestMatchPreview = "")
 {
+    public string MatchCountDisplay => $"{ParagraphCount:N0} {(ParagraphCount == 1 ? "match" : "matches")}";
+
+    public string BestMatchLine => string.IsNullOrWhiteSpace(BestMatchPreview)
+        ? MatchCountDisplay
+        : $"{MatchCountDisplay} - {BestMatchPreview}";
+
     public string ContentTypeDisplay => ContentSourceTypeOption.GetLabel(SourceType);
 
     public bool IsCircularLetter =>

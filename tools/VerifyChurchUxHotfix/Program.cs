@@ -1,8 +1,12 @@
 using System.Reflection;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.IO;
 using MessageFlow.App;
+using MessageFlow.App.Controls;
 using MessageFlow.App.ViewModels;
 using MessageFlow.Data;
 using MessageFlow.Search;
@@ -10,18 +14,26 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-var checks = new (string Name, Func<Task<string>> Run)[]
+var checks = new List<(string Name, Func<Task<string>> Run)>
 {
     ("selected-sermon pattern rules", PatternRules),
+    ("operator search highlighting", OperatorSearchHighlighting),
     ("database-backed global sermon search", GlobalSearch),
     ("database-backed selected-sermon search", SelectedSermonSearch),
     ("selected-sermon full loading by stable id", FullSelectedSermonLoad),
-    ("selected-sermon stale guard and match navigation", StaleGuardAndMatchNavigation),
+    ("reading-mode isolation, stale guard, and navigation", StaleGuardAndMatchNavigation),
+    ("global sermon search response time", GlobalSearchPerformance),
     ("song public body snapshot", SongBodySnapshot),
     ("song title slide fit rules", SongTitleSlideFitRules),
     ("live navigation identity rules", LiveNavigationRules),
-    ("projection display window rules", ProjectionDisplayRules)
+    ("projection display window rules", ProjectionDisplayRules),
+    ("sermon projection typography and pagination", SermonProjectionTypography)
 };
+
+if (args.Contains("--include-import", StringComparer.OrdinalIgnoreCase))
+{
+    checks.Add(("temporary managed library import", TemporaryManagedLibraryImport));
+}
 
 var failures = new List<string>();
 foreach (var check in checks)
@@ -46,7 +58,7 @@ if (failures.Count > 0)
 }
 
 Console.WriteLine();
-Console.WriteLine($"{checks.Length} church UX hotfix verification checks passed.");
+Console.WriteLine($"{checks.Count} church UX hotfix verification checks passed.");
 return 0;
 
 static Task<string> PatternRules()
@@ -89,6 +101,147 @@ static Task<string> PatternRules()
     Assert(SermonTextSearchPattern.Create("\"a nonexistent phrase\"").Match("This paragraph contains other text.") is null, "no-result query should return zero matches");
 
     return Task.FromResult($"multi-word, exact phrase, long phrase, apostrophes, whitespace, punctuation, malformed quote, and no-result probes passed; phrase score {phrase.Score} < scattered score {scattered.Score}.");
+}
+
+static Task<string> OperatorSearchHighlighting()
+{
+    Exception? failure = null;
+    string? detail = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var phrase = new HighlightedTextBlock
+            {
+                SourceText = "Jesus had said this before.",
+                HighlightQuery = "Jesus had said"
+            };
+            Assert(HighlightedText(phrase) == "Jesus had said", "unquoted contiguous phrase should highlight the phrase");
+
+            var terms = new HighlightedTextBlock
+            {
+                SourceText = "Jesus paused, had mercy, and said it.",
+                HighlightQuery = "Jesus had said"
+            };
+            Assert(HighlightedText(terms) == "Jesus|had|said", "unquoted non-contiguous query should highlight each matched term");
+
+            var exact = new HighlightedTextBlock
+            {
+                SourceText = "Jesus paused, had mercy, and said it.",
+                HighlightQuery = "\"Jesus had said\""
+            };
+            Assert(HighlightedText(exact).Length == 0, "quoted phrase should not broaden to separated terms");
+
+            var smartApostrophe = new HighlightedTextBlock
+            {
+                SourceText = "We don\u2019t change punctuation.",
+                HighlightQuery = "don't"
+            };
+            Assert(HighlightedText(smartApostrophe) == "don\u2019t", "highlight should preserve visible smart apostrophe text");
+
+            detail = "phrase, term, exact no-broaden, and smart-apostrophe highlighted runs preserve source text.";
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+        finally
+        {
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
+        }
+    });
+
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+
+    if (failure is not null)
+    {
+        throw new InvalidOperationException(failure.Message, failure);
+    }
+
+    return Task.FromResult(detail ?? "operator highlighting verified.");
+}
+
+static async Task<string> TemporaryManagedLibraryImport()
+{
+    var tempRoot = Path.Combine(Path.GetTempPath(), $"MessageFlowChurchUx-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(tempRoot);
+    try
+    {
+        var intake = Path.Combine(tempRoot, "intake");
+        var managed = Path.Combine(tempRoot, "managed");
+        Directory.CreateDirectory(intake);
+        var songPath = Path.Combine(intake, "Controlled Test Song.txt");
+        await File.WriteAllTextAsync(songPath, "CONTROLLED TEST SONG\nExact first line\nRepeated line\nRepeated line\n\nSecond section\nFinal line");
+
+        string sourcePdf;
+        await using (var production = CreateDb())
+        {
+            var paths = await production.Sermons.AsNoTracking().Select(sermon => sermon.SourceFilePath).ToListAsync();
+            sourcePdf = paths.FirstOrDefault(File.Exists)
+                ?? throw new InvalidOperationException("No local text-based Sermon PDF was available for the temporary import probe.");
+        }
+
+        var pdfPath = Path.Combine(intake, "Controlled Brother Frank Sermon.pdf");
+        File.Copy(sourcePdf, pdfPath);
+        var databasePath = Path.Combine(tempRoot, "custom-test.db");
+        var options = new DbContextOptionsBuilder<MessageFlowDbContext>().UseSqlite($"Data Source={databasePath}").Options;
+
+        string sermonTitle;
+        await using (var db = new MessageFlowDbContext(options))
+        {
+            await db.Database.EnsureCreatedAsync();
+            var importer = new LocalLibraryImportService(db, managed);
+            var sermon = await importer.ScanAsync(pdfPath, LocalLibraryImportService.SermonType);
+            Assert(sermon.CanImport && sermon.ItemCount > 0, $"controlled text PDF should scan successfully: {sermon.Status}");
+            sermon.Title = "Controlled Brother Frank Import";
+            sermon.IsSelected = true;
+            sermonTitle = sermon.Title;
+
+            var song = await importer.ScanAsync(songPath, LocalLibraryImportService.SongType);
+            Assert(song.CanImport && song.ItemCount == 2, $"structured TXT should scan as two ordered sections: {song.Status}");
+            song.Title = "Controlled Test Song";
+            song.IsSelected = true;
+
+            var imported = await importer.ImportAsync([sermon, song]);
+            Assert(imported == 2, "two controlled items should import transactionally");
+            Assert(await db.Sermons.AnyAsync(item =>
+                    item.Title == sermonTitle &&
+                    item.Author!.FullName == "Ewald Frank" &&
+                    item.Author.DisplayName == "Brother Frank" &&
+                    item.ContentSource!.DisplayName == "Brother Frank Publications" &&
+                    item.ContentSource.SourceType == "Book"),
+                "Brother Frank author, source identity, and document type should be stored separately");
+            Assert(await db.Songs.AnyAsync(item => item.Title == song.Title && item.SourceFolder == "Custom Song"), "custom Song identity should be stored");
+        }
+
+        var movedIntake = Path.Combine(tempRoot, "originals-moved");
+        Directory.Move(intake, movedIntake);
+        await using (var reopened = new MessageFlowDbContext(options))
+        {
+            var sermonSearch = new SermonSearchService(reopened);
+            var sermonResults = await sermonSearch.SearchAsync(sermonTitle, 20);
+            Assert(sermonResults.Any(result => result.SermonTitle == sermonTitle), "managed Sermon should remain searchable after restart and original-folder move");
+            var songSearch = new SongSearchService(reopened);
+            var songResults = await songSearch.SearchAsync(new SongSearchQuery("Repeated line", 20));
+            Assert(songResults.Any(result => result.Title == "Controlled Test Song"), "managed Song should remain lyric-searchable after restart and original-folder move");
+            Assert((await reopened.Sermons.SingleAsync(item => item.Title == sermonTitle)).SourceFilePath.StartsWith(managed, StringComparison.OrdinalIgnoreCase), "Sermon should reference managed storage");
+        }
+
+        return "Brother Frank PDF and structured Song TXT scanned, imported to an isolated database, reopened, searched, and survived moving the original folder.";
+    }
+    finally
+    {
+        SqliteConnection.ClearAllPools();
+        var resolved = Path.GetFullPath(tempRoot);
+        var tempBase = Path.GetFullPath(Path.GetTempPath());
+        if (resolved.StartsWith(tempBase, StringComparison.OrdinalIgnoreCase) &&
+            Path.GetFileName(resolved).StartsWith("MessageFlowChurchUx-", StringComparison.Ordinal))
+        {
+            Directory.Delete(resolved, recursive: true);
+        }
+    }
 }
 
 static Task<string> SongBodySnapshot()
@@ -180,10 +333,10 @@ static Task<string> SongTitleSlideFitRules()
             InvokeVoid(window, "ConfigureContentLayout", Type.EmptyTypes);
             Assert(!InvokeInstance<bool>(window, "IsSongTitleOnlySlide", [typeof(string)], lyricBody), "later Song 116 lyric slide should not be treated as a title slide");
             Assert(titleBlock.Visibility == Visibility.Collapsed, "later song lyric slide should not add metadata header");
-            Assert(paragraph.TextAlignment == TextAlignment.Left, "later song lyric slide should remain left aligned");
+            Assert(paragraph.TextAlignment == TextAlignment.Center, "later song lyric slide should be centered within the full stage");
             Assert(paragraph.TextWrapping == TextWrapping.Wrap, "later song lyric slide should still measure wrapped width safely");
 
-            detail = $"Song 111 fitted at {fitted:0.##}px in {size.Width:0}x{size.Height:0}; Song 116 title centered; later lyric left aligned.";
+            detail = $"Song 111 fitted at {fitted:0.##}px in {size.Width:0}x{size.Height:0}; Song 116 title centered; later lyrics centered in the full stage.";
         }
         catch (Exception ex)
         {
@@ -241,6 +394,17 @@ static async Task<string> GlobalSearch()
     var jesus = await CheckPhraseSearch(db, search, "Jesus had said", "Jesus had said", exact: false, everyResultContainsPhrase: false);
     var quotedJesus = await CheckPhraseSearch(db, search, "\"Jesus had said\"", "Jesus had said", exact: true, everyResultContainsPhrase: true);
     var faith = await CheckTitleSearch(db, search, "Faith Is the Substance", "Faith Is the Substance");
+    var longSource = await db.SermonParagraphs.AsNoTracking()
+        .Where(paragraph => paragraph.Text.Length > 220)
+        .OrderBy(paragraph => paragraph.Id)
+        .Select(paragraph => new Row(paragraph.SermonId, paragraph.Id, paragraph.Sermon!.Title, paragraph.Sermon.SermonCode, paragraph.Sermon.Year, paragraph.ParagraphNumber, paragraph.Text))
+        .FirstAsync();
+    var longPhrase = StoredPhrase(longSource.Text, 14);
+    var longUnquoted = await search.SearchAsync(longPhrase, 200);
+    var longQuoted = await search.SearchAsync($"\"{longPhrase}\"", 200);
+    Assert(longUnquoted.Any(result => result.ParagraphId == longSource.ParagraphId), "global long unquoted sentence should retain and match all terms");
+    Assert(longQuoted.Any(result => result.ParagraphId == longSource.ParagraphId), "global long quoted sentence should retain the complete phrase");
+    Assert(longQuoted.All(result => ContainsPhrase(result.FullParagraphText, longPhrase)), "quoted global long sentence should not broaden to a prefix");
 
     var straight = await search.SearchAsync("don't", 100);
     var smart = await search.SearchAsync("don\u2019t", 100);
@@ -256,7 +420,46 @@ static async Task<string> GlobalSearch()
     var malformed = await search.SearchAsync("\"Jesus had said", 100);
     await CheckIntegrity(db, "malformed quote", malformed);
 
-    return $"DB={databasePath}; Wedding Ceremony={Fmt(wedding)}; Why Little Bethlehem={Fmt(bethlehem)}; Jesus had said={Fmt(jesus)}; quoted Jesus had said={Fmt(quotedJesus)}; Faith Is the Substance={Fmt(faith)}; apostrophe results={straight.Count}/{smart.Count}; nonexistent={none.Count}; malformedQuote={malformed.Count}.";
+    return $"DB={databasePath}; Wedding Ceremony={Fmt(wedding)}; Why Little Bethlehem={Fmt(bethlehem)}; Jesus had said={Fmt(jesus)}; quoted Jesus had said={Fmt(quotedJesus)}; Faith Is the Substance={Fmt(faith)}; long sentence tokens=14; apostrophe results={straight.Count}/{smart.Count}; nonexistent={none.Count}; malformedQuote={malformed.Count}.";
+}
+
+static async Task<string> GlobalSearchPerformance()
+{
+    await using var db = CreateDb();
+    var search = new SermonSearchService(db);
+    string[] queries =
+    [
+        "Jesus had said",
+        "\"Jesus had said\"",
+        "and so we",
+        "\"and so we\"",
+        "Wedding Ceremony",
+        "Why Little Bethlehem"
+    ];
+    var firstRun = new Dictionary<string, long>(StringComparer.Ordinal);
+    var warmRun = new Dictionary<string, long>(StringComparer.Ordinal);
+
+    foreach (var query in queries)
+    {
+        var timer = Stopwatch.StartNew();
+        var results = await search.SearchAsync(query, 200);
+        timer.Stop();
+        Assert(results.Count > 0, $"{query} should return results during performance verification");
+        firstRun[query] = timer.ElapsedMilliseconds;
+        Assert(timer.Elapsed < TimeSpan.FromSeconds(2), $"first-run search for {query} exceeded 2 seconds ({timer.Elapsed.TotalMilliseconds:0} ms)");
+    }
+
+    foreach (var query in queries)
+    {
+        var timer = Stopwatch.StartNew();
+        var results = await search.SearchAsync(query, 200);
+        timer.Stop();
+        Assert(results.Count > 0, $"{query} should return warm results");
+        warmRun[query] = timer.ElapsedMilliseconds;
+        Assert(timer.Elapsed < TimeSpan.FromMilliseconds(500), $"warm search for {query} exceeded 500 ms ({timer.Elapsed.TotalMilliseconds:0} ms)");
+    }
+
+    return string.Join("; ", queries.Select(query => $"{query}={firstRun[query]} ms first/{warmRun[query]} ms warm"));
 }
 
 static async Task<string> SelectedSermonSearch()
@@ -303,18 +506,26 @@ static async Task<string> SelectedSermonSearch()
 
 static async Task<string> FullSelectedSermonLoad()
 {
-    await using var db = CreateDb();
-    var seed = await FindParagraphContaining(db, "AND SO WE");
-    var expected = await db.SermonParagraphs.AsNoTracking().CountAsync(p => p.SermonId == seed.SermonId);
-
     var provider = CreateProvider();
     var vm = new MainViewModel(provider.GetRequiredService<IServiceScopeFactory>());
-    var loaded = await InvokeTask<List<ParagraphResultViewModel>>(vm, "LoadSermonParagraphsAsync", [typeof(int), typeof(CancellationToken)], seed.SermonId, CancellationToken.None);
+    vm.SearchText = "and so we";
+    await vm.SearchNowAsync();
+    var selected = vm.SelectedSermon ?? throw new InvalidOperationException("global search did not select a Sermon result");
+    Assert(!vm.IsSermonReadingMode, "selecting a global result should remain in global search mode");
+    Assert(vm.ParagraphResults.Count > 0 && vm.ParagraphResults.All(item => item.SermonId == selected.SermonId), "global result selection should show only matching previews for that result");
 
-    Assert(loaded.Count == expected, "view-model selected-sermon load should return the full sermon paragraph count");
-    Assert(loaded.All(p => p.SermonId == seed.SermonId), "view-model selected-sermon load should only return paragraphs from the selected sermon id");
-    Assert(loaded.Any(p => p.ParagraphId == seed.ParagraphId), "view-model selected-sermon load should include the seed paragraph by stable id");
-    return $"{seed.Title} ({seed.Code}) loaded {loaded.Count:N0}/{expected:N0} paragraphs by SermonId {seed.SermonId}.";
+    await using var db = CreateDb();
+    var expected = await db.SermonParagraphs.AsNoTracking().CountAsync(p => p.SermonId == selected.SermonId);
+    await InvokeTaskVoid(vm, "OpenSermonAsync", [typeof(SermonResultViewModel)], selected);
+    Assert(vm.IsSermonReadingMode, "Open Sermon should enter explicit selected-sermon reading mode");
+    Assert(vm.ParagraphResults.Count == expected, "reading mode should load the full sermon paragraph count");
+    Assert(vm.ParagraphResults.All(p => p.SermonId == selected.SermonId), "reading mode should hide unrelated Sermons");
+
+    InvokeVoid(vm, "BackToSermonSearchResults", Type.EmptyTypes);
+    Assert(!vm.IsSermonReadingMode, "Back to Search Results should leave reading mode");
+    Assert(vm.SearchText == "and so we", "Back to Search Results should preserve the global query");
+    Assert(vm.ParagraphResults.Count > 0 && vm.ParagraphResults.Count < expected, "Back should restore the previous global match subset");
+    return $"{selected.Title} ({selected.SermonCode}) opened {expected:N0} paragraphs by stable SermonId, hid unrelated Sermons, and restored query/results on Back.";
 }
 
 static async Task<SearchResult> CheckTitleSearch(MessageFlowDbContext db, ISermonSearchService search, string query, string expectedTitle)
@@ -398,18 +609,22 @@ static async Task<string> StaleGuardAndMatchNavigation()
         SourceKey = "existing"
     };
 
-    SetField(vm, "selectedSermon", selected);
+    await InvokeTaskVoid(vm, "OpenSermonAsync", [typeof(SermonResultViewModel)], selected);
+    var fullParagraphCount = vm.ParagraphResults.Count;
+    Assert(vm.FocusedSermonId == sermon.SermonId, "opening should establish a stable focused Sermon identity");
+    Assert(fullParagraphCount > 0 && vm.FocusedSermonParagraphCount == fullParagraphCount, "opening should load the full document exactly once into the focused collection");
+
     SetField(vm, "sermonWithinSearchText", "Jesus");
     SetField(vm, "sermonWithinSearchRequestVersion", 2);
     SetField(vm, "activeProjectionContent", live);
 
     await InvokeTaskVoid(vm, "ApplySermonWithinSearchAsync", [typeof(string), typeof(int), typeof(CancellationToken)], "and so we", 1, CancellationToken.None);
-    Assert(vm.ParagraphResults.Count == 0, "stale query A should not publish results after query B is current");
+    Assert(vm.ParagraphResults.Count == fullParagraphCount, "stale query A should not replace the full focused document");
 
     await InvokeTaskVoid(vm, "ApplySermonWithinSearchAsync", [typeof(string), typeof(int), typeof(CancellationToken)], "Jesus", 2, CancellationToken.None);
     var matches = GetField<List<ParagraphResultViewModel>>(vm, "sermonWithinMatches");
     Assert(matches.Count >= 2, "current query should produce at least two matches for navigation");
-    Assert(vm.ParagraphResults.All(p => p.SermonId == sermon.SermonId), "current result set should stay scoped to the selected sermon");
+    Assert(vm.ParagraphResults.Count == fullParagraphCount && vm.ParagraphResults.All(p => p.SermonId == sermon.SermonId), "internal matches must not replace or broaden the full focused document");
     Assert(Equals(GetField<ProjectedContentSnapshot?>(vm, "activeProjectionContent"), live), "selecting the first match should not modify active projection content");
 
     var first = vm.SelectedParagraph?.ParagraphId ?? throw new InvalidOperationException("current query did not select a match");
@@ -428,13 +643,33 @@ static async Task<string> StaleGuardAndMatchNavigation()
     await InvokeTaskVoid(vm, "SelectPreviousSermonWithinMatchAsync", Type.EmptyTypes);
     Assert(GetField<int>(vm, "sermonWithinMatchIndex") == matches.Count - 1, "Previous Match boundary should wrap safely");
 
+    var selectedBeforeNoMatch = vm.SelectedParagraph?.ParagraphId;
+    SetField(vm, "sermonWithinSearchText", "phrase-that-does-not-exist-938471");
+    SetField(vm, "sermonWithinSearchRequestVersion", 3);
+    await InvokeTaskVoid(vm, "ApplySermonWithinSearchAsync", [typeof(string), typeof(int), typeof(CancellationToken)], "phrase-that-does-not-exist-938471", 3, CancellationToken.None);
+    Assert(vm.FocusedSermonMatchCount == 0, "no-result internal search should publish zero matches");
+    Assert(vm.SelectedParagraph?.ParagraphId == selectedBeforeNoMatch, "no-result internal search should preserve the current paragraph");
+    Assert(vm.ParagraphResults.Count == fullParagraphCount, "no-result internal search should preserve the full document");
+
     InvokeVoid(vm, "ClearSermonWithinSearch", Type.EmptyTypes);
     Assert(string.IsNullOrEmpty(vm.SermonWithinSearchText), "clearing selected-sermon search should clear the query text");
     Assert(GetField<List<ParagraphResultViewModel>>(vm, "sermonWithinMatches").Count == 0, "clearing selected-sermon search should clear match state");
     Assert(GetField<int>(vm, "sermonWithinMatchIndex") == -1, "clearing selected-sermon search should reset match index");
     Assert(Equals(GetField<ProjectedContentSnapshot?>(vm, "activeProjectionContent"), live), "match navigation and clearing should not modify active projection content");
+    Assert(vm.ParagraphResults.Count == fullParagraphCount && vm.FocusedSermonId == sermon.SermonId, "Clear should preserve focus identity and the full paragraph collection");
 
-    return $"selected={sermon.Title} ({sermon.Code}); matches={matches.Count}; stale query ignored; next/previous/boundary/clear kept live snapshot unchanged.";
+    vm.SetSermonWorkspaceActive(false);
+    vm.SetBibleMode(true);
+    Assert(!vm.IsSermonReadingMode && !vm.IsSermonGlobalSearchMode, "Bible tab should expose no Sermon reading/search state");
+    Assert(vm.CanShowSelectionNavigation, "Bible tab should expose Bible navigation");
+    Assert(string.IsNullOrEmpty(vm.SermonWithinSearchText) && vm.FocusedSermonMatchCount == 0, "leaving Sermons should clear transient internal-search state");
+    Assert(vm.FocusedSermonId == sermon.SermonId && vm.FocusedSermonParagraphCount == fullParagraphCount, "leaving Sermons should retain the focused document for return");
+
+    vm.SetBibleMode(false);
+    vm.SetSermonWorkspaceActive(true);
+    Assert(vm.IsSermonReadingMode && vm.FocusedSermonId == sermon.SermonId, "returning to Sermons should restore the same focused reading document");
+
+    return $"selected={sermon.Title} ({sermon.Code}); full={fullParagraphCount}; matches={matches.Count}; stale/no-result/clear/tab transitions preserved focus and live identity.";
 }
 
 static Task<string> ProjectionDisplayRules()
@@ -498,6 +733,82 @@ static Task<string> ProjectionDisplayRules()
     }
 
     return Task.FromResult(detail ?? "projection display rules verified.");
+}
+
+static Task<string> SermonProjectionTypography()
+{
+    Exception? failure = null;
+    string? detail = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var provider = CreateProvider();
+            var vm = new MainViewModel(provider.GetRequiredService<IServiceScopeFactory>());
+            var snapshot = new ProjectedContentSnapshot(
+                ProjectionContentType.Sermon,
+                "Stable Sermon Title",
+                "Paragraph 27",
+                "A short paragraph for stable projection sizing.")
+            {
+                SourceId = 42,
+                ItemId = 42027,
+                ItemNumber = 27,
+                ItemOrder = 27,
+                SourceKey = "TEST-42"
+            };
+            SetField(vm, "activeProjectionContent", snapshot);
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 60) < 0.1, "Sermon Fit should restore the 60-DIP default");
+
+            vm.IncreaseProjectionTextSizeCommand.Execute(null);
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 62) < 0.1, "Sermon A+ should add exactly 2 DIPs");
+            vm.DecreaseProjectionTextSizeCommand.Execute(null);
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 60) < 0.1, "Sermon A- should subtract exactly 2 DIPs");
+            vm.ResetProjectionTextSizeCommand.Execute(null);
+
+            var window = new ProjectWindow(vm);
+            InvokeVoid(window, "ConfigureContentLayout", Type.EmptyTypes);
+            var paragraph = GetField<TextBlock>(window, "ParagraphTextBlock");
+            var title = GetField<TextBlock>(window, "TitleTextBlock");
+            var number = GetField<TextBlock>(window, "ParagraphNumberTextBlock");
+            var available = new Size(1500, 700);
+
+            Assert(Math.Abs(title.FontSize - 38) < 0.1, "Sermon title should remain compact at 38 DIPs");
+            Assert(Math.Abs(number.FontSize - 28) < 0.1, "Sermon paragraph label should remain compact at 28 DIPs");
+            Assert(Math.Abs(InvokeInstance<double>(window, "CalculateLineHeight", [typeof(double)], 60d) - 68.4) < 0.1, "Sermon body line height should be 1.14");
+            Assert(InvokeInstance<bool>(window, "DoesTextFit", [typeof(string), typeof(Size), typeof(double)], snapshot.BodyText, available, 60d), "short Sermon paragraph should fit at the stable default without enlargement");
+
+            var longText = string.Join(' ', Enumerable.Repeat("This sentence verifies safe projection pagination without changing the chosen body size.", 90));
+            var pages = InvokeInstance<IReadOnlyList<string>>(window, "SplitIntoProjectionPages", [typeof(string), typeof(Size), typeof(double)], longText, available, 60d);
+            Assert(pages.Count > 1, "long Sermon paragraph should paginate");
+            Assert(pages.All(page => InvokeInstance<bool>(window, "DoesTextFit", [typeof(string), typeof(Size), typeof(double)], page, available, 60d)), "every Sermon page should fit at the same 60-DIP size");
+            Assert(paragraph.LayoutTransform == Transform.Identity && paragraph.RenderTransform == Transform.Identity, "projection should not use scale transforms");
+
+            var bibleReference = InvokeStatic<double>(typeof(ProjectWindow), "GetBibleReferenceFontSize", [typeof(Size)], new Size(1600, 900));
+            Assert(bibleReference >= 38 && bibleReference <= 78, "Bible reference should remain within the compact header band");
+
+            detail = $"default=60 DIP; A-/A+=2 DIP; title=38; label=28; long paragraph={pages.Count} pages at one font size; Bible reference={bibleReference:0.#}.";
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+        finally
+        {
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
+        }
+    });
+
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+
+    if (failure is not null)
+    {
+        throw new InvalidOperationException(failure.Message, failure);
+    }
+
+    return Task.FromResult(detail ?? "Sermon projection typography verified.");
 }
 
 static async Task<Row> FindParagraphContaining(MessageFlowDbContext db, string normalizedPhrase)
@@ -610,18 +921,8 @@ static ServiceProvider CreateProvider()
 {
     return new ServiceCollection()
         .AddDbContext<MessageFlowDbContext>(options => options.UseSqlite(ReadOnlyConnectionString()))
+        .AddScoped<ISermonSearchService, SermonSearchService>()
         .BuildServiceProvider();
-}
-
-static async Task<T> InvokeTask<T>(object instance, string methodName, Type[] parameterTypes, params object?[] args)
-{
-    var result = PrivateMethod(instance.GetType(), methodName, parameterTypes).Invoke(instance, args);
-    if (result is Task<T> task)
-    {
-        return await task;
-    }
-
-    throw new InvalidOperationException($"Private method {methodName} did not return Task<{typeof(T).Name}>.");
 }
 
 static async Task InvokeTaskVoid(object instance, string methodName, Type[] parameterTypes, params object?[] args)
@@ -678,6 +979,16 @@ static void SetField<T>(object instance, string name, T value)
     var field = instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
         ?? throw new MissingFieldException(instance.GetType().FullName, name);
     field.SetValue(instance, value);
+}
+
+static string HighlightedText(HighlightedTextBlock textBlock)
+{
+    return string.Join(
+        "|",
+        textBlock.Inlines
+            .OfType<Run>()
+            .Where(run => run.Background is not null)
+            .Select(run => run.Text));
 }
 
 static SermonTextSearchMatch Need(SermonTextSearchMatch? match, string message)

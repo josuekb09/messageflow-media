@@ -1,7 +1,6 @@
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using MessageFlow.Data;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +16,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         int maxResults = 50,
         CancellationToken cancellationToken = default)
     {
-        var normalized = searchText.Trim();
+        var rawSearchText = searchText.Trim();
+        var normalized = SermonTextSearchPattern.NormalizeForSearch(rawSearchText);
         if (string.IsNullOrWhiteSpace(normalized))
         {
             return [];
@@ -36,7 +36,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         var like = BuildContainsLike(normalized);
         var searchLike = BuildContainsLike(normalized.ToUpperInvariant());
-        var ftsQuery = BuildFtsPrefixQuery(normalized);
+        var ftsQuery = BuildFtsPrefixQuery(rawSearchText);
         var dateIntent = SearchDateIntent.TryCreate(normalized);
         var parameters = new List<SearchParameter>
         {
@@ -62,10 +62,28 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
             try
             {
-                return await ExecuteQueryAsync(
+                var fullPhraseAndMetadataResults = await ExecuteQueryAsync(
+                    BuildSimpleMetadataSearchSql(hasNumber: numeric),
+                    parameters,
+                    cancellationToken);
+                var allTermParagraphResults = await ExecuteQueryAsync(
                     BuildSimpleSearchSql(useFts: true, hasNumber: numeric),
                     parameters,
                     cancellationToken);
+
+                var pattern = SermonTextSearchPattern.Create(rawSearchText);
+                var rankedParagraphResults = allTermParagraphResults
+                    .Select((result, index) => new
+                    {
+                        Result = result,
+                        Index = index,
+                        Score = pattern.Match(result.FullParagraphText)?.Score ?? int.MaxValue
+                    })
+                    .OrderBy(item => item.Score)
+                    .ThenBy(item => item.Index)
+                    .Select(item => item.Result);
+
+                return MergeRankedResults(fullPhraseAndMetadataResults, rankedParagraphResults, limit);
             }
             catch (Exception ex) when (IsFtsFailure(ex))
             {
@@ -103,7 +121,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             parameters.Add(new("$contentSourceId", query.ContentSourceId.Value));
         }
 
-        var generalText = query.SearchText?.Trim();
+        var rawGeneralText = query.SearchText?.Trim();
+        var generalText = SermonTextSearchPattern.NormalizeForSearch(rawGeneralText);
         var paragraphNumber = query.ParagraphNumber;
         var hasGeneralText = false;
         var hasTitle = false;
@@ -114,6 +133,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             TryParseParagraphLookup(generalText, out var paragraphLookup))
         {
             generalText = paragraphLookup.SearchText;
+            rawGeneralText = paragraphLookup.SearchText;
             paragraphNumber = paragraphLookup.ParagraphNumber;
         }
 
@@ -170,16 +190,16 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             parameters.Add(new("$paragraphNumber", paragraphNumber.Value));
         }
 
-        var keyword = query.Keyword?.Trim();
+        var rawKeyword = query.Keyword?.Trim();
+        var keyword = SermonTextSearchPattern.NormalizeForSearch(rawKeyword);
         var hasKeyword = !string.IsNullOrWhiteSpace(keyword);
-        var ftsTextParts = new[] { generalText, keyword }
-            .Where(value => !string.IsNullOrWhiteSpace(value));
-        var ftsQuery = BuildFtsPrefixQuery(string.Join(' ', ftsTextParts));
+        var ftsQuery = BuildCombinedFtsQuery(rawGeneralText, rawKeyword);
 
         if (hasKeyword)
         {
             parameters.Add(new("$keywordExact", keyword!.ToUpperInvariant()));
             parameters.Add(new("$keywordPrefix", BuildStartsWithLike(keyword.ToUpperInvariant())));
+            parameters.Add(new("$keywordLike", BuildContainsLike(keyword.ToUpperInvariant())));
         }
 
         if (!string.IsNullOrWhiteSpace(ftsQuery))
@@ -188,7 +208,30 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
             try
             {
-                return await ExecuteQueryAsync(
+                var phraseAndMetadataClauses = clauses.ToList();
+                if (hasGeneralText)
+                {
+                    phraseAndMetadataClauses.Add($"({string.Join(" OR ", generalClauses)})");
+                }
+
+                if (hasKeyword)
+                {
+                    phraseAndMetadataClauses.Add("p.SearchText LIKE $keywordLike ESCAPE '\\'");
+                }
+
+                var phraseAndMetadataResults = await ExecuteQueryAsync(
+                    BuildFilteredSearchSql(
+                        phraseAndMetadataClauses,
+                        useFts: false,
+                        BuildFilteredRankingOrder(
+                            hasGeneralText,
+                            hasTitle,
+                            hasSermonCode,
+                            paragraphNumber is not null,
+                            hasKeyword)),
+                    parameters,
+                    cancellationToken);
+                var allTermResults = await ExecuteQueryAsync(
                     BuildFilteredSearchSql(
                         clauses,
                         useFts: true,
@@ -200,6 +243,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                             hasKeyword)),
                     parameters,
                     cancellationToken);
+                return MergeRankedResults(phraseAndMetadataResults, allTermResults, limit);
             }
             catch (Exception ex) when (IsFtsFailure(ex))
             {
@@ -212,7 +256,6 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 if (hasKeyword)
                 {
                     clauses.Add("p.SearchText LIKE $keywordLike ESCAPE '\\'");
-                    parameters.Add(new("$keywordLike", BuildContainsLike(keyword!.ToUpperInvariant())));
                 }
             }
         }
@@ -225,7 +268,6 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         if (string.IsNullOrWhiteSpace(ftsQuery) && hasKeyword)
         {
             clauses.Add("p.SearchText LIKE $keywordLike ESCAPE '\\'");
-            parameters.Add(new("$keywordLike", BuildContainsLike(keyword!.ToUpperInvariant())));
         }
 
         if (clauses.Count == 0)
@@ -300,36 +342,120 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     private static string BuildSimpleSearchSql(bool useFts, bool hasNumber)
     {
-        var clauses = new List<string>();
-
         if (useFts)
         {
-            clauses.Add($"{FtsTableName} MATCH $fts");
+            return BuildSimpleFtsSearchSql();
         }
-        else
-        {
-            clauses.Add("s.Title LIKE $like ESCAPE '\\'");
-            clauses.Add("s.SermonCode LIKE $like ESCAPE '\\'");
-            clauses.Add("a.FullName LIKE $like ESCAPE '\\'");
-            clauses.Add("a.DisplayName LIKE $like ESCAPE '\\'");
-            clauses.Add("cs.DisplayName LIKE $like ESCAPE '\\'");
-            clauses.Add("cs.SourceType LIKE $like ESCAPE '\\'");
-            clauses.Add("p.SearchText LIKE $searchLike ESCAPE '\\'");
 
-            if (hasNumber)
-            {
-                clauses.Add("s.Year = $number");
-                clauses.Add("p.ParagraphNumber = $number");
-            }
+        var clauses = new List<string>();
+        clauses.Add("s.Title LIKE $like ESCAPE '\\'");
+        clauses.Add("s.SermonCode LIKE $like ESCAPE '\\'");
+        clauses.Add("a.FullName LIKE $like ESCAPE '\\'");
+        clauses.Add("a.DisplayName LIKE $like ESCAPE '\\'");
+        clauses.Add("cs.DisplayName LIKE $like ESCAPE '\\'");
+        clauses.Add("cs.SourceType LIKE $like ESCAPE '\\'");
+        clauses.Add("p.SearchText LIKE $searchLike ESCAPE '\\'");
+
+        if (hasNumber)
+        {
+            clauses.Add("s.Year = $number");
+            clauses.Add("p.ParagraphNumber = $number");
         }
 
         return BuildBaseSelect(
-            useFts
-                ? $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid"
-                : "SermonParagraphs p",
+            "SermonParagraphs p",
             string.Join($"{Environment.NewLine}        OR ", clauses),
-            orderByFtsRank: useFts,
+            orderByFtsRank: false,
             rankingOrder: SimpleRankingOrder);
+    }
+
+    private static string BuildSimpleFtsSearchSql()
+    {
+        return $$"""
+            WITH fts_matches(rowid, rank) AS MATERIALIZED (
+                SELECT rowid, rank
+                FROM {{FtsTableName}}
+                WHERE {{FtsTableName}} MATCH $fts
+                ORDER BY rank
+                LIMIT $limit
+            )
+            SELECT
+                s.Id AS SermonId,
+                p.Id AS ParagraphId,
+                s.Title AS SermonTitle,
+                s.SermonCode,
+                s.Year,
+                COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
+                COALESCE(cs.DisplayName, '') AS SourceDisplayName,
+                COALESCE(cs.SourceType, '') AS SourceType,
+                p.ParagraphNumber,
+                CASE
+                    WHEN length(p.Text) <= 240 THEN p.Text
+                    ELSE substr(p.Text, 1, 240) || '...'
+                END AS ParagraphTextPreview,
+                p.Text AS FullParagraphText,
+                s.SourceFilePath,
+                p.PageNumber
+            FROM fts_matches
+            JOIN SermonParagraphs p ON p.Id = fts_matches.rowid
+            JOIN Sermons s ON s.Id = p.SermonId
+            LEFT JOIN Authors a ON a.Id = s.AuthorId
+            LEFT JOIN ContentSources cs ON cs.Id = s.ContentSourceId
+            ORDER BY fts_matches.rank, s.Year, s.Date, p.ParagraphNumber
+            LIMIT $limit;
+            """;
+    }
+
+    private static string BuildSimpleMetadataSearchSql(bool hasNumber)
+    {
+        var metadataClauses = new List<string>
+        {
+            "s.Title LIKE $like ESCAPE '\\'",
+            "s.SermonCode LIKE $like ESCAPE '\\'",
+            "a.FullName LIKE $like ESCAPE '\\'",
+            "a.DisplayName LIKE $like ESCAPE '\\'",
+            "cs.DisplayName LIKE $like ESCAPE '\\'",
+            "cs.SourceType LIKE $like ESCAPE '\\'"
+        };
+
+        if (hasNumber)
+        {
+            metadataClauses.Add("s.Year = $number");
+        }
+
+        return $$"""
+            SELECT
+                s.Id AS SermonId,
+                p.Id AS ParagraphId,
+                s.Title AS SermonTitle,
+                s.SermonCode,
+                s.Year,
+                COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
+                COALESCE(cs.DisplayName, '') AS SourceDisplayName,
+                COALESCE(cs.SourceType, '') AS SourceType,
+                p.ParagraphNumber,
+                CASE
+                    WHEN length(p.Text) <= 240 THEN p.Text
+                    ELSE substr(p.Text, 1, 240) || '...'
+                END AS ParagraphTextPreview,
+                p.Text AS FullParagraphText,
+                s.SourceFilePath,
+                p.PageNumber
+            FROM Sermons s
+            JOIN SermonParagraphs p ON p.Id = (
+                SELECT p2.Id
+                FROM SermonParagraphs p2
+                WHERE p2.SermonId = s.Id
+                ORDER BY p2.ParagraphNumber, p2.Id
+                LIMIT 1
+            )
+            LEFT JOIN Authors a ON a.Id = s.AuthorId
+            LEFT JOIN ContentSources cs ON cs.Id = s.ContentSourceId
+            WHERE
+                {{string.Join($"{Environment.NewLine}                OR ", metadataClauses)}}
+            ORDER BY {{SimpleRankingOrder}}, s.Year, s.Date, p.ParagraphNumber
+            LIMIT $limit;
+            """;
     }
 
     private static string BuildFilteredSearchSql(
@@ -373,7 +499,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (orderByFtsRank)
         {
-            orderParts.Add($"bm25({FtsTableName})");
+            // FTS5's hidden rank column lets SQLite stop early for LIMIT and is
+            // materially faster than evaluating bm25() through an outer CASE sort.
+            orderParts.Add($"{FtsTableName}.rank");
         }
 
         orderParts.Add("s.Year");
@@ -474,6 +602,18 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         command.Parameters.Add(parameter);
     }
 
+    private static IReadOnlyList<SearchResult> MergeRankedResults(
+        IEnumerable<SearchResult> phraseAndMetadataResults,
+        IEnumerable<SearchResult> allTermResults,
+        int limit)
+    {
+        return phraseAndMetadataResults
+            .Concat(allTermResults)
+            .DistinctBy(result => result.ParagraphId)
+            .Take(limit)
+            .ToList();
+    }
+
     private static void AddDateIntentParameters(
         ICollection<SearchParameter> parameters,
         SearchDateIntent? dateIntent)
@@ -541,15 +681,34 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     private static string? BuildFtsPrefixQuery(string value)
     {
-        var tokens = FtsTokenRegex()
-            .Matches(value)
-            .Select(match => match.Value)
-            .Where(token => token.Length > 0)
-            .Take(12)
-            .Select(token => $"{token}*")
+        var exactPhrase = SermonTextSearchPattern.TryExtractExactPhrase(value, out var exactPhraseText);
+        var normalized = SermonTextSearchPattern.NormalizeForSearch(exactPhrase ? exactPhraseText : value);
+        var tokens = SermonTextSearchPattern.TokenizeNormalized(normalized)
             .ToList();
 
-        return tokens.Count == 0 ? null : string.Join(' ', tokens);
+        if (tokens.Count == 0)
+        {
+            return null;
+        }
+
+        return exactPhrase
+            ? $"\"{string.Join(' ', tokens).Replace("\"", "\"\"", StringComparison.Ordinal)}\""
+            : string.Join(' ', tokens.Select(QuoteFtsToken));
+    }
+
+    private static string QuoteFtsToken(string token)
+    {
+        return $"\"{token.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+    }
+
+    private static string? BuildCombinedFtsQuery(params string?[] values)
+    {
+        var parts = values
+            .Select(value => string.IsNullOrWhiteSpace(value) ? null : BuildFtsPrefixQuery(value))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToList();
+
+        return parts.Count == 0 ? null : string.Join(' ', parts);
     }
 
     private static bool IsFtsFailure(Exception ex)
@@ -559,9 +718,6 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                ex.Message.Contains("fts5", StringComparison.OrdinalIgnoreCase) ||
                ex.Message.Contains("MATCH", StringComparison.OrdinalIgnoreCase);
     }
-
-    [GeneratedRegex(@"[\p{L}\p{Nd}]+")]
-    private static partial Regex FtsTokenRegex();
 
     private const string SimpleRankingOrder =
         """
