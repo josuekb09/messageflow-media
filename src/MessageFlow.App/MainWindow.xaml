@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="MessageFlow"
-        Icon="pack://application:,,,/Assets/Brand/MessageFlow.ico"
+        Icon="pack://application:,,,/Assets/Brand/messageflow-app-icon-1024.png"
         Height="820"
         Width="1180"
         MinHeight="500"
