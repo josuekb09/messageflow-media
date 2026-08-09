@@ -62,28 +62,49 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
             try
             {
-                var fullPhraseAndMetadataResults = await ExecuteQueryAsync(
-                    BuildSimpleMetadataSearchSql(hasNumber: numeric),
-                    parameters,
-                    cancellationToken);
+                var pattern = SermonTextSearchPattern.Create(rawSearchText);
+                if (!pattern.IsExactPhrase && pattern.Terms.Count > 1)
+                {
+                    parameters.Add(new("$ftsPhrase", BuildFtsPhraseQuery(rawSearchText)!));
+                    var phraseResults = await ExecuteQueryAsync(
+                        BuildSimplePhraseFtsSearchSql(),
+                        parameters,
+                        cancellationToken);
+
+                    // A full page of contiguous phrase matches is both more
+                    // relevant than scattered-term matches and avoids ranking
+                    // every broad FTS hit before the first page can be shown.
+                    if (phraseResults.Count >= limit)
+                    {
+                        return phraseResults;
+                    }
+
+                    var allTermResults = await ExecuteQueryAsync(
+                        BuildSimpleSearchSql(useFts: true, hasNumber: numeric),
+                        parameters,
+                        cancellationToken);
+                    return MergeRankedResults(phraseResults, allTermResults, limit);
+                }
+
                 var allTermParagraphResults = await ExecuteQueryAsync(
                     BuildSimpleSearchSql(useFts: true, hasNumber: numeric),
                     parameters,
                     cancellationToken);
 
-                var pattern = SermonTextSearchPattern.Create(rawSearchText);
-                var rankedParagraphResults = allTermParagraphResults
-                    .Select((result, index) => new
-                    {
-                        Result = result,
-                        Index = index,
-                        Score = pattern.Match(result.FullParagraphText)?.Score ?? int.MaxValue
-                    })
-                    .OrderBy(item => item.Score)
-                    .ThenBy(item => item.Index)
-                    .Select(item => item.Result);
+                // FTS indexes every searchable metadata field as well as the
+                // paragraph text.  Avoid a second LIKE scan when FTS already
+                // supplied the requested page; that scan was dominating common
+                // broad searches such as "and so we".
+                if (allTermParagraphResults.Count >= limit)
+                {
+                    return allTermParagraphResults;
+                }
 
-                return MergeRankedResults(fullPhraseAndMetadataResults, rankedParagraphResults, limit);
+                var fullPhraseAndMetadataResults = await ExecuteQueryAsync(
+                    BuildSimpleMetadataSearchSql(hasNumber: numeric),
+                    parameters,
+                    cancellationToken);
+                return MergeRankedResults(fullPhraseAndMetadataResults, allTermParagraphResults, limit);
             }
             catch (Exception ex) when (IsFtsFailure(ex))
             {
@@ -371,39 +392,18 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     private static string BuildSimpleFtsSearchSql()
     {
-        return $$"""
-            WITH fts_matches(rowid, rank) AS MATERIALIZED (
-                SELECT rowid, rank
-                FROM {{FtsTableName}}
-                WHERE {{FtsTableName}} MATCH $fts
-                ORDER BY rank
-                LIMIT $limit
-            )
-            SELECT
-                s.Id AS SermonId,
-                p.Id AS ParagraphId,
-                s.Title AS SermonTitle,
-                s.SermonCode,
-                s.Year,
-                COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
-                COALESCE(cs.DisplayName, '') AS SourceDisplayName,
-                COALESCE(cs.SourceType, '') AS SourceType,
-                p.ParagraphNumber,
-                CASE
-                    WHEN length(p.Text) <= 240 THEN p.Text
-                    ELSE substr(p.Text, 1, 240) || '...'
-                END AS ParagraphTextPreview,
-                p.Text AS FullParagraphText,
-                s.SourceFilePath,
-                p.PageNumber
-            FROM fts_matches
-            JOIN SermonParagraphs p ON p.Id = fts_matches.rowid
-            JOIN Sermons s ON s.Id = p.SermonId
-            LEFT JOIN Authors a ON a.Id = s.AuthorId
-            LEFT JOIN ContentSources cs ON cs.Id = s.ContentSourceId
-            ORDER BY fts_matches.rank, s.Year, s.Date, p.ParagraphNumber
-            LIMIT $limit;
-            """;
+        return BuildBaseSelect(
+            $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid",
+            $"{FtsTableName} MATCH $fts",
+            orderByFtsRank: true);
+    }
+
+    private static string BuildSimplePhraseFtsSearchSql()
+    {
+        return BuildBaseSelect(
+            $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid",
+            $"{FtsTableName} MATCH $ftsPhrase",
+            orderByFtsRank: true);
     }
 
     private static string BuildSimpleMetadataSearchSql(bool hasNumber)
@@ -699,6 +699,15 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private static string QuoteFtsToken(string token)
     {
         return $"\"{token.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+    }
+
+    private static string? BuildFtsPhraseQuery(string value)
+    {
+        var normalized = SermonTextSearchPattern.NormalizeForSearch(value);
+        var tokens = SermonTextSearchPattern.TokenizeNormalized(normalized);
+        return tokens.Count < 2
+            ? null
+            : $"\"{string.Join(' ', tokens).Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
     }
 
     private static string? BuildCombinedFtsQuery(params string?[] values)
