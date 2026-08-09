@@ -27,6 +27,7 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile={#SourcePath}\..\..\src\MessageFlow.App\Assets\Brand\MessageFlow.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

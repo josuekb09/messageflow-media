@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="220" viewBox="0 0 760 220" role="img" aria-label="MessageFlow">
+  <defs>
+    <linearGradient id="mf" x1="96" y1="180" x2="420" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F6FEA"/>
+      <stop offset="1" stop-color="#35C4F4"/>
+    </linearGradient>
+  </defs>
+  <!-- mark: 512 grid scaled to 180px, vertically centered -->
+  <g transform="translate(10,20) scale(0.3516)">
+    <path d="M118 372 V168 C160 168 214 300 256 300 C298 300 352 168 394 168 V372"
+      fill="none" stroke="url(#mf)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="212" y="140" font-family="Manrope, 'Segoe UI', system-ui, sans-serif" font-size="116" font-weight="800" letter-spacing="-4">
+    <tspan fill="#F7FAFC">Message</tspan><tspan fill="#35C4F4">Flow</tspan>
+  </text>
+</svg>
