@@ -20,6 +20,7 @@ var checks = new List<(string Name, Func<Task<string>> Run)>
     ("operator search highlighting", OperatorSearchHighlighting),
     ("database-backed global sermon search", GlobalSearch),
     ("database-backed selected-sermon search", SelectedSermonSearch),
+    ("Bible chapter context and verse navigation", BibleChapterContext),
     ("selected-sermon full loading by stable id", FullSelectedSermonLoad),
     ("reading-mode isolation, stale guard, and navigation", StaleGuardAndMatchNavigation),
     ("global sermon search response time", GlobalSearchPerformance),
@@ -423,6 +424,28 @@ static async Task<string> GlobalSearch()
     return $"DB={databasePath}; Wedding Ceremony={Fmt(wedding)}; Why Little Bethlehem={Fmt(bethlehem)}; Jesus had said={Fmt(jesus)}; quoted Jesus had said={Fmt(quotedJesus)}; Faith Is the Substance={Fmt(faith)}; long sentence tokens=14; apostrophe results={straight.Count}/{smart.Count}; nonexistent={none.Count}; malformedQuote={malformed.Count}.";
 }
 
+static async Task<string> BibleChapterContext()
+{
+    await using var db = CreateDb();
+    var search = new BibleSearchService(db);
+    var john4 = await search.SearchAsync(new BibleSearchQuery("John 4:5", null, 200));
+    Assert(john4.Count == 54, "John 4:5 should load all 54 verses in John 4");
+    Assert(john4.Select(verse => verse.Verse).SequenceEqual(Enumerable.Range(1, 54)), "John 4 should be returned in verse order");
+    var selectedIndex = john4.ToList().FindIndex(verse => verse.Verse == 5);
+    Assert(selectedIndex == 4 && john4[selectedIndex + 1].Verse == 6 && john4[selectedIndex - 1].Verse == 4, "John 4:5 should have immediate previous/next chapter context");
+
+    var psalm23 = await search.SearchAsync(new BibleSearchQuery("Psalm 23", null, 200));
+    Assert(psalm23.Count == 6 && psalm23[0].Verse == 1, "Psalm 23 should load all six verses");
+
+    var firstJohn = await search.SearchAsync(new BibleSearchQuery("1 John 5:3", null, 200));
+    Assert(firstJohn.Count > 3 && firstJohn.Any(verse => verse.Verse == 3), "numbered-book reference should load its complete chapter context");
+
+    var keyword = await search.SearchAsync(new BibleSearchQuery("living water", null, 200));
+    Assert(keyword.Count > 0 && keyword.Any(verse => verse.Text.Contains("living water", StringComparison.OrdinalIgnoreCase)), "keyword search should remain result mode");
+
+    return "John 4=54 verses with verse 5 selected; Next/Previous=6/5; Psalm 23=6; 1 John 5:3 selected; keyword results preserved.";
+}
+
 static async Task<string> GlobalSearchPerformance()
 {
     await using var db = CreateDb();
@@ -446,7 +469,9 @@ static async Task<string> GlobalSearchPerformance()
         timer.Stop();
         Assert(results.Count > 0, $"{query} should return results during performance verification");
         firstRun[query] = timer.ElapsedMilliseconds;
-        Assert(timer.Elapsed < TimeSpan.FromSeconds(2), $"first-run search for {query} exceeded 2 seconds ({timer.Elapsed.TotalMilliseconds:0} ms)");
+        Assert(
+            timer.Elapsed < TimeSpan.FromSeconds(2),
+            $"first-run search for {query} exceeded 2 seconds ({timer.Elapsed.TotalMilliseconds:0} ms). {search.LastDiagnostics}");
     }
 
     foreach (var query in queries)
@@ -456,7 +481,9 @@ static async Task<string> GlobalSearchPerformance()
         timer.Stop();
         Assert(results.Count > 0, $"{query} should return warm results");
         warmRun[query] = timer.ElapsedMilliseconds;
-        Assert(timer.Elapsed < TimeSpan.FromMilliseconds(500), $"warm search for {query} exceeded 500 ms ({timer.Elapsed.TotalMilliseconds:0} ms)");
+        Assert(
+            timer.Elapsed < TimeSpan.FromMilliseconds(500),
+            $"warm search for {query} exceeded 500 ms ({timer.Elapsed.TotalMilliseconds:0} ms). {search.LastDiagnostics}");
     }
 
     return string.Join("; ", queries.Select(query => $"{query}={firstRun[query]} ms first/{warmRun[query]} ms warm"));
@@ -760,6 +787,14 @@ static Task<string> SermonProjectionTypography()
             SetField(vm, "activeProjectionContent", snapshot);
             Assert(Math.Abs(vm.SermonProjectionFontSize - 60) < 0.1, "Sermon Fit should restore the 60-DIP default");
 
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Small");
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 48) < 0.1, "Small preset should reduce Sermon typography");
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Large");
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 74) < 0.1, "Large preset should increase Sermon typography");
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Extra Large");
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 88) < 0.1, "Extra Large preset should increase Sermon typography");
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Medium");
+
             vm.IncreaseProjectionTextSizeCommand.Execute(null);
             Assert(Math.Abs(vm.SermonProjectionFontSize - 62) < 0.1, "Sermon A+ should add exactly 2 DIPs");
             vm.DecreaseProjectionTextSizeCommand.Execute(null);
@@ -783,6 +818,24 @@ static Task<string> SermonProjectionTypography()
             Assert(pages.Count > 1, "long Sermon paragraph should paginate");
             Assert(pages.All(page => InvokeInstance<bool>(window, "DoesTextFit", [typeof(string), typeof(Size), typeof(double)], page, available, 60d)), "every Sermon page should fit at the same 60-DIP size");
             Assert(paragraph.LayoutTransform == Transform.Identity && paragraph.RenderTransform == Transform.Identity, "projection should not use scale transforms");
+
+            SetField(vm, "activeProjectionContent", new ProjectedContentSnapshot(ProjectionContentType.Bible, "John 4:5", string.Empty, "Then cometh he to a city of Samaria, which is called Sychar."));
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Small");
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 48d, "Bible Small preset should set a safe target size");
+            vm.IncreaseProjectionTextSizeCommand.Execute(null);
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 50d, "Bible A+ should increase by 2 DIPs when safe");
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Extra Large");
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 78d, "Bible effective size should not exceed its safe fit ceiling");
+            vm.ResetProjectionTextSizeCommand.Execute(null);
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 78d, "Bible Fit should use the safe fit ceiling");
+
+            SetField(vm, "activeProjectionContent", new ProjectedContentSnapshot(ProjectionContentType.Song, "Song", "Verse 1", "A short lyric line"));
+            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Medium");
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 62d, "Song Medium preset should set a safe target size");
+            vm.DecreaseProjectionTextSizeCommand.Execute(null);
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 60d, "Song A- should decrease by 2 DIPs");
+            vm.ResetProjectionTextSizeCommand.Execute(null);
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 80d, "Song Fit should use the safe fit ceiling");
 
             var bibleReference = InvokeStatic<double>(typeof(ProjectWindow), "GetBibleReferenceFontSize", [typeof(Size)], new Size(1600, 900));
             Assert(bibleReference >= 38 && bibleReference <= 78, "Bible reference should remain within the compact header band");

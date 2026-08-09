@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using MessageFlow.Data;
@@ -11,11 +12,21 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 {
     private const string FtsTableName = "SermonParagraphsFts";
 
+    /// <summary>
+    /// Timings from the most recently completed search.  This is diagnostic
+    /// information only; it does not cache content or affect search results.
+    /// </summary>
+    public SermonSearchDiagnostics? LastDiagnostics { get; private set; }
+
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         string searchText,
         int maxResults = 50,
         CancellationToken cancellationToken = default)
     {
+        var diagnostics = new SermonSearchDiagnostics(searchText);
+        var totalTimer = Stopwatch.StartNew();
+        try
+        {
         var rawSearchText = searchText.Trim();
         var normalized = SermonTextSearchPattern.NormalizeForSearch(rawSearchText);
         if (string.IsNullOrWhiteSpace(normalized))
@@ -69,7 +80,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     var phraseResults = await ExecuteQueryAsync(
                         BuildSimplePhraseFtsSearchSql(),
                         parameters,
-                        cancellationToken);
+                        cancellationToken,
+                        diagnostics,
+                        "phrase FTS");
 
                     // A full page of contiguous phrase matches is both more
                     // relevant than scattered-term matches and avoids ranking
@@ -82,14 +95,18 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     var allTermResults = await ExecuteQueryAsync(
                         BuildSimpleSearchSql(useFts: true, hasNumber: numeric),
                         parameters,
-                        cancellationToken);
-                    return MergeRankedResults(phraseResults, allTermResults, limit);
+                        cancellationToken,
+                        diagnostics,
+                        "all-terms FTS");
+                    return MergeRankedResults(phraseResults, allTermResults, limit, diagnostics);
                 }
 
                 var allTermParagraphResults = await ExecuteQueryAsync(
-                    BuildSimpleSearchSql(useFts: true, hasNumber: numeric),
+                    BuildSimpleSearchSql(useFts: true, hasNumber: numeric, rankFtsCandidates: !pattern.IsExactPhrase),
                     parameters,
-                    cancellationToken);
+                    cancellationToken,
+                    diagnostics,
+                    "all-terms FTS");
 
                 // FTS indexes every searchable metadata field as well as the
                 // paragraph text.  Avoid a second LIKE scan when FTS already
@@ -103,8 +120,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 var fullPhraseAndMetadataResults = await ExecuteQueryAsync(
                     BuildSimpleMetadataSearchSql(hasNumber: numeric),
                     parameters,
-                    cancellationToken);
-                return MergeRankedResults(fullPhraseAndMetadataResults, allTermParagraphResults, limit);
+                    cancellationToken,
+                    diagnostics,
+                    "metadata fallback");
+                return MergeRankedResults(fullPhraseAndMetadataResults, allTermParagraphResults, limit, diagnostics);
             }
             catch (Exception ex) when (IsFtsFailure(ex))
             {
@@ -115,7 +134,16 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         return await ExecuteQueryAsync(
             BuildSimpleSearchSql(useFts: false, hasNumber: numeric),
             parameters,
-            cancellationToken);
+            cancellationToken,
+            diagnostics,
+            "LIKE fallback");
+        }
+        finally
+        {
+            totalTimer.Stop();
+            diagnostics.SetTotal(totalTimer.Elapsed);
+            LastDiagnostics = diagnostics;
+        }
     }
 
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
@@ -361,11 +389,11 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             cancellationToken);
     }
 
-    private static string BuildSimpleSearchSql(bool useFts, bool hasNumber)
+    private static string BuildSimpleSearchSql(bool useFts, bool hasNumber, bool rankFtsCandidates = true)
     {
         if (useFts)
         {
-            return BuildSimpleFtsSearchSql();
+            return BuildSimpleFtsSearchSql(rankFtsCandidates);
         }
 
         var clauses = new List<string>();
@@ -390,20 +418,41 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             rankingOrder: SimpleRankingOrder);
     }
 
-    private static string BuildSimpleFtsSearchSql()
+    private static string BuildSimpleFtsSearchSql(bool rankCandidates)
     {
         return BuildBaseSelect(
-            $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid",
-            $"{FtsTableName} MATCH $fts",
-            orderByFtsRank: true);
+            BuildRankedFtsCandidateJoin("$fts", rankCandidates),
+            "1 = 1",
+            orderByFtsRank: rankCandidates,
+            ftsRankExpression: rankCandidates ? "ftsMatches.FtsRank" : null);
     }
 
     private static string BuildSimplePhraseFtsSearchSql()
     {
         return BuildBaseSelect(
-            $"{FtsTableName} JOIN SermonParagraphs p ON p.Id = {FtsTableName}.rowid",
-            $"{FtsTableName} MATCH $ftsPhrase",
-            orderByFtsRank: true);
+            BuildRankedFtsCandidateJoin("$ftsPhrase", rankCandidates: false),
+            "1 = 1",
+            orderByFtsRank: false);
+    }
+
+    private static string BuildRankedFtsCandidateJoin(string ftsParameter, bool rankCandidates = true)
+    {
+        // FTS5 can stop at LIMIT only while it owns the rank ordering.  Joining
+        // and adding Sermon columns to that ordering forces SQLite to rank every
+        // hit first (millions for common terms).  Materialize only the ranked
+        // rowids needed for this page, then perform ordinary indexed joins.
+        var rankColumns = rankCandidates ? ", rank AS FtsRank" : string.Empty;
+        var rankOrder = rankCandidates ? "ORDER BY rank" : string.Empty;
+        return $$"""
+            (
+                SELECT rowid{{rankColumns}}
+                FROM {{FtsTableName}}
+                WHERE {{FtsTableName}} MATCH {{ftsParameter}}
+                {{rankOrder}}
+                LIMIT $limit
+            ) ftsMatches
+            JOIN SermonParagraphs p ON p.Id = ftsMatches.rowid
+            """;
     }
 
     private static string BuildSimpleMetadataSearchSql(bool hasNumber)
@@ -488,7 +537,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         string from,
         string whereClause,
         bool orderByFtsRank,
-        string rankingOrder = "")
+        string rankingOrder = "",
+        string? ftsRankExpression = null)
     {
         var orderParts = new List<string>();
 
@@ -501,7 +551,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         {
             // FTS5's hidden rank column lets SQLite stop early for LIMIT and is
             // materially faster than evaluating bm25() through an outer CASE sort.
-            orderParts.Add($"{FtsTableName}.rank");
+            orderParts.Add(ftsRankExpression ?? $"{FtsTableName}.rank");
         }
 
         orderParts.Add("s.Year");
@@ -540,14 +590,19 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private async Task<IReadOnlyList<SearchResult>> ExecuteQueryAsync(
         string sql,
         IReadOnlyCollection<SearchParameter> parameters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SermonSearchDiagnostics? diagnostics = null,
+        string? diagnosticPhase = null)
     {
         var connection = dbContext.Database.GetDbConnection();
         var closeConnection = connection.State == ConnectionState.Closed;
 
         if (closeConnection)
         {
+            var connectionTimer = Stopwatch.StartNew();
             await connection.OpenAsync(cancellationToken);
+            connectionTimer.Stop();
+            diagnostics?.RecordConnection(connectionTimer.Elapsed);
         }
 
         try
@@ -555,14 +610,21 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             await using var command = connection.CreateCommand();
             command.CommandText = sql;
 
+            var prepareTimer = Stopwatch.StartNew();
             foreach (var parameter in parameters)
             {
                 AddParameter(command, parameter.Name, parameter.Value);
             }
+            prepareTimer.Stop();
+            diagnostics?.RecordPreparation(diagnosticPhase, prepareTimer.Elapsed);
 
             var results = new List<SearchResult>();
+            var executionTimer = Stopwatch.StartNew();
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            executionTimer.Stop();
+            diagnostics?.RecordExecution(diagnosticPhase, executionTimer.Elapsed);
 
+            var materializationTimer = Stopwatch.StartNew();
             while (await reader.ReadAsync(cancellationToken))
             {
                 results.Add(new SearchResult(
@@ -582,6 +644,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     reader.GetString(reader.GetOrdinal("SourceDisplayName")),
                     reader.GetString(reader.GetOrdinal("SourceType"))));
             }
+            materializationTimer.Stop();
+            diagnostics?.RecordMaterialization(diagnosticPhase, materializationTimer.Elapsed);
 
             return results;
         }
@@ -605,13 +669,18 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private static IReadOnlyList<SearchResult> MergeRankedResults(
         IEnumerable<SearchResult> phraseAndMetadataResults,
         IEnumerable<SearchResult> allTermResults,
-        int limit)
+        int limit,
+        SermonSearchDiagnostics? diagnostics = null)
     {
-        return phraseAndMetadataResults
+        var timer = Stopwatch.StartNew();
+        var results = phraseAndMetadataResults
             .Concat(allTermResults)
             .DistinctBy(result => result.ParagraphId)
             .Take(limit)
             .ToList();
+        timer.Stop();
+        diagnostics?.RecordManagedMerge(timer.Elapsed);
+        return results;
     }
 
     private static void AddDateIntentParameters(
@@ -954,5 +1023,35 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     return false;
             }
         }
+    }
+}
+
+public sealed class SermonSearchDiagnostics(string searchText)
+{
+    private readonly List<string> phases = [];
+    private TimeSpan connection;
+    private TimeSpan managedMerge;
+    private TimeSpan total;
+
+    public string SearchText { get; } = searchText;
+
+    public void RecordConnection(TimeSpan elapsed) => connection += elapsed;
+    public void RecordPreparation(string? phase, TimeSpan elapsed) => Record(phase, "prepare", elapsed);
+    public void RecordExecution(string? phase, TimeSpan elapsed) => Record(phase, "execute", elapsed);
+    public void RecordMaterialization(string? phase, TimeSpan elapsed) => Record(phase, "materialize", elapsed);
+
+    public void RecordManagedMerge(TimeSpan elapsed) => managedMerge += elapsed;
+
+    public void SetTotal(TimeSpan elapsed) => total = elapsed;
+
+    public override string ToString()
+    {
+        var timing = string.Join(", ", phases);
+        return $"connection={connection.TotalMilliseconds:0} ms; {timing}; managed merge={managedMerge.TotalMilliseconds:0} ms; total={total.TotalMilliseconds:0} ms";
+    }
+
+    private void Record(string? phase, string operation, TimeSpan elapsed)
+    {
+        phases.Add($"{phase ?? "query"} {operation}={elapsed.TotalMilliseconds:0} ms");
     }
 }

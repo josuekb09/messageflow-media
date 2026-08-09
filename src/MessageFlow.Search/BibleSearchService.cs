@@ -34,11 +34,6 @@ public sealed class BibleSearchService(MessageFlowDbContext dbContext) : IBibleS
                 verse.BibleBook.Name == reference.BookName &&
                 verse.Chapter == reference.Chapter);
 
-            if (reference.Verse is not null)
-            {
-                verses = verses.Where(verse => verse.Verse == reference.Verse.Value);
-            }
-
             return await ProjectResultsAsync(
                 verses
                     .OrderBy(verse => verse.BibleBook!.BookOrder)

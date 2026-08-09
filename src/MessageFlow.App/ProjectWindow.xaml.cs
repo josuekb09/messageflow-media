@@ -181,7 +181,8 @@ public partial class ProjectWindow : Window
 
         if (e.PropertyName == nameof(MainViewModel.ProjectionFontSize) ||
             e.PropertyName == nameof(MainViewModel.ProjectionLineHeight) ||
-            e.PropertyName == nameof(MainViewModel.ProjectionFontSizeOffset))
+            e.PropertyName == nameof(MainViewModel.ProjectionFontSizeOffset) ||
+            e.PropertyName == nameof(MainViewModel.IsProjectionFontSizeUsingSafeFit))
         {
             QueueProjectionUpdate(resetPage: false);
         }
@@ -414,10 +415,7 @@ public partial class ProjectWindow : Window
             availableSize,
             EmergencyMinimumFontSize,
             viewportMaximum);
-        var manualOffset = Math.Min(0d, viewModel.ProjectionFontSizeOffset);
-        var fontSize = maximumFit > 0
-            ? Math.Max(EmergencyMinimumFontSize, maximumFit + manualOffset)
-            : 0;
+        var fontSize = GetSafeSingleScreenFontSize(maximumFit);
 
         if (fontSize <= 0)
         {
@@ -453,10 +451,7 @@ public partial class ProjectWindow : Window
             availableSize,
             34,
             viewportMaximum);
-        var manualOffset = Math.Min(0d, viewModel.ProjectionFontSizeOffset);
-        var fontSize = maximumFit > 0
-            ? Math.Max(EmergencyMinimumFontSize, maximumFit + manualOffset)
-            : EmergencyMinimumFontSize;
+        var fontSize = GetSafeSingleScreenFontSize(maximumFit);
 
         projectionPages.Clear();
         projectionPages.Add(text);
@@ -471,6 +466,25 @@ public partial class ProjectWindow : Window
     {
         var viewportBound = Math.Min(availableSize.Height * 0.62, availableSize.Width * 0.22);
         return Math.Clamp(viewportBound, 96, 360);
+    }
+
+    private double GetSafeSingleScreenFontSize(double maximumFit)
+    {
+        if (maximumFit <= 0)
+        {
+            return EmergencyMinimumFontSize;
+        }
+
+        if (viewModel.IsProjectionFontSizeUsingSafeFit)
+        {
+            return Math.Max(EmergencyMinimumFontSize, maximumFit);
+        }
+
+        // Presets and A-/A+ are operator targets.  The measured fit ceiling
+        // always wins, so valid Bible and Song content cannot be clipped.
+        return Math.Max(
+            EmergencyMinimumFontSize,
+            Math.Min(viewModel.ProjectionFontSize, maximumFit));
     }
 
     private static double GetSongTitleMaximumFontSize(WpfSize availableSize)

@@ -26,6 +26,21 @@ public partial class MainWindow : Window
         viewModel.ProjectRequested += ShowProjectionWindow;
         viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
         viewModel.ProjectionPreviewRequested += ShowWindowedProjectionPreview;
+        viewModel.PropertyChanged += ViewModel_PropertyChanged;
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainViewModel.SelectedBibleNavigationItem) ||
+            viewModel.SelectedBibleNavigationItem is null)
+        {
+            return;
+        }
+
+        // Toolbar Previous/Next Verse commands update the view-model directly.
+        // Keep the selected verse visible just as keyboard navigation does.
+        Dispatcher.BeginInvoke(() =>
+            BibleNavigationList.ScrollIntoView(viewModel.SelectedBibleNavigationItem));
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)

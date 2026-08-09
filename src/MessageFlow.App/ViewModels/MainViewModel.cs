@@ -23,10 +23,9 @@ public sealed partial class MainViewModel : ObservableObject
     private const int SearchDebounceMilliseconds = 250;
     private const double ProjectionFontAdjustmentStep = 2;
     private const double MinimumProjectionFontAdjustment = -24;
-    private const double MaximumProjectionFontAdjustment = 0;
+    private const double MaximumProjectionFontAdjustment = 24;
     private const double MinimumSermonProjectionFontAdjustment = -12;
     private const double MaximumSermonProjectionFontAdjustment = 10;
-    private const double DefaultSermonProjectionFontSize = 60;
     private readonly IServiceScopeFactory scopeFactory;
     private CancellationTokenSource? searchDebounce;
     private CancellationTokenSource? bibleSearchDebounce;
@@ -56,6 +55,7 @@ public sealed partial class MainViewModel : ObservableObject
     private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private double projectionFontSizeAdjustment;
+    private bool projectionFontSizeUsesSafeFit = true;
     private int projectionPageIndex;
     private int projectionPageCount;
     private ProjectedContentSnapshot? activeProjectionContent;
@@ -726,8 +726,14 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (SetProperty(ref selectedProjectionFontSize, value))
             {
+                projectionFontSizeAdjustment = 0;
+                projectionFontSizeUsesSafeFit = false;
                 OnPropertyChanged(nameof(ProjectionFontSize));
                 OnPropertyChanged(nameof(ProjectionLineHeight));
+                OnPropertyChanged(nameof(ProjectionFontSizeOffset));
+                OnPropertyChanged(nameof(SermonProjectionFontSize));
+                OnPropertyChanged(nameof(IsProjectionFontSizeUsingSafeFit));
+                RaiseProjectionTextSizeCommandStates();
             }
         }
     }
@@ -1102,8 +1108,13 @@ public sealed partial class MainViewModel : ObservableObject
     // Fit is zero. Manual controls move in exact 2-DIP steps below the measured safe maximum.
     public double ProjectionFontSizeOffset => projectionFontSizeAdjustment;
 
+    public bool IsProjectionFontSizeUsingSafeFit => projectionFontSizeUsesSafeFit;
+
+    // Sermons paginate rather than shrink to one screen. Medium retains the
+    // established 60-DIP church-readable baseline while the other presets use
+    // their intentional offsets from the shared 62-DIP Medium setting.
     public double SermonProjectionFontSize =>
-        Math.Clamp(DefaultSermonProjectionFontSize + projectionFontSizeAdjustment, 48, 70);
+        Math.Clamp(60 + (ProjectionFontSize - 62), 48, 108);
 
     public string FavoriteButtonText =>
         IsBibleMode
@@ -3200,24 +3211,17 @@ public sealed partial class MainViewModel : ObservableObject
         BibleReference reference,
         CancellationToken cancellationToken)
     {
-        if (reference.Verse is null)
-        {
-            var verses = await LoadBibleVersesForReferenceAsync(reference, 200, cancellationToken);
-            return new BibleNavigationResult(
-                verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
-                verses,
-                $"{FormatCount(verses.Count, "verse", "verses")} found in {reference.BookName} {reference.Chapter}.",
-                AutoPreviewFirstVerse: false);
-        }
-
-        var exactVerses = await LoadBibleVersesForReferenceAsync(reference, 1, cancellationToken);
+        var verses = await LoadBibleVersesForReferenceAsync(reference, 200, cancellationToken);
         return new BibleNavigationResult(
-            exactVerses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
-            exactVerses,
-            exactVerses.Count == 0
+            verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
+            verses,
+            verses.Count == 0
                 ? $"{reference.BookName} {reference.Chapter}:{reference.Verse} was not found."
-                : $"Selected {reference.BookName} {reference.Chapter}:{reference.Verse}.",
-            AutoPreviewFirstVerse: true);
+                : reference.Verse is null
+                    ? $"{FormatCount(verses.Count, "verse", "verses")} found in {reference.BookName} {reference.Chapter}."
+                    : $"Selected {reference.BookName} {reference.Chapter}:{reference.Verse} in chapter context.",
+            AutoPreviewFirstVerse: reference.Verse is null,
+            SelectedVerseNumber: reference.Verse);
     }
 
     private async Task<IReadOnlyList<BibleVerseResultViewModel>> LoadBibleVersesForReferenceAsync(
@@ -3336,6 +3340,15 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var item in result.Items)
         {
             BibleNavigationItems.Add(item);
+        }
+
+        var selectedVerseItem = result.SelectedVerseNumber is null
+            ? null
+            : BibleNavigationItems.FirstOrDefault(item => item.Verse?.Verse == result.SelectedVerseNumber.Value);
+        if (selectedVerseItem is not null)
+        {
+            SelectedBibleNavigationItem = selectedVerseItem;
+            return;
         }
 
         var firstVerseItem = BibleNavigationItems.FirstOrDefault(item => item.IsVerse);
@@ -5866,6 +5879,8 @@ public sealed partial class MainViewModel : ObservableObject
     private void ResetProjectionTextSize()
     {
         ApplyProjectionTextSizeAdjustment(0);
+        projectionFontSizeUsesSafeFit = true;
+        OnPropertyChanged(nameof(IsProjectionFontSizeUsingSafeFit));
         StatusText = "Projection text restored to the largest safe fit.";
     }
 
@@ -5881,6 +5896,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void ApplyProjectionTextSizeAdjustment(double requestedAdjustment)
     {
+        projectionFontSizeUsesSafeFit = false;
         var nextAdjustment = Math.Clamp(
             requestedAdjustment,
             GetMinimumProjectionFontAdjustment(),
@@ -5896,6 +5912,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ProjectionLineHeight));
         OnPropertyChanged(nameof(ProjectionFontSizeOffset));
         OnPropertyChanged(nameof(SermonProjectionFontSize));
+        OnPropertyChanged(nameof(IsProjectionFontSizeUsingSafeFit));
         RaiseProjectionTextSizeCommandStates();
 
         StatusText = Math.Abs(projectionFontSizeAdjustment) <= 0.1
@@ -6812,7 +6829,8 @@ public sealed partial class MainViewModel : ObservableObject
         IReadOnlyList<BibleNavigationItemViewModel> Items,
         IReadOnlyList<BibleVerseResultViewModel> Verses,
         string StatusText,
-        bool AutoPreviewFirstVerse);
+        bool AutoPreviewFirstVerse,
+        int? SelectedVerseNumber = null);
 
     private sealed record PdfSourceScanResult(
         List<string> PdfFilePaths,
