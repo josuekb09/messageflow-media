@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:MessageFlow.App.Controls"
+        xmlns:loc="clr-namespace:MessageFlow.App.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -81,7 +82,7 @@
                           MinWidth="170"
                           Width="240"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="Search sermons by title, code, phrase, or paragraph number"
+                         ToolTip="{loc:Tr Toolbar_SearchSermonsTooltip}"
                          VerticalContentAlignment="Center">
                     <TextBox.Style>
                         <Style TargetType="TextBox" BasedOn="{StaticResource TopToolbarTextBoxStyle}">
@@ -175,7 +176,7 @@
                           TextSearch.TextPath="Label"
                           MinWidth="124"
                           Width="132"
-                          ToolTip="Projection font size"
+                          ToolTip="{loc:Tr Toolbar_FontSizeTooltip}"
                           VerticalContentAlignment="Center" />
 
                 <Button Content="A-"
@@ -185,25 +186,35 @@
                         Margin="0,0,6,6"
                         Padding="0"
                         FontSize="14"
-                        ToolTip="Decrease text size" />
+                        ToolTip="{loc:Tr Toolbar_DecreaseTextTooltip}" />
 
-                <Button Content="Fit"
+                <Button Content="{loc:Tr Toolbar_Fit}"
                         Command="{Binding ResetProjectionTextSizeCommand}"
                         Width="46"
                         MinHeight="40"
                         Margin="0,0,6,6"
                         Padding="0"
                         FontSize="13"
-                        ToolTip="Fit text to screen" />
+                        ToolTip="{loc:Tr Toolbar_FitTextTooltip}" />
 
                 <Button Content="A+"
                         Command="{Binding IncreaseProjectionTextSizeCommand}"
                         Width="38"
                         MinHeight="40"
-                        Margin="0,0,0,6"
+                        Margin="0,0,6,6"
                         Padding="0"
                         FontSize="14"
-                        ToolTip="Increase text size" />
+                        ToolTip="{loc:Tr Toolbar_IncreaseTextTooltip}" />
+
+                <ComboBox Style="{StaticResource TopToolbarComboBoxStyle}"
+                          Margin="0,0,0,6"
+                          ItemsSource="{Binding AvailableUiLanguages}"
+                          SelectedItem="{Binding SelectedUiLanguage}"
+                          DisplayMemberPath="NativeName"
+                          MinWidth="108"
+                          Width="118"
+                          ToolTip="{loc:Tr Lang_SelectorTooltip}"
+                          VerticalContentAlignment="Center" />
                 </WrapPanel>
             </Grid>
         </Border>
@@ -232,7 +243,7 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="16,14,16,10">
-                        <TextBlock Text="Library"
+                        <TextBlock Text="{loc:Tr Nav_Library}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    DockPanel.Dock="Left" />
@@ -249,7 +260,7 @@
                                 ClipToBounds="True"
                                 SelectionChanged="LibraryTabs_SelectionChanged">
                         <TabItem x:Name="SermonsTab"
-                                 Header="Sermons">
+                                 Header="{loc:Tr Nav_Sermons}">
                             <Grid Margin="0,10,0,0"
                                   MinHeight="0"
                                   ClipToBounds="True">
@@ -258,7 +269,7 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Text="Search sermons by title, code, phrase, or paragraph number."
+                                <TextBlock Text="{loc:Tr Sermon_SearchHint}"
                                            Margin="4,0,4,12"
                                            Foreground="{StaticResource MutedTextBrush}"
                                            FontSize="13"
@@ -335,8 +346,8 @@
                                                                                     TextWrapping="Wrap" />
                                                      <Button Grid.Row="4"
                                                              Margin="0,10,0,0"
-                                                             Content="Open Sermon"
-                                                             ToolTip="Open every paragraph in this Sermon for focused reading"
+                                                             Content="{loc:Tr Sermon_Open}"
+                                                             ToolTip="{loc:Tr Sermon_OpenTooltip}"
                                                              Command="{Binding DataContext.OpenSermonCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                              CommandParameter="{Binding}" />
                                                  </Grid>
@@ -348,7 +359,7 @@
                         </TabItem>
 
                         <TabItem x:Name="BibleTab"
-                                 Header="Bible">
+                                 Header="{loc:Tr Nav_Bible}">
                             <Grid Margin="0,10,0,0"
                                   MinHeight="0"
                                   ClipToBounds="True">
@@ -407,7 +418,7 @@
                                                        FontWeight="SemiBold" />
                                         </Border>
 
-                                        <TextBlock Text="Search by book, chapter, verse, or keyword."
+                                        <TextBlock Text="{loc:Tr Bible_SearchHint}"
                                                    Foreground="{StaticResource MutedTextBrush}"
                                                    FontSize="13"
                                                    VerticalAlignment="Center"
@@ -415,9 +426,9 @@
                                     </DockPanel>
                                     <TextBox x:Name="BibleSearchBox"
                                              Text="{Binding BibleSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Search Bible references or keywords"
+                                             ToolTip="{loc:Tr Bible_SearchTooltip}"
                                              VerticalContentAlignment="Center" />
-                                    <TextBlock Text="Bible is not available. Open Admin Tools if setup is needed."
+                                    <TextBlock Text="{loc:Tr Bible_NotAvailable}"
                                                Margin="4,8,4,0"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="13"
@@ -505,12 +516,12 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock Text="Ready to search the Bible."
+                                            <TextBlock Text="{loc:Tr Bible_ReadyToSearch}"
                                                        Foreground="{StaticResource PrimaryTextBrush}"
                                                        FontSize="15"
                                                        FontWeight="SemiBold"
                                                        TextWrapping="Wrap" />
-                                            <TextBlock Text="Search by book, chapter, verse, or keyword."
+                                            <TextBlock Text="{loc:Tr Bible_SearchHint}"
                                                        Margin="0,6,0,0"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="13"
@@ -523,7 +534,7 @@
                         </TabItem>
 
                         <TabItem x:Name="SongsTab"
-                                 Header="Songs">
+                                 Header="{loc:Tr Nav_Songs}">
                             <Grid Margin="0,10,0,0"
                                   MinHeight="0"
                                   ClipToBounds="True">
@@ -533,14 +544,14 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel>
-                                    <TextBlock Text="Search songs by title or lyrics."
+                                    <TextBlock Text="{loc:Tr Song_SearchHint}"
                                                Margin="4,0,4,8"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="13"
                                                TextWrapping="Wrap" />
                                     <TextBox x:Name="SongSearchBox"
                                              Text="{Binding SongSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="Search songs by title or lyrics"
+                                             ToolTip="{loc:Tr Song_SearchTooltip}"
                                              VerticalContentAlignment="Center" />
                                 </StackPanel>
 
@@ -617,12 +628,12 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock Text="Ready to search songs."
+                                            <TextBlock Text="{Binding SongEmptyStateTitle}"
                                                        Foreground="{StaticResource PrimaryTextBrush}"
                                                        FontSize="15"
                                                        FontWeight="SemiBold"
                                                        TextWrapping="Wrap" />
-                                            <TextBlock Text="Search by title or lyric phrase."
+                                            <TextBlock Text="{Binding SongEmptyStateDetail}"
                                                        Margin="0,6,0,0"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="13"
@@ -633,7 +644,7 @@
                             </Grid>
                         </TabItem>
 
-                        <TabItem Header="Favorites">
+                        <TabItem Header="{loc:Tr Nav_Favorites}">
                             <ScrollViewer Margin="0,10,0,0"
                                           MinHeight="0"
                                           VerticalScrollBarVisibility="Visible"
@@ -655,12 +666,12 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock Text="No favorites yet."
+                                            <TextBlock Text="{loc:Tr Fav_None}"
                                                        Foreground="{StaticResource PrimaryTextBrush}"
                                                        FontSize="15"
                                                        FontWeight="SemiBold"
                                                        TextWrapping="Wrap" />
-                                            <TextBlock Text="Save frequently used sermon paragraphs or Bible verses for quick access."
+                                            <TextBlock Text="{loc:Tr Fav_NoneDetail}"
                                                        Margin="0,6,0,0"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="13"
@@ -680,7 +691,7 @@
                                             </Style>
                                         </StackPanel.Style>
 
-                                        <TextBlock Text="Sermon Favorites"
+                                        <TextBlock Text="{loc:Tr Fav_SermonSection}"
                                                    Foreground="{StaticResource PrimaryTextBrush}"
                                                    FontSize="15"
                                                    FontWeight="SemiBold"
@@ -735,13 +746,13 @@
                                                                        MaxHeight="54"
                                                                        TextWrapping="Wrap" />
                                                             <StackPanel Grid.Row="3" Margin="0,12,0,0">
-                                                                <Button Content="Project"
+                                                                <Button Content="{loc:Tr Common_Project}"
                                                                         MinHeight="36"
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.ProjectFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                                         CommandParameter="{Binding}" />
-                                                                <Button Content="Remove Favorite"
+                                                                <Button Content="{loc:Tr Fav_Remove}"
                                                                         Margin="0,8,0,0"
                                                                         MinHeight="36"
                                                                         Padding="10,6"
@@ -771,13 +782,13 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="No sermon favorites yet."
+                                            <TextBlock Text="{loc:Tr Fav_NoSermonFavorites}"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="13"
                                                        TextWrapping="Wrap" />
                                         </Border>
 
-                                        <TextBlock Text="Bible Favorites"
+                                        <TextBlock Text="{loc:Tr Fav_BibleSection}"
                                                    Foreground="{StaticResource PrimaryTextBrush}"
                                                    FontSize="15"
                                                    FontWeight="SemiBold"
@@ -832,20 +843,20 @@
                                                                        MaxHeight="54"
                                                                        TextWrapping="Wrap" />
                                                             <StackPanel Grid.Row="3" Margin="0,12,0,0">
-                                                                <Button Content="Project"
+                                                                <Button Content="{loc:Tr Common_Project}"
                                                                         MinHeight="36"
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.ProjectBibleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                                         CommandParameter="{Binding}" />
-                                                                <Button Content="Copy"
+                                                                <Button Content="{loc:Tr Common_Copy}"
                                                                         Margin="0,8,0,0"
                                                                         MinHeight="36"
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.CopyBibleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                                         CommandParameter="{Binding}" />
-                                                                <Button Content="Remove Favorite"
+                                                                <Button Content="{loc:Tr Fav_Remove}"
                                                                         Margin="0,8,0,0"
                                                                         MinHeight="36"
                                                                         Padding="10,6"
@@ -874,7 +885,7 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="No Bible favorites yet."
+                                            <TextBlock Text="{loc:Tr Fav_NoBibleFavorites}"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="13"
                                                        TextWrapping="Wrap" />
@@ -885,7 +896,7 @@
                         </TabItem>
 
                         <TabItem x:Name="HistoryTab"
-                                 Header="History">
+                                 Header="{loc:Tr Nav_History}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -893,12 +904,12 @@
                                 </Grid.RowDefinitions>
 
                                 <DockPanel Margin="0,10,0,10">
-                                    <TextBlock Text="Recent projections"
+                                    <TextBlock Text="{loc:Tr History_Recent}"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="13"
                                                VerticalAlignment="Center"
                                                DockPanel.Dock="Left" />
-                                    <Button Content="Clear History"
+                                    <Button Content="{loc:Tr History_Clear}"
                                             Command="{Binding ClearHistoryCommand}"
                                             MinHeight="38"
                                             Padding="12,7"
@@ -952,7 +963,7 @@
                                                                MaxHeight="54"
                                                                TextWrapping="Wrap" />
                                                     <Button Grid.Row="3"
-                                                            Content="Project"
+                                                            Content="{loc:Tr Common_Project}"
                                                             Margin="0,12,0,0"
                                                             MinHeight="36"
                                                             Padding="10,6"
@@ -983,7 +994,7 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="No projection history yet."
+                                    <TextBlock Text="{loc:Tr History_None}"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="14"
                                                TextWrapping="Wrap" />
@@ -1029,8 +1040,8 @@
                         <Button Grid.Column="0"
                                 Margin="0,0,10,0"
                                 Padding="8,4"
-                                Content="← Back"
-                                ToolTip="Return to the previous global Sermon results"
+                                Content="{loc:Tr Sermon_Back}"
+                                ToolTip="{loc:Tr Sermon_BackTooltip}"
                                 Command="{Binding BackToSermonSearchResultsCommand}">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -1294,7 +1305,7 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <TextBlock Text="Ready to search sermons."
+                        <TextBlock Text="{Binding SermonEmptyStateTitle}"
                                    Foreground="{StaticResource MutedTextBrush}"
                                    FontSize="16"
                                    TextAlignment="Center"
@@ -1350,8 +1361,8 @@
                                    LineHeight="16"
                                    TextWrapping="Wrap" />
                         <Button Margin="0,8,0,0"
-                                Content="Open Sermon"
-                                ToolTip="Open every paragraph in the selected Sermon for focused reading"
+                                Content="{loc:Tr Sermon_Open}"
+                                ToolTip="{loc:Tr Sermon_OpenSelectedTooltip}"
                                 Command="{Binding OpenSermonCommand}"
                                 CommandParameter="{Binding SelectedSermon}"
                                 Visibility="{Binding IsSermonGlobalSearchMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -1364,7 +1375,7 @@
                             </Grid.RowDefinitions>
                             <TextBox x:Name="SermonWithinSearchBox"
                                      Text="{Binding SermonWithinSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Find in selected sermon"
+                                     ToolTip="{loc:Tr Sermon_FindInTooltip}"
                                      VerticalContentAlignment="Center" />
                             <Grid Grid.Row="1" Margin="0,5,0,0">
                                 <Grid.ColumnDefinitions>
@@ -1377,17 +1388,17 @@
                                 <Button Grid.Column="0"
                                         Command="{Binding PreviousSermonWithinMatchCommand}"
                                         Style="{StaticResource RightPanelButtonStyle}">
-                                    <TextBlock Text="Previous Match" TextAlignment="Center" TextWrapping="Wrap" />
+                                    <TextBlock Text="{loc:Tr Sermon_PreviousMatch}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="2"
                                         Command="{Binding NextSermonWithinMatchCommand}"
                                         Style="{StaticResource RightPanelButtonStyle}">
-                                    <TextBlock Text="Next Match" TextAlignment="Center" TextWrapping="Wrap" />
+                                    <TextBlock Text="{loc:Tr Sermon_NextMatch}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="4"
                                         Command="{Binding ClearSermonWithinSearchCommand}"
                                         Style="{StaticResource RightPanelButtonStyle}">
-                                    <TextBlock Text="Clear" TextAlignment="Center" TextWrapping="Wrap" />
+                                    <TextBlock Text="{loc:Tr Common_Clear}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </Button>
                             </Grid>
                             <TextBlock Grid.Row="2"
@@ -1427,14 +1438,14 @@
                             <Button Grid.Column="0"
                                     Command="{Binding ProjectCommand}"
                                     Style="{StaticResource RightPanelButtonStyle}">
-                                <TextBlock Text="Project"
+                                <TextBlock Text="{loc:Tr Common_Project}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap" />
                             </Button>
                             <Button Grid.Column="2"
                                     Command="{Binding CopyCommand}"
                                     Style="{StaticResource RightPanelButtonStyle}">
-                                <TextBlock Text="Copy"
+                                <TextBlock Text="{loc:Tr Common_Copy}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap" />
                             </Button>
@@ -1469,14 +1480,14 @@
                                 <Button Grid.Column="0"
                                         Style="{StaticResource RightPanelButtonStyle}"
                                         Command="{Binding PreviousProjectionPageCommand}">
-                                    <TextBlock Text="Previous Page"
+                                    <TextBlock Text="{loc:Tr Sermon_PreviousPage}"
                                                TextAlignment="Center"
                                                TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="2"
                                         Style="{StaticResource RightPanelButtonStyle}"
                                         Command="{Binding NextProjectionPageCommand}">
-                                    <TextBlock Text="Next Page"
+                                    <TextBlock Text="{loc:Tr Sermon_NextPage}"
                                                TextAlignment="Center"
                                                TextWrapping="Wrap" />
                                 </Button>
@@ -1545,13 +1556,13 @@
                            FontWeight="SemiBold" />
 
                 <Button Grid.Column="2"
-                        Content="Admin"
+                        Content="{loc:Tr Common_Admin}"
                         Margin="14,0,0,0"
                         MinHeight="28"
                         Padding="12,4"
                         FontSize="12"
                         Click="Admin_Click"
-                        ToolTip="Open Admin Tools (Ctrl+Shift+A)" />
+                        ToolTip="{loc:Tr Admin_Title}" />
             </Grid>
         </Border>
     </Grid>

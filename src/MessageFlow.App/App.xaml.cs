@@ -1,7 +1,9 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using MessageFlow.App.Localization;
 using MessageFlow.App.ViewModels;
+using MessageFlow.Core.Localization;
 using MessageFlow.Data;
 using MessageFlow.Search;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +48,8 @@ public partial class App : System.Windows.Application
                 .RepairAsync(databasePath, LogStartupMessage)
                 .GetAwaiter()
                 .GetResult();
+
+            Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
 
             serviceProvider = new ServiceCollection()
                 .AddMessageFlowData(databasePath)

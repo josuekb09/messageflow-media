@@ -18,11 +18,17 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     /// </summary>
     public SermonSearchDiagnostics? LastDiagnostics { get; private set; }
 
+    private string? queryLanguage;
+
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         string searchText,
         int maxResults = 50,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? language = null)
     {
+        queryLanguage = language;
+        try
+        {
         var diagnostics = new SermonSearchDiagnostics(searchText);
         var totalTimer = Stopwatch.StartNew();
         try
@@ -41,7 +47,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 new SermonSearchQuery(
                     SearchText: paragraphLookup.SearchText,
                     ParagraphNumber: paragraphLookup.ParagraphNumber,
-                    MaxResults: limit),
+                    MaxResults: limit,
+                    Language: language),
                 cancellationToken);
         }
 
@@ -144,12 +151,21 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             diagnostics.SetTotal(totalTimer.Elapsed);
             LastDiagnostics = diagnostics;
         }
+        }
+        finally
+        {
+            queryLanguage = null;
+        }
     }
 
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         SermonSearchQuery query,
         CancellationToken cancellationToken = default)
     {
+        var previousLanguage = queryLanguage;
+        queryLanguage = query.Language ?? queryLanguage;
+        try
+        {
         var limit = ClampLimit(query.MaxResults);
         var parameters = new List<SearchParameter>
         {
@@ -336,6 +352,11 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                     hasKeyword)),
             parameters,
             cancellationToken);
+        }
+        finally
+        {
+            queryLanguage = previousLanguage;
+        }
     }
 
     public async Task<IReadOnlyList<SearchResult>> BrowseSermonsAsync(
@@ -343,8 +364,13 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         int? contentSourceId = null,
         int? year = null,
         int maxResults = 2000,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? language = null)
     {
+        var previousLanguage = queryLanguage;
+        queryLanguage = language ?? queryLanguage;
+        try
+        {
         var parameters = new List<SearchParameter>
         {
             new("$limit", ClampBrowseLimit(maxResults))
@@ -387,6 +413,11 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 orderByFtsRank: false),
             parameters,
             cancellationToken);
+        }
+        finally
+        {
+            queryLanguage = previousLanguage;
+        }
     }
 
     private static string BuildSimpleSearchSql(bool useFts, bool hasNumber, bool rankFtsCandidates = true)
@@ -594,6 +625,16 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         SermonSearchDiagnostics? diagnostics = null,
         string? diagnosticPhase = null)
     {
+        var sqlToRun = sql;
+        var parametersToUse = parameters;
+        if (!string.IsNullOrWhiteSpace(queryLanguage))
+        {
+            sqlToRun = InsertLanguageFilter(sql);
+            parametersToUse = parameters
+                .Append(new SearchParameter("$language", queryLanguage))
+                .ToList();
+        }
+
         var connection = dbContext.Database.GetDbConnection();
         var closeConnection = connection.State == ConnectionState.Closed;
 
@@ -608,10 +649,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         try
         {
             await using var command = connection.CreateCommand();
-            command.CommandText = sql;
+            command.CommandText = sqlToRun;
 
             var prepareTimer = Stopwatch.StartNew();
-            foreach (var parameter in parameters)
+            foreach (var parameter in parametersToUse)
             {
                 AddParameter(command, parameter.Name, parameter.Value);
             }
@@ -933,6 +974,70 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     [GeneratedRegex(@"\b(?<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+(?<year>\d{2,4})\b", RegexOptions.IgnoreCase)]
     private static partial Regex MonthYearPrefixRegex();
+
+    private static string InsertLanguageFilter(string sql)
+    {
+        // Wrap only the outermost WHERE. Nested subquery WHERE/ORDER BY must
+        // stay untouched or SQLite reports: near "ORDER": syntax error.
+        var whereIndex = IndexOfKeywordAtDepthZero(sql, "WHERE");
+        var orderIndex = whereIndex < 0
+            ? -1
+            : IndexOfKeywordAtDepthZero(sql, "ORDER BY", whereIndex + "WHERE".Length);
+        if (whereIndex < 0 || orderIndex < 0)
+        {
+            throw new InvalidOperationException("Sermon search SQL could not receive a language filter.");
+        }
+
+        var bodyStart = whereIndex + "WHERE".Length;
+        var whereBody = sql[bodyStart..orderIndex];
+        return sql[..bodyStart] +
+               $" s.Language = $language AND ({whereBody.Trim()}) " +
+               sql[orderIndex..];
+    }
+
+    private static int IndexOfKeywordAtDepthZero(string sql, string keyword, int start = 0)
+    {
+        var depth = 0;
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var c = sql[i];
+            if (c == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (c == ')')
+            {
+                if (depth > 0)
+                {
+                    depth--;
+                }
+
+                continue;
+            }
+
+            if (depth != 0 || i < start || i + keyword.Length > sql.Length)
+            {
+                continue;
+            }
+
+            if (!sql.AsSpan(i, keyword.Length).Equals(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var beforeOk = i == 0 || !char.IsLetterOrDigit(sql[i - 1]);
+            var afterIndex = i + keyword.Length;
+            var afterOk = afterIndex >= sql.Length || !char.IsLetterOrDigit(sql[afterIndex]);
+            if (beforeOk && afterOk)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     private sealed record SearchParameter(string Name, object Value);
 

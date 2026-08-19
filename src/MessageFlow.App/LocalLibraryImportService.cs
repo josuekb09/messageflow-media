@@ -302,6 +302,7 @@ public sealed class LocalLibraryImportService
             ImportedAtUtc = DateTime.UtcNow,
             ContentHash = candidate.Sha256,
             WarningSummary = string.Empty,
+            Language = "en",
             IsActive = true,
             Sections = sections.Select((section, index) => new SongSection
             {

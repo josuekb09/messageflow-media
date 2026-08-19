@@ -11,12 +11,14 @@ public sealed class SongSearchService(MessageFlowDbContext dbContext) : ISongSea
     {
         var limit = Math.Clamp(query.MaxResults, 1, 250);
         var normalized = SongTextNormalizer.Normalize(query.SearchText);
+        var language = query.Language?.Trim();
 
         if (string.IsNullOrWhiteSpace(normalized))
         {
             return await dbContext.Songs
                 .AsNoTracking()
                 .Where(song => song.IsActive)
+                .Where(song => language == null || song.Language == language)
                 .OrderBy(song => song.Title)
                 .ThenBy(song => song.Id)
                 .Select(song => new SongSearchResult(
@@ -51,6 +53,7 @@ public sealed class SongSearchService(MessageFlowDbContext dbContext) : ISongSea
         var songs = dbContext.Songs
             .AsNoTracking()
             .Where(song => song.IsActive)
+            .Where(song => language == null || song.Language == language)
             .Where(song =>
                 EF.Functions.Like(song.NormalizedTitle, containsLike, "\\") ||
                 song.Sections.Any(section => EF.Functions.Like(section.NormalizedText, containsLike, "\\")));

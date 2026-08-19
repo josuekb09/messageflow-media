@@ -605,6 +605,7 @@ public static class MessageFlowDatabaseRepair
                 "ImportedAtUtc" TEXT NOT NULL,
                 "ContentHash" TEXT NOT NULL,
                 "WarningSummary" TEXT NOT NULL,
+                "Language" TEXT NOT NULL DEFAULT 'en',
                 "IsActive" INTEGER NOT NULL DEFAULT 1
             );
             """,
@@ -626,10 +627,25 @@ public static class MessageFlowDatabaseRepair
             """,
             cancellationToken);
 
+        // Content language, added after the Songs module shipped. Existing rows are
+        // English, which the DEFAULT backfills, so no song content is rewritten.
+        if (!await ColumnExistsAsync(connection, "Songs", "Language", cancellationToken))
+        {
+            log?.Invoke("Adding Songs.Language column (default 'en').");
+            await ExecuteAsync(
+                connection,
+                """
+                ALTER TABLE "Songs"
+                ADD COLUMN "Language" TEXT NOT NULL DEFAULT 'en';
+                """,
+                cancellationToken);
+        }
+
         await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_Songs_SourceFilePath" ON "Songs" ("SourceFilePath");""", cancellationToken);
         await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_NormalizedTitle" ON "Songs" ("NormalizedTitle");""", cancellationToken);
         await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_ContentHash" ON "Songs" ("ContentHash");""", cancellationToken);
         await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_IsActive" ON "Songs" ("IsActive");""", cancellationToken);
+        await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_Songs_Language" ON "Songs" ("Language");""", cancellationToken);
         await ExecuteAsync(connection, """CREATE UNIQUE INDEX IF NOT EXISTS "IX_SongSections_SongId_SectionOrder" ON "SongSections" ("SongId", "SectionOrder");""", cancellationToken);
         await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SongSections_SectionType" ON "SongSections" ("SectionType");""", cancellationToken);
         await ExecuteAsync(connection, """CREATE INDEX IF NOT EXISTS "IX_SongSections_NormalizedText" ON "SongSections" ("NormalizedText");""", cancellationToken);

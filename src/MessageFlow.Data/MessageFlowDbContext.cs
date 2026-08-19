@@ -399,6 +399,11 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 .HasMaxLength(2000)
                 .IsRequired();
 
+            entity.Property(song => song.Language)
+                .HasMaxLength(20)
+                .HasDefaultValue("en")
+                .IsRequired();
+
             entity.Property(song => song.IsActive)
                 .HasDefaultValue(true)
                 .IsRequired();
@@ -409,6 +414,7 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
             entity.HasIndex(song => song.NormalizedTitle);
             entity.HasIndex(song => song.ContentHash);
             entity.HasIndex(song => song.IsActive);
+            entity.HasIndex(song => song.Language);
         });
 
         modelBuilder.Entity<SongSection>(entity =>

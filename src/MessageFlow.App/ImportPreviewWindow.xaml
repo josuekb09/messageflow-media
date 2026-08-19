@@ -1,7 +1,8 @@
 <Window x:Class="MessageFlow.App.ImportPreviewWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Import Preview"
+        xmlns:loc="clr-namespace:MessageFlow.App.Localization"
+        Title="{loc:Tr ImportPreview_Title}"
         Height="620"
         Width="700"
         MinHeight="500"
@@ -17,7 +18,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,18">
-            <TextBlock Text="Import Preview"
+            <TextBlock Text="{loc:Tr ImportPreview_Title}"
                        FontSize="24"
                        FontWeight="SemiBold" />
             <TextBlock Text="{Binding WarningText, Mode=OneWay}"

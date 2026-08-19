@@ -5,7 +5,8 @@ public interface ISermonSearchService
     Task<IReadOnlyList<SearchResult>> SearchAsync(
         string searchText,
         int maxResults = 50,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? language = null);
 
     Task<IReadOnlyList<SearchResult>> SearchAsync(
         SermonSearchQuery query,
@@ -16,5 +17,6 @@ public interface ISermonSearchService
         int? contentSourceId = null,
         int? year = null,
         int maxResults = 2000,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? language = null);
 }

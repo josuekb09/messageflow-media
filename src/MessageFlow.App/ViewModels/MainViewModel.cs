@@ -4,6 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Windows;
+using MessageFlow.App.Localization;
+using MessageFlow.Core.Localization;
 using MessageFlow.App.Infrastructure;
 using MessageFlow.Core.Bible;
 using MessageFlow.Core.ContentSources;
@@ -62,8 +64,8 @@ public sealed partial class MainViewModel : ObservableObject
     private string bibleSearchText = string.Empty;
     private string songSearchText = string.Empty;
     private string sermonWithinSearchText = string.Empty;
-    private string sermonWithinSearchStatus = "Find in selected Sermon.";
-    private string statusText = "Ready";
+    private string sermonWithinSearchStatus = Loc.T("Sermon_FindInSelected");
+    private string statusText = Loc.T("Status_Ready");
     private string? latestBackupPath;
     private int currentBibleVerseCount;
     private bool isProjectionOpen;
@@ -96,9 +98,9 @@ public sealed partial class MainViewModel : ObservableObject
     {
         this.scopeFactory = scopeFactory;
 
-        AuthorFilters.Add(new FilterOption(null, "All Authors"));
-        SourceFilters.Add(new FilterOption(null, "All Sources"));
-        YearFilters.Add(new FilterOption(null, "All Years"));
+        AuthorFilters.Add(new FilterOption(null, Loc.T("Filter_AllAuthors")));
+        SourceFilters.Add(new FilterOption(null, Loc.T("Filter_AllSources")));
+        YearFilters.Add(new FilterOption(null, Loc.T("Filter_AllYears")));
         selectedAuthor = AuthorFilters[0];
         selectedSourceFilter = SourceFilters[0];
         selectedYear = YearFilters[0];
@@ -203,11 +205,7 @@ public sealed partial class MainViewModel : ObservableObject
             BackToSermonSearchResults,
             () => IsSermonReadingMode);
 
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Small", 48, 60));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Medium", 62, 76));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Large", 76, 92));
-        ProjectionFontSizes.Add(new ProjectionFontSizeOption("Extra Large", 90, 108));
-        selectedProjectionFontSize = ProjectionFontSizes.First(option => option.Label == "Medium");
+        InitializeUiLanguage();
         RefreshProjectionDisplayOptions();
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));
@@ -829,11 +827,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string CurrentBibleTranslationDisplay =>
         SelectedBibleTranslation is null
-            ? "No Bible translation imported yet."
-            : $"Bible: {SelectedBibleTranslation.Name} ({SelectedBibleTranslation.Abbreviation})";
+            ? Loc.T("Info_NoTranslationImported")
+            : Loc.F("Info_CurrentTranslation", SelectedBibleTranslation.Name, SelectedBibleTranslation.Abbreviation);
 
     public string SelectedBibleVersionShortDisplay =>
-        SelectedBibleTranslation is null ? "Version: none" : $"Version: {SelectedBibleTranslation.Abbreviation}";
+        SelectedBibleTranslation is null
+            ? Loc.T("Info_VersionNone")
+            : Loc.F("Info_Version", SelectedBibleTranslation.Abbreviation);
 
     public bool HasSingleBibleTranslation => BibleTranslations.Count == 1;
 
@@ -841,8 +841,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string CurrentBibleVerseCountDisplay =>
         currentBibleVerseCount <= 0
-            ? "No Bible verses imported."
-            : $"{currentBibleVerseCount.ToString("#,0", CultureInfo.InvariantCulture)} verses available.";
+            ? Loc.T("Info_NoVersesImported")
+            : Loc.F("Info_VerseCount", currentBibleVerseCount.ToString("#,0", CultureInfo.InvariantCulture));
 
     public bool IsProjectionOpen
     {
@@ -870,7 +870,9 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public string ProjectionStatusText =>
-        IsProjectionOpen ? $"Projection: Open on {projectionOpenDisplayText}" : "Projection: Closed";
+        IsProjectionOpen
+            ? Loc.F("Status_ProjectionOpen", projectionOpenDisplayText)
+            : Loc.T("Status_ProjectionClosed");
 
     public bool HasProjectionPages =>
         IsProjectionOpen &&
@@ -980,48 +982,48 @@ public sealed partial class MainViewModel : ObservableObject
     public bool CanShowSelectionNavigation => IsBibleMode || IsSongsMode || IsSermonReadingMode;
 
     public string SermonReadingHeader => focusedSermon is null
-        ? "Reading Sermon"
-        : $"Sermons > {focusedSermon.Title}";
+        ? Loc.T("Panel_ReadingSermon")
+        : Loc.F("Panel_SermonsBreadcrumb", focusedSermon.Title);
 
     public string CenterPanelTitle =>
         IsBibleMode
-            ? "Bible Preview"
+            ? Loc.T("Panel_BiblePreview")
             : IsSongsMode
-                ? "Song Sections"
+                ? Loc.T("Panel_SongSections")
                 : IsSermonReadingMode
                     ? SermonReadingHeader
                     : GetSearchResultsPanelTitle();
 
-    public string RightPanelTitle => "Live / Projection";
+    public string RightPanelTitle => Loc.T("Panel_LiveProjection");
 
     public string LibraryCountText =>
         IsBibleMode
-            ? FormatCount(BibleNavigationItems.Count, "Bible result", "Bible results")
+            ? Loc.Count(BibleNavigationItems.Count, "Count_BibleResult_One", "Count_BibleResult_Many")
             : IsSongsMode
-                ? FormatCount(SongResults.Count, "song", "songs")
+                ? Loc.Count(SongResults.Count, "Count_Song_One", "Count_Song_Many")
             : isSermonBrowseMode
-                ? FormatCount(ResultCount, "sermon", "sermons")
-            : FormatCount(ResultCount, "paragraph", "paragraphs");
+                ? Loc.Count(ResultCount, "Count_Sermon_One", "Count_Sermon_Many")
+            : Loc.Count(ResultCount, "Count_Paragraph_One", "Count_Paragraph_Many");
 
     public string PreviewHeader =>
         IsBibleMode
-            ? SelectedBibleVerse?.ReferenceDisplay ?? "Ready to search the Bible"
+            ? SelectedBibleVerse?.ReferenceDisplay ?? Loc.T("Bible_ReadyToSearchHeader")
             : IsSongsMode
-                ? SelectedSong?.Title ?? "Ready to search songs"
+                ? SelectedSong?.Title ?? Loc.T("Song_ReadyToSearchHeader")
             : SelectedParagraph is null
-                ? "Ready to search sermons"
+                ? Loc.T("Sermon_ReadyToSearchHeader")
                 : $"{SelectedParagraph.SermonTitle}";
 
     public string PreviewMeta =>
         IsBibleMode
-            ? SelectedBibleVerse?.MetaLine ?? "Examples: John 3:16, Romans 8:28, Psalm 23."
+            ? SelectedBibleVerse?.MetaLine ?? Loc.T("Bible_ReferenceExamples")
             : IsSongsMode
                 ? SelectedSongSection is null
-                    ? "Search songs by title or lyrics."
-                    : $"{SelectedSongSection.SectionLabel} | {SelectedSong?.FileName ?? "Song source"}"
+                    ? Loc.T("Song_SearchHint")
+                    : $"{SelectedSongSection.SectionLabel} | {SelectedSong?.FileName ?? Loc.T("Song_Source")}"
             : SelectedParagraph is null
-                ? "Search by sermon title, code, phrase, or paragraph number."
-                : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
+                ? Loc.T("Sermon_SearchHintShort")
+                : $"{SelectedParagraph.MetadataLine} | {Loc.F("Sermon_ParagraphLabel", SelectedParagraph.ParagraphNumber)}";
 
     public string PreviewText =>
         IsBibleMode
@@ -1042,17 +1044,17 @@ public sealed partial class MainViewModel : ObservableObject
             : IsSongsMode && SelectedSong is not null
             ? SelectedSong.Title
             : SelectedParagraph is null
-            ? "Ready to search sermons"
+            ? Loc.T("Sermon_ReadyToSearchHeader")
             : $"{SelectedParagraph.SermonTitle}";
 
     public string SelectedParagraphMeta =>
         IsBibleMode && SelectedBibleVerse is not null
             ? SelectedBibleVerse.MetaLine
             : IsSongsMode && SelectedSongSection is not null
-            ? $"{SelectedSongSection.SectionLabel} | {SelectedSong?.FileName ?? "Song source"}"
+            ? $"{SelectedSongSection.SectionLabel} | {SelectedSong?.FileName ?? Loc.T("Song_Source")}"
             : SelectedParagraph is null
-            ? "Search by sermon title, code, phrase, or paragraph number."
-            : $"{SelectedParagraph.MetadataLine} | Paragraph {SelectedParagraph.ParagraphNumber}";
+            ? Loc.T("Sermon_SearchHintShort")
+            : $"{SelectedParagraph.MetadataLine} | {Loc.F("Sermon_ParagraphLabel", SelectedParagraph.ParagraphNumber)}";
 
     public string ProjectionParagraphTitle =>
         ActiveProjectionContent?.Title ?? "MessageFlow";
@@ -1119,21 +1121,29 @@ public sealed partial class MainViewModel : ObservableObject
     public string FavoriteButtonText =>
         IsBibleMode
             ? selectedBibleVerseIsFavorite
-                ? "Remove Bible Favorite"
-                : "Add Bible Favorite"
+                ? Loc.T("Bible_RemoveFavorite")
+                : Loc.T("Bible_AddFavorite")
             : IsSongsMode
                 ? string.Empty
             : SelectedParagraph?.IsFavorite == true
-                ? "Remove Favorite"
-                : "Add Favorite";
+                ? Loc.T("Fav_Remove")
+                : Loc.T("Fav_Add");
 
     public bool IsFavoriteButtonVisible => !IsSongsMode;
 
     public string PreviousButtonText =>
-        IsBibleMode ? "Previous Verse" : IsSongsMode ? "Previous Section" : "Previous Paragraph";
+        IsBibleMode
+            ? Loc.T("Bible_PreviousVerse")
+            : IsSongsMode
+                ? Loc.T("Song_PreviousSection")
+                : Loc.T("Sermon_PreviousParagraph");
 
     public string NextButtonText =>
-        IsBibleMode ? "Next Verse" : IsSongsMode ? "Next Section" : "Next Paragraph";
+        IsBibleMode
+            ? Loc.T("Bible_NextVerse")
+            : IsSongsMode
+                ? Loc.T("Song_NextSection")
+                : Loc.T("Sermon_NextParagraph");
 
     public bool IsProjectionHistoryEmpty => ProjectionHistoryItems.Count == 0;
 
@@ -1221,8 +1231,17 @@ public sealed partial class MainViewModel : ObservableObject
             startupMessages.Add("Bible translations could not load.");
         }
 
+        try
+        {
+            await RefreshContentAvailabilityAsync();
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Content language availability failed to load during startup.", ex);
+        }
+
         StatusText = startupMessages.Count == 0
-            ? "Search sermons by title, code, phrase, or paragraph number."
+            ? Loc.T("Sermon_SearchHint")
             : string.Join(' ', startupMessages);
     }
 
@@ -1286,8 +1305,8 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task ClearHistoryAsync()
     {
         var confirmation = MessageBox.Show(
-            "Clear all projection history? This will not delete sermons, Bible verses, favorites, or sources.",
-            "Clear History",
+            Loc.T("Confirm_ClearHistory"),
+            Loc.T("Confirm_ClearHistoryTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No);
@@ -1501,8 +1520,8 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task RebuildSermonSearchIndexAsync()
     {
         var confirmation = MessageBox.Show(
-            "Rebuild the Sermon search index? This does not modify Sermon text, PDF imports, Bible verses, songs, favorites, or projection history.",
-            "Rebuild Sermon Search Index",
+            Loc.T("Confirm_RebuildIndex"),
+            Loc.T("Confirm_RebuildIndexTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No);
@@ -1933,8 +1952,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         StatusText = SelectedParagraph is null
-            ? "Search by sermon title, code, phrase, or paragraph number."
-            : $"Selected Paragraph {SelectedParagraph.ParagraphNumber}.";
+            ? Loc.T("Sermon_SearchHintShort")
+            : Loc.F("Status_SelectedParagraph", SelectedParagraph.ParagraphNumber);
     }
 
     public void SetSermonWorkspaceActive(bool active)
@@ -2045,8 +2064,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         var confirmation = MessageBox.Show(
-            "Restoring will replace the current database. Continue?",
-            "Restore MessageFlow Database",
+            Loc.T("Confirm_RestoreDatabase"),
+            Loc.T("Confirm_RestoreDatabaseTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No);
@@ -2234,8 +2253,8 @@ public sealed partial class MainViewModel : ObservableObject
                 if (existingVerseCount > 0)
                 {
                     var confirmation = MessageBox.Show(
-                        $"{preview.Abbreviation} already exists. Replace existing verses?",
-                        "Import Bible",
+                        Loc.F("Confirm_ImportBibleReplace", preview.Abbreviation),
+                        Loc.T("ImportBible_Title"),
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Warning,
                         MessageBoxResult.No);
@@ -3120,21 +3139,21 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (!IsBibleAvailable)
         {
-            StatusText = "Bible is not available. Open Admin Tools if setup is needed.";
+            StatusText = Loc.T("Bible_NotAvailable");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(queryText))
         {
             ClearBibleNavigation(clearSelectedVerse: true);
-            StatusText = "Search by book, chapter, verse, or keyword.";
+            StatusText = Loc.T("Bible_SearchHint");
             return;
         }
 
         try
         {
             IsSearching = true;
-            StatusText = "Searching Bible...";
+            StatusText = Loc.T("Status_SearchingBible");
 
             var result = await BuildBibleNavigationAsync(queryText, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -3146,7 +3165,7 @@ public sealed partial class MainViewModel : ObservableObject
             IsBibleMode = true;
             ApplyBibleNavigationResult(result, selectExactOrKeywordVerse);
             StatusText = result.Items.Count == 0
-                ? "No Bible matches found."
+                ? Loc.T("Status_NoBibleMatches")
                 : result.StatusText;
         }
         catch (OperationCanceledException)
@@ -3190,7 +3209,7 @@ public sealed partial class MainViewModel : ObservableObject
                     .Select(book => BibleNavigationItemViewModel.ForBook(book.Id, book.Name, book.ShortName, book.BookOrder))
                     .ToList(),
                 [],
-                $"{FormatCount(bookMatches.Count, "Bible book", "Bible books")} found.",
+                Loc.F("Status_BooksFound", Loc.Count(bookMatches.Count, "Count_BibleBook_One", "Count_BibleBook_Many")),
                 AutoPreviewFirstVerse: false);
         }
 
@@ -3203,7 +3222,7 @@ public sealed partial class MainViewModel : ObservableObject
         return new BibleNavigationResult(
             verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
             verses,
-            $"{FormatCount(verses.Count, "Bible result", "Bible results")} found.",
+            Loc.F("Status_BooksFound", Loc.Count(verses.Count, "Count_BibleResult_One", "Count_BibleResult_Many")),
             AutoPreviewFirstVerse: true);
     }
 
@@ -3216,10 +3235,15 @@ public sealed partial class MainViewModel : ObservableObject
             verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
             verses,
             verses.Count == 0
-                ? $"{reference.BookName} {reference.Chapter}:{reference.Verse} was not found."
+                ? Loc.F("Status_VerseNotFound", Localizer.Instance.BookReference(reference.BookName, reference.Chapter, reference.Verse))
                 : reference.Verse is null
-                    ? $"{FormatCount(verses.Count, "verse", "verses")} found in {reference.BookName} {reference.Chapter}."
-                    : $"Selected {reference.BookName} {reference.Chapter}:{reference.Verse} in chapter context.",
+                    ? Loc.F(
+                        "Status_VersesFoundIn",
+                        Loc.Count(verses.Count, "Count_Verse_One", "Count_Verse_Many"),
+                        Localizer.Instance.BookReference(reference.BookName, reference.Chapter))
+                    : Loc.F(
+                        "Status_SelectedInChapterContext",
+                        Localizer.Instance.BookReference(reference.BookName, reference.Chapter, reference.Verse)),
             AutoPreviewFirstVerse: reference.Verse is null,
             SelectedVerseNumber: reference.Verse);
     }
@@ -3526,12 +3550,14 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             IsSearching = true;
-            StatusText = string.IsNullOrWhiteSpace(queryText) ? "Loading songs..." : "Searching songs...";
+            StatusText = string.IsNullOrWhiteSpace(queryText)
+                ? Loc.T("Status_LoadingSongs")
+                : Loc.T("Status_SearchingSongs");
 
             await using var scope = scopeFactory.CreateAsyncScope();
             var searchService = scope.ServiceProvider.GetRequiredService<ISongSearchService>();
             var results = await searchService.SearchAsync(
-                new SongSearchQuery(queryText, 200),
+                new SongSearchQuery(queryText, 200, ContentLanguageCode),
                 cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -3548,8 +3574,10 @@ public sealed partial class MainViewModel : ObservableObject
 
             SelectedSong = SongResults.FirstOrDefault();
             StatusText = SongResults.Count == 0
-                ? "No songs found."
-                : $"{FormatCount(SongResults.Count, "song", "songs")} found.";
+                ? HasSongContentForCurrentLanguage
+                    ? Loc.T("Status_NoSongsFound")
+                    : Loc.T("Song_NoFrenchContent")
+                : Loc.Count(SongResults.Count, "Count_Song_One", "Count_Song_Many") + ".";
         }
         catch (OperationCanceledException)
         {
@@ -3727,8 +3755,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SetResults([], isSermonBrowseMode: false);
             StatusText = snapshot.ProjectBestResult
-                ? "No matching paragraph found."
-                : "Search by sermon title, code, phrase, or paragraph number.";
+                ? Loc.T("Status_NoMatchingParagraph")
+                : Loc.T("Sermon_SearchHintShort");
             IsSearching = false;
             return;
         }
@@ -3738,7 +3766,7 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             IsSearching = true;
-            StatusText = "Searching...";
+            StatusText = Loc.T("Status_Searching");
 
             var resultViewModels = await LoadSearchResultsAsync(snapshot, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -3802,7 +3830,8 @@ public sealed partial class MainViewModel : ObservableObject
                     snapshot.ContentSourceId,
                     snapshot.Year,
                     maxResults: 2000,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: cancellationToken,
+                    language: ContentLanguageCode);
             }
             else if (snapshot.HasFilter)
             {
@@ -3812,12 +3841,17 @@ public sealed partial class MainViewModel : ObservableObject
                         ContentSourceId: snapshot.ContentSourceId,
                         SearchText: string.IsNullOrWhiteSpace(snapshot.QueryText) ? null : snapshot.QueryText,
                         Year: snapshot.Year,
-                        MaxResults: 200),
+                        MaxResults: 200,
+                        Language: ContentLanguageCode),
                     cancellationToken);
             }
             else
             {
-                results = await searchService.SearchAsync(snapshot.QueryText, 200, cancellationToken);
+                results = await searchService.SearchAsync(
+                    snapshot.QueryText,
+                    200,
+                    cancellationToken,
+                    ContentLanguageCode);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -3896,27 +3930,39 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (snapshot.IsFilterOnlyBrowse)
         {
-            return $"{FormatCount(ResultCount, "document", "documents")} found in {elapsedMilliseconds:N0} ms.";
+            return Loc.F(
+                "Status_BrowseFound",
+                Loc.Count(ResultCount, "Count_Document_One", "Count_Document_Many"),
+                elapsedMilliseconds.ToString("N0"));
         }
 
         var documentCount = SermonResults.Count;
         if (documentCount == 0)
         {
+            if (!HasSermonContentForCurrentLanguage)
+            {
+                return Loc.T("Sermon_NoFrenchContent");
+            }
+
             var noMatchKind = SermonTextSearchPattern.Create(snapshot.QueryText).IsExactPhrase
-                ? "No exact phrase found"
-                : "No results found";
-            return $"{noMatchKind} in {elapsedMilliseconds:N0} ms.";
+                ? Loc.T("Status_NoExactPhrase")
+                : Loc.T("Count_NoResults");
+            return Loc.F("Status_SearchNoMatch", noMatchKind, elapsedMilliseconds.ToString("N0"));
         }
 
         var pattern = SermonTextSearchPattern.Create(snapshot.QueryText);
         var matchKind = pattern.IsExactPhrase
-            ? "Exact phrase"
+            ? Loc.T("Status_ExactPhrase")
             : pattern.Terms.Count > 1
-                ? "All words"
-                : "Match";
+                ? Loc.T("Status_AllWords")
+                : Loc.T("Status_Match");
 
-        return $"{matchKind} found in {FormatCount(documentCount, "document", "documents")} " +
-               $"({ResultCount:N0} {(ResultCount == 1 ? "paragraph" : "paragraphs")}) in {elapsedMilliseconds:N0} ms.";
+        return Loc.F(
+            "Status_SearchFound",
+            matchKind,
+            Loc.Count(documentCount, "Count_Document_One", "Count_Document_Many"),
+            Loc.Count(ResultCount, "Count_Paragraph_One", "Count_Paragraph_Many"),
+            elapsedMilliseconds.ToString("N0"));
     }
 
     private void RefreshParagraphResultsForSelectedSermon(int? preferredParagraphId = null)
@@ -5241,6 +5287,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         var favorites = await dbContext.FavoriteParagraphs
             .AsNoTracking()
+            .Where(favorite => favorite.SermonParagraph!.Sermon!.Language == ContentLanguageCode)
             .OrderByDescending(favorite => favorite.CreatedAt)
             .Select(favorite => new
             {
@@ -5267,11 +5314,12 @@ public sealed partial class MainViewModel : ObservableObject
                 favorite.ParagraphNumber,
                 CreatePreview(favorite.Text),
                 favorite.CreatedAt,
-                "Favorite"));
+                Loc.T("Fav_KindFavorite")));
         }
 
         var bibleFavorites = await dbContext.BibleFavoriteVerses
             .AsNoTracking()
+            .Where(favorite => favorite.BibleVerse!.BibleTranslation!.Language == SelectedUiLanguage.BibleLanguageName)
             .OrderByDescending(favorite => favorite.CreatedAt)
             .ThenByDescending(favorite => favorite.Id)
             .Select(favorite => new
@@ -5386,7 +5434,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var linkedSourceRows = await dbContext.Sermons
             .AsNoTracking()
-            .Where(sermon => sermon.ContentSourceId != null)
+            .Where(sermon => sermon.ContentSourceId != null &&
+                             sermon.Language == ContentLanguageCode)
             .Select(sermon => new
             {
                 sermon.ContentSource!.Id,
@@ -5411,6 +5460,7 @@ public sealed partial class MainViewModel : ObservableObject
         var linkedAuthorIds = await dbContext.Sermons
             .AsNoTracking()
             .Where(sermon => sermon.ContentSourceId != null &&
+                             sermon.Language == ContentLanguageCode &&
                              visibleSourceIds.Contains(sermon.ContentSourceId.Value))
             .Select(sermon => sermon.AuthorId)
             .Distinct()
@@ -5447,6 +5497,7 @@ public sealed partial class MainViewModel : ObservableObject
             .AsNoTracking()
             .Where(sermon =>
                 sermon.Year > 0 &&
+                sermon.Language == ContentLanguageCode &&
                 sermon.ContentSourceId != null &&
                 visibleSourceIds.Contains(sermon.ContentSourceId.Value))
             .Select(sermon => sermon.Year)
@@ -5455,21 +5506,21 @@ public sealed partial class MainViewModel : ObservableObject
             .ToListAsync();
 
         AuthorFilters.Clear();
-        AuthorFilters.Add(new FilterOption(null, "All Authors"));
+        AuthorFilters.Add(new FilterOption(null, Loc.T("Filter_AllAuthors")));
         foreach (var author in linkedAuthors)
         {
             AuthorFilters.Add(author);
         }
 
         YearFilters.Clear();
-        YearFilters.Add(new FilterOption(null, "All Years"));
+        YearFilters.Add(new FilterOption(null, Loc.T("Filter_AllYears")));
         foreach (var year in years)
         {
             YearFilters.Add(new FilterOption(year, year.ToString()));
         }
 
         SourceFilters.Clear();
-        SourceFilters.Add(new FilterOption(null, "All Sources"));
+        SourceFilters.Add(new FilterOption(null, Loc.T("Filter_AllSources")));
         foreach (var source in linkedSources)
         {
             SourceFilters.Add(source);
@@ -5707,6 +5758,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         var translations = await dbContext.BibleTranslations
             .AsNoTracking()
+            .Where(translation => translation.Language == SelectedUiLanguage.BibleLanguageName)
             .OrderBy(translation => translation.Abbreviation)
             .ThenBy(translation => translation.Name)
             .Select(translation => new BibleTranslationOption(
@@ -5716,6 +5768,7 @@ public sealed partial class MainViewModel : ObservableObject
                 translation.Language))
             .ToListAsync();
 
+        var preferredAbbreviation = SelectedUiLanguage.PreferredBibleAbbreviation;
         var existingSelectionId = preferredTranslationId ?? SelectedBibleTranslation?.Id;
         BibleTranslations.Clear();
         foreach (var translation in translations)
@@ -5723,10 +5776,13 @@ public sealed partial class MainViewModel : ObservableObject
             BibleTranslations.Add(translation);
         }
 
-        SelectedBibleTranslation = existingSelectionId is null
-            ? BibleTranslations.FirstOrDefault()
-            : BibleTranslations.FirstOrDefault(translation => translation.Id == existingSelectionId.Value) ??
-              BibleTranslations.FirstOrDefault();
+        SelectedBibleTranslation =
+            BibleTranslations.FirstOrDefault(translation =>
+                string.Equals(translation.Abbreviation, preferredAbbreviation, StringComparison.OrdinalIgnoreCase)) ??
+            (existingSelectionId is null
+                ? BibleTranslations.FirstOrDefault()
+                : BibleTranslations.FirstOrDefault(translation => translation.Id == existingSelectionId.Value) ??
+                  BibleTranslations.FirstOrDefault());
 
         currentBibleVerseCount = SelectedBibleTranslation is null
             ? 0
@@ -6165,6 +6221,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         var historyItems = await dbContext.ProjectionHistories
             .AsNoTracking()
+            .Where(history => history.SermonParagraph!.Sermon!.Language == ContentLanguageCode)
             .OrderByDescending(history => history.ProjectedAt)
             .ThenByDescending(history => history.Id)
             .Take(75)
@@ -6193,7 +6250,7 @@ public sealed partial class MainViewModel : ObservableObject
                 history.ParagraphNumber,
                 CreatePreview(history.Text),
                 history.ProjectedAt,
-                "History"));
+                Loc.T("Fav_KindHistory")));
         }
 
         OnPropertyChanged(nameof(IsProjectionHistoryEmpty));
@@ -6359,16 +6416,16 @@ public sealed partial class MainViewModel : ObservableObject
             var sourceType = sourceTypes.First();
             if (string.Equals(sourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase))
             {
-                return "Circular Letter Results";
+                return Loc.T("Panel_CircularLetterResults");
             }
 
             if (string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase))
             {
-                return "Sermon Results";
+                return Loc.T("Panel_SermonResults");
             }
         }
 
-        return "Search Results";
+        return Loc.T("Panel_SearchResults");
     }
 
     private static string TrimTo(string value, int maxLength)

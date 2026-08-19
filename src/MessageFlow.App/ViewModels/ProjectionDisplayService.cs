@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows;
+using MessageFlow.Core.Localization;
 using Forms = System.Windows.Forms;
 
 namespace MessageFlow.App.ViewModels;
@@ -20,7 +21,7 @@ public static partial class ProjectionDisplayService
     {
         var options = new List<ProjectionDisplayOption>
         {
-            new(AutoPreferenceKey, "Auto - prefer secondary projection display", IsAuto: true)
+            new(AutoPreferenceKey, Localizer.Instance.Get("Display_Auto"), IsAuto: true)
         };
 
         options.AddRange(GetDisplayTargets()
@@ -307,11 +308,18 @@ public static partial class ProjectionDisplayService
         int screenCount)
     {
         var displayNumber = TryParseDisplayNumber(screen.DeviceName) ?? fallbackDisplayNumber;
-        var role = screen.Primary ? "Primary / Operator" : "Secondary / Projection";
-        var selectorLabel = $"Display {displayNumber} - {role} - {screen.Bounds.Width}x{screen.Bounds.Height}";
+        var role = screen.Primary
+            ? Localizer.Instance.Get("Display_Primary")
+            : Localizer.Instance.Get("Display_Secondary");
+        var selectorLabel = Localizer.Instance.Format(
+            "Display_Selector",
+            displayNumber,
+            role,
+            screen.Bounds.Width,
+            screen.Bounds.Height);
         var statusDisplayName = screen.Primary
-            ? $"Display {displayNumber} Primary / Operator"
-            : $"Display {displayNumber} Secondary / Projection";
+            ? Localizer.Instance.Format("Display_StatusPrimary", displayNumber)
+            : Localizer.Instance.Format("Display_StatusSecondary", displayNumber);
 
         var (dpiX, dpiY) = GetEffectiveDpi(screen);
         return new ProjectionDisplayTarget(

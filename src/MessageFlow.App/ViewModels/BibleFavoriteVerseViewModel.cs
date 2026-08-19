@@ -1,3 +1,5 @@
+using MessageFlow.Core.Localization;
+
 namespace MessageFlow.App.ViewModels;
 
 public sealed class BibleFavoriteVerseViewModel
@@ -54,7 +56,9 @@ public sealed class BibleFavoriteVerseViewModel
 
     public DateTime CreatedAt { get; }
 
-    public string ReferenceDisplay => $"{BookName} {Chapter}:{Verse}";
+    public string DisplayBookName => Localizer.Instance.BookName(BookName);
+
+    public string ReferenceDisplay => Localizer.Instance.BookReference(BookName, Chapter, Verse);
 
     public string DisplayLine => $"{ReferenceDisplay} ({TranslationAbbreviation})";
 
@@ -62,5 +66,5 @@ public sealed class BibleFavoriteVerseViewModel
 
     public string PreviewText => Text.Length <= 150 ? Text : $"{Text[..150]}...";
 
-    public string SavedAtText => $"Saved {CreatedAt:g}";
+    public string SavedAtText => Localizer.Instance.Format("Fav_SavedAt", CreatedAt.ToLocalTime().ToString("g"));
 }

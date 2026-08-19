@@ -9,4 +9,5 @@ public sealed record SermonSearchQuery(
     int? Year = null,
     int? ParagraphNumber = null,
     string? Keyword = null,
-    int MaxResults = 50);
+    int MaxResults = 50,
+    string? Language = null);

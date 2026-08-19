@@ -20,6 +20,8 @@ public sealed class Song
 
     public string WarningSummary { get; set; } = string.Empty;
 
+    public string Language { get; set; } = "en";
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<SongSection> Sections { get; set; } = new List<SongSection>();

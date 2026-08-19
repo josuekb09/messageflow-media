@@ -1,4 +1,5 @@
 using MessageFlow.Search;
+using MessageFlow.Core.Localization;
 
 namespace MessageFlow.App.ViewModels;
 
@@ -38,7 +39,9 @@ public sealed class BibleVerseResultViewModel
 
     public string Text { get; }
 
-    public string ReferenceDisplay => $"{BookName} {Chapter}:{Verse}";
+    public string DisplayBookName => Localizer.Instance.BookName(BookName);
+
+    public string ReferenceDisplay => Localizer.Instance.BookReference(BookName, Chapter, Verse);
 
     public string DisplayLine => $"{ReferenceDisplay} ({TranslationAbbreviation})";
 

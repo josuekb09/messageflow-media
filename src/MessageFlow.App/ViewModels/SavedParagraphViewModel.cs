@@ -1,3 +1,5 @@
+using MessageFlow.Core.Localization;
+
 namespace MessageFlow.App.ViewModels;
 
 public sealed record SavedParagraphViewModel(
@@ -11,7 +13,7 @@ public sealed record SavedParagraphViewModel(
     DateTime SavedAt,
     string Kind)
 {
-    public string Meta => $"{SermonCode} | {Year} | Paragraph {ParagraphNumber}";
+    public string Meta => $"{SermonCode} | {Year} | {Localizer.Instance.Format("Meta_Paragraph", ParagraphNumber)}";
 
     public string SavedAtText => SavedAt.ToLocalTime().ToString("g");
 }

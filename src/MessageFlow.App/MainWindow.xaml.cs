@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using MessageFlow.App.Localization;
 using MessageFlow.App.ViewModels;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 
@@ -53,11 +54,11 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             App.LogStartupError("MainWindow initialization failed.", ex);
-            viewModel.StatusText = "Startup initialization failed. See logs\\app-startup.log.";
+            viewModel.StatusText = Loc.T("Status_StartupFailed");
 
             MessageBox.Show(
-                $"MessageFlow opened, but startup initialization failed.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}Details were written to logs\\app-startup.log.",
-                "MessageFlow Startup Error",
+                Loc.F("Msg_StartupFailed", Environment.NewLine, ex.Message),
+                Loc.T("Msg_StartupFailedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }

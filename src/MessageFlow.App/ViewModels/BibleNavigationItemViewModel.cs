@@ -1,3 +1,5 @@
+using MessageFlow.Core.Localization;
+
 namespace MessageFlow.App.ViewModels;
 
 public sealed class BibleNavigationItemViewModel
@@ -54,6 +56,7 @@ public sealed class BibleNavigationItemViewModel
         string shortName,
         int bookOrder)
     {
+        var displayName = Localizer.Instance.BookName(bookName);
         return new BibleNavigationItemViewModel(
             "Book",
             bookId,
@@ -61,9 +64,9 @@ public sealed class BibleNavigationItemViewModel
             bookOrder,
             null,
             null,
-            bookName,
-            "Book",
-            "Select this book to choose a chapter.");
+            displayName,
+            Localizer.Instance.Get("Bible_Book"),
+            Localizer.Instance.Get("Bible_SelectBookHint"));
     }
 
     public static BibleNavigationItemViewModel ForChapter(
@@ -73,7 +76,11 @@ public sealed class BibleNavigationItemViewModel
         int chapter,
         int verseCount)
     {
-        var verseLabel = verseCount == 1 ? "1 verse" : $"{verseCount:N0} verses";
+        var verseLabel = Localizer.Instance.Count(
+            verseCount,
+            "Count_Verse_One",
+            "Count_Verse_Many");
+        var displayName = Localizer.Instance.BookName(bookName);
         return new BibleNavigationItemViewModel(
             "Chapter",
             bookId,
@@ -81,9 +88,9 @@ public sealed class BibleNavigationItemViewModel
             bookOrder,
             chapter,
             null,
-            $"{bookName} {chapter}",
-            $"Chapter | {verseLabel}",
-            "Select this chapter to choose a verse.");
+            Localizer.Instance.BookReference(bookName, chapter),
+            Localizer.Instance.Format("Bible_ChapterMeta", verseLabel),
+            Localizer.Instance.Get("Bible_SelectChapterHint"));
     }
 
     public static BibleNavigationItemViewModel ForVerse(BibleVerseResultViewModel verse)

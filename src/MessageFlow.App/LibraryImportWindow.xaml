@@ -1,7 +1,8 @@
 <Window x:Class="MessageFlow.App.LibraryImportWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Library Import"
+        xmlns:loc="clr-namespace:MessageFlow.App.Localization"
+        Title="{loc:Tr LibraryImport_Title}"
         Width="1060"
         Height="720"
         MinWidth="900"
@@ -17,7 +18,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel>
-            <TextBlock Text="Library Import"
+            <TextBlock Text="{loc:Tr LibraryImport_Title}"
                        FontSize="26"
                        FontWeight="SemiBold" />
             <TextBlock Margin="0,6,0,0"
@@ -86,7 +87,7 @@
                     ToolTip="Copy and transactionally import checked files"
                     Click="ImportSelected_Click" />
             <Button Grid.Column="3"
-                    Content="Close"
+                    Content="{loc:Tr Common_Close}"
                     Click="Close_Click" />
         </Grid>
     </Grid>

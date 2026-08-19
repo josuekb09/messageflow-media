@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.IO;
+using MessageFlow.App.Localization;
 using MessageFlow.App.ViewModels;
 using Microsoft.Win32;
 
@@ -27,7 +28,7 @@ public partial class ImportBibleWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select Bible CSV",
+            Title = Loc.T("ImportBible_SelectCsvDialog"),
             CheckFileExists = true,
             DefaultExt = ".csv",
             Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
@@ -45,7 +46,7 @@ public partial class ImportBibleWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             FilePathBox.Text = dialog.FileName;
-            ResetPreview("Click Preview to inspect the CSV.");
+            ResetPreview(Loc.T("ImportBible_ClickPreview"));
         }
     }
 
@@ -75,8 +76,8 @@ public partial class ImportBibleWindow : Window
         if (preview.VerseCount <= 0 || preview.InvalidRowCount > 0)
         {
             MessageBox.Show(
-                "No clean Bible preview is ready to import.",
-                "Import Bible",
+                Loc.T("ImportBible_NoCleanPreview"),
+                Loc.T("ImportBible_Title"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
@@ -101,17 +102,17 @@ public partial class ImportBibleWindow : Window
 
             if (string.IsNullOrWhiteSpace(translationName))
             {
-                throw new InvalidOperationException("Translation name is required.");
+                throw new InvalidOperationException(Loc.T("ImportBible_NameRequired"));
             }
 
             if (string.IsNullOrWhiteSpace(abbreviation))
             {
-                throw new InvalidOperationException("Abbreviation is required.");
+                throw new InvalidOperationException(Loc.T("ImportBible_AbbreviationRequired"));
             }
 
             if (string.IsNullOrWhiteSpace(language))
             {
-                throw new InvalidOperationException("Language is required.");
+                throw new InvalidOperationException(Loc.T("ImportBible_LanguageRequired"));
             }
 
             PreviewSummary = BibleCsvImportPreviewBuilder.Build(
@@ -135,23 +136,23 @@ public partial class ImportBibleWindow : Window
 
             var canImport = PreviewSummary.VerseCount > 0 && PreviewSummary.InvalidRowCount == 0;
             PreviewStatusText.Text = PreviewSummary.VerseCount == 0
-                ? "No valid verses found."
+                ? Loc.T("ImportBible_NoValidVerses")
                 : canImport
-                    ? "Preview ready."
-                    : "Fix invalid rows before importing.";
+                    ? Loc.T("ImportBible_PreviewReady")
+                    : Loc.T("ImportBible_FixInvalidRows");
             StartImportButton.IsEnabled = canImport;
             isUpdatingPreview = false;
             return true;
         }
         catch (Exception ex)
         {
-            ResetPreview("Preview failed.");
+            ResetPreview(Loc.T("ImportBible_PreviewFailed"));
 
             if (showErrors)
             {
                 MessageBox.Show(
                     ex.Message,
-                    "Import Bible Preview",
+                    Loc.T("ImportBible_PreviewErrorTitle"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
@@ -167,7 +168,7 @@ public partial class ImportBibleWindow : Window
             return;
         }
 
-        ResetPreview("Click Preview to inspect the CSV.");
+        ResetPreview(Loc.T("ImportBible_ClickPreview"));
     }
 
     private void ResetPreview(string statusText)
