@@ -20,7 +20,7 @@ public partial class LibraryImportWindow : Window
         this.mainViewModel = mainViewModel;
         InitializeComponent();
         DataContext = this;
-        WindowPlacement.FitToWorkArea(this, 1060, 720, 900, 620);
+        WindowPlacement.ConfigureDialog(this, 960, 680, 800, 560, canResize: true);
     }
 
     public ObservableCollection<LibraryImportCandidate> Candidates { get; } = [];

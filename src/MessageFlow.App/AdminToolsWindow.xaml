@@ -3,10 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MessageFlow.App.Localization"
         Title="{loc:Tr Admin_Title}"
-        Height="820"
-        Width="1180"
-        MinHeight="560"
+        Height="680"
+        Width="920"
+        MinHeight="520"
         MinWidth="760"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackgroundBrush}">
     <Grid Margin="28">
@@ -95,8 +97,8 @@
 
         <Border Grid.Row="2" Margin="0,20,0,0" Padding="0,16,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="118" /></Grid.ColumnDefinitions>
-                <Button Grid.Column="1" Content="{loc:Tr Common_Close}" Click="Close_Click" />
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Button Grid.Column="1" MinWidth="110" Content="{loc:Tr Common_Close}" Click="Close_Click" />
             </Grid>
         </Border>
     </Grid>

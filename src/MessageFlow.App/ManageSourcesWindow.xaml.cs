@@ -8,7 +8,7 @@ public partial class ManageSourcesWindow : Window
     public ManageSourcesWindow(MainViewModel viewModel)
     {
         InitializeComponent();
-        WindowPlacement.FitToWorkArea(this, 1080, 740, 840, 560);
+        WindowPlacement.ConfigureDialog(this, 960, 680, 760, 540, canResize: true);
         DataContext = viewModel;
     }
 

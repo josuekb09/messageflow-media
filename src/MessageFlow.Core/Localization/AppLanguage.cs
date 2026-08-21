@@ -39,9 +39,16 @@ public static class AppLanguages
         BibleLanguageName: "French",
         PreferredBibleAbbreviation: "LSG");
 
+    public static AppLanguage Swahili { get; } = new(
+        Code: "sw",
+        NativeName: "Kiswahili",
+        ContentLanguageCode: "sw",
+        BibleLanguageName: "Swahili",
+        PreferredBibleAbbreviation: "SWHULB");
+
     public static AppLanguage Default => English;
 
-    public static IReadOnlyList<AppLanguage> All { get; } = [English, French];
+    public static IReadOnlyList<AppLanguage> All { get; } = [English, French, Swahili];
 
     public static AppLanguage FromCode(string? code)
     {

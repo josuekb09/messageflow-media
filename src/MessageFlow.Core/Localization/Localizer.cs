@@ -22,7 +22,8 @@ public sealed class Localizer : INotifyPropertyChanged
         tablesByLanguageCode = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.OrdinalIgnoreCase)
         {
             [AppLanguages.English.Code] = UiStringsEnglish.Values,
-            [AppLanguages.French.Code] = UiStringsFrench.Values
+            [AppLanguages.French.Code] = UiStringsFrench.Values,
+            [AppLanguages.Swahili.Code] = UiStringsSwahili.Values
         };
 
         CurrentLanguage = AppLanguages.Default;

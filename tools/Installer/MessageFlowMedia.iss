@@ -1,3 +1,9 @@
+; Prefer the repository-root messageflow.iss for new church installers.
+; Compile with: powershell -File tools\Installer\build-installer.ps1
+;
+; This script remains for historical release folders that pass ReleaseDir
+; and InstallerOutputDir to ISCC.
+
 #define MyAppName "MessageFlow Media"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "MessageFlow Media"
@@ -16,7 +22,7 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppCopyright=Copyright (c) 2026 MessageFlow Media project author. Distributed free of charge. Not for sale.
-DefaultDirName={localappdata}\MessageFlow Media
+DefaultDirName=D:\MessageFlowMedia
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir={#InstallerOutputDir}

@@ -37,6 +37,12 @@ public partial class App : System.Windows.Application
 
             var databasePath = MessageFlowDatabase.DefaultDatabasePath;
             LogStartupMessage($"MessageFlow database path: {databasePath}");
+            if (!MessageFlowDatabase.IsAllowedDataPath(databasePath))
+            {
+                throw new InvalidOperationException(
+                    $"MessageFlow refused to use a C: database path:{Environment.NewLine}{databasePath}");
+            }
+
             if (!File.Exists(databasePath))
             {
                 throw new FileNotFoundException(
@@ -48,6 +54,7 @@ public partial class App : System.Windows.Application
                 .RepairAsync(databasePath, LogStartupMessage)
                 .GetAwaiter()
                 .GetResult();
+            MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
 
             Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
 
@@ -138,10 +145,26 @@ public partial class App : System.Windows.Application
 
     private static string GetStartupLogPath()
     {
-        return Path.Combine(FindSolutionRoot(), "logs", "app-startup.log");
+        var solutionRoot = FindSolutionRoot();
+        if (!string.IsNullOrWhiteSpace(solutionRoot))
+        {
+            var solutionLogPath = Path.Combine(solutionRoot, "logs", "app-startup.log");
+            if (MessageFlowDatabase.IsAllowedDataPath(solutionLogPath))
+            {
+                return solutionLogPath;
+            }
+        }
+
+        var executableLogPath = Path.Combine(AppContext.BaseDirectory, "logs", "app-startup.log");
+        if (MessageFlowDatabase.IsAllowedDataPath(executableLogPath))
+        {
+            return executableLogPath;
+        }
+
+        return Path.Combine(MessageFlowDatabase.UserDataRoot, "logs", "app-startup.log");
     }
 
-    private static string FindSolutionRoot()
+    private static string? FindSolutionRoot()
     {
         var candidates = new[]
         {
@@ -163,6 +186,6 @@ public partial class App : System.Windows.Application
             }
         }
 
-        return Directory.GetCurrentDirectory();
+        return null;
     }
 }

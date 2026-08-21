@@ -31,6 +31,7 @@ public static class UiStringsEnglish
 
         // ---- Language selector ----
         ["Lang_SelectorTooltip"] = "Change the application language",
+        ["Lang_Changed"] = "Application language set to {0}.",
         ["Lang_ChangedToEnglish"] = "Application language set to English.",
         ["Lang_ChangedToFrench"] = "Application language set to French.",
 
@@ -78,6 +79,8 @@ public static class UiStringsEnglish
         ["Sermon_ParagraphLabel"] = "Paragraph {0}",
         ["Sermon_NoFrenchContent"] = "No French sermons are available yet.",
         ["Sermon_NoFrenchContentDetail"] = "French sermons have not been added to this library. English sermons stay in the English interface and are never shown as French content.",
+        ["Sermon_NoContentForLanguage"] = "No sermons are available in {0} yet.",
+        ["Sermon_NoContentForLanguageDetail"] = "Sermons in {0} have not been added to this library. Content in other languages stays in its own interface and is never shown here.",
 
         // ---- Bible ----
         ["Bible_SearchHint"] = "Search by book, chapter, verse, or keyword.",
@@ -108,6 +111,8 @@ public static class UiStringsEnglish
         ["Song_Source"] = "Song source",
         ["Song_NoFrenchContent"] = "No French songs are available yet.",
         ["Song_NoFrenchContentDetail"] = "French songs have not been added to this library. English songs stay in the English interface and are never shown as French content.",
+        ["Song_NoContentForLanguage"] = "No songs are available in {0} yet.",
+        ["Song_NoContentForLanguageDetail"] = "Songs in {0} have not been added to this library. Content in other languages stays in its own interface and is never shown here.",
 
         // ---- Favorites ----
         ["Fav_None"] = "No favorites yet.",
@@ -187,7 +192,7 @@ public static class UiStringsEnglish
         // ---- Import Bible window ----
         ["ImportBible_Title"] = "Import Bible",
         ["ImportBible_Subtitle"] = "Select a reviewed Bible CSV file with the columns book, chapter, verse, text.",
-        ["ImportBible_SuggestedFile"] = "Suggested folder: D:\\Bible",
+        ["ImportBible_SuggestedFile"] = "Suggested folder: Documents\\Bible",
         ["ImportBible_TranslationName"] = "Translation Name",
         ["ImportBible_Abbreviation"] = "Abbreviation",
         ["ImportBible_Language"] = "Language",

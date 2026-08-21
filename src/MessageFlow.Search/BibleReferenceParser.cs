@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using MessageFlow.Core.Bible;
+using MessageFlow.Core.Localization;
 
 namespace MessageFlow.Search;
 
@@ -155,6 +156,16 @@ public static partial class BibleReferenceParser
         AddAlias(aliases, "Rev", "Revelation");
         AddAlias(aliases, "Revelation", "Revelation");
 
+        foreach (var (alias, canonical) in LocalizedBibleBookNames.FrenchParserAliases())
+        {
+            AddAlias(aliases, alias, canonical);
+        }
+
+        foreach (var (alias, canonical) in LocalizedBibleBookNames.SwahiliParserAliases())
+        {
+            AddAlias(aliases, alias, canonical);
+        }
+
         return aliases;
     }
 
@@ -181,7 +192,7 @@ public static partial class BibleReferenceParser
         return normalized[..firstDigit].Trim();
     }
 
-    [GeneratedRegex(@"^(?<book>(?:[1-3]\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)*?)\s+(?<chapter>\d{1,3})(?:(?:\s*:\s*|\s+)(?<verse>\d{1,3}))?$")]
+    [GeneratedRegex(@"^(?<book>(?:[1-3]\s*)?\p{L}+(?:\s+\p{L}+)*?)\s+(?<chapter>\d{1,3})(?:(?:\s*:\s*|\s+)(?<verse>\d{1,3}))?$")]
     private static partial Regex ReferenceRegex();
 
     [GeneratedRegex(@"\s+")]

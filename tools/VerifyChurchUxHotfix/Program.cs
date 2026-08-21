@@ -19,6 +19,7 @@ var checks = new List<(string Name, Func<Task<string>> Run)>
     ("selected-sermon pattern rules", PatternRules),
     ("operator search highlighting", OperatorSearchHighlighting),
     ("database-backed global sermon search", GlobalSearch),
+    ("language-scoped search, favorites, and Bible references", LanguageScopedSearchAndFavorites),
     ("database-backed selected-sermon search", SelectedSermonSearch),
     ("Bible chapter context and verse navigation", BibleChapterContext),
     ("selected-sermon full loading by stable id", FullSelectedSermonLoad),
@@ -422,6 +423,56 @@ static async Task<string> GlobalSearch()
     await CheckIntegrity(db, "malformed quote", malformed);
 
     return $"DB={databasePath}; Wedding Ceremony={Fmt(wedding)}; Why Little Bethlehem={Fmt(bethlehem)}; Jesus had said={Fmt(jesus)}; quoted Jesus had said={Fmt(quotedJesus)}; Faith Is the Substance={Fmt(faith)}; long sentence tokens=14; apostrophe results={straight.Count}/{smart.Count}; nonexistent={none.Count}; malformedQuote={malformed.Count}.";
+}
+
+static async Task<string> LanguageScopedSearchAndFavorites()
+{
+    Assert(BibleReferenceParser.TryParse("John 3:16", out var john) && john.BookName == "John", "English John 3:16 should parse");
+    Assert(BibleReferenceParser.TryParse("Jean 3:16", out var jean) && jean.BookName == "John", "French Jean 3:16 should parse");
+    Assert(BibleReferenceParser.TryParse("Yohana 3:16", out var yohana) && yohana.BookName == "John", "Swahili Yohana 3:16 should parse");
+    Assert(BibleReferenceParser.TryParse("Genèse 1:1", out var genese) && genese.BookName == "Genesis", "accented French Genèse 1:1 should parse");
+    Assert(BibleReferenceParser.TryParse("Mwanzo 1:1", out var mwanzo) && mwanzo.BookName == "Genesis", "Swahili Mwanzo 1:1 should parse");
+
+    await using var db = CreateDb();
+    ISermonSearchService search = new SermonSearchService(db);
+    var details = new List<string>();
+
+    foreach (var language in new[] { "en", "fr", "sw" })
+    {
+        var sermonCount = await db.Sermons.AsNoTracking().CountAsync(sermon => sermon.Language == language);
+        Assert(sermonCount > 0, $"expected sermons for language {language}");
+
+        var sampleCode = await db.Sermons.AsNoTracking()
+            .Where(sermon => sermon.Language == language && sermon.SermonCode != "")
+            .OrderBy(sermon => sermon.Id)
+            .Select(sermon => sermon.SermonCode)
+            .FirstAsync();
+
+        var results = await search.SearchAsync(sampleCode, 50, CancellationToken.None, language);
+        Assert(results.Count > 0, $"{language} search for {sampleCode} should return results");
+
+        var sermonIds = results.Select(result => result.SermonId).Distinct().ToArray();
+        var languages = await db.Sermons.AsNoTracking()
+            .Where(sermon => sermonIds.Contains(sermon.Id))
+            .Select(sermon => sermon.Language)
+            .Distinct()
+            .ToListAsync();
+        Assert(languages.Count == 1 && languages[0] == language,
+            $"{language} search must not return other languages ({string.Join(",", languages)})");
+
+        var favoriteCount = await db.FavoriteParagraphs.AsNoTracking()
+            .CountAsync(favorite => favorite.SermonParagraph != null &&
+                                    favorite.SermonParagraph.Sermon != null &&
+                                    favorite.SermonParagraph.Sermon.Language == language);
+        var historyCount = await db.ProjectionHistories.AsNoTracking()
+            .CountAsync(history => history.SermonParagraph != null &&
+                                   history.SermonParagraph.Sermon != null &&
+                                   history.SermonParagraph.Sermon.Language == language);
+
+        details.Add($"{language}:search={results.Count}/sermons={sermonCount}/fav={favoriteCount}/hist={historyCount}");
+    }
+
+    return string.Join("; ", details);
 }
 
 static async Task<string> BibleChapterContext()

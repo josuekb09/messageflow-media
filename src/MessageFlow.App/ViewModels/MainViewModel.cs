@@ -23,6 +23,12 @@ namespace MessageFlow.App.ViewModels;
 public sealed partial class MainViewModel : ObservableObject
 {
     private const int SearchDebounceMilliseconds = 250;
+    /// <summary>
+    /// Brother Frank sermons stay hidden from the church UI until official PDFs are imported.
+    /// Records remain in the database; admin import and cleanup tools stay available.
+    /// Flip this flag after the official Frank library is loaded.
+    /// </summary>
+    private static readonly bool ShowBrotherFrankLibrary = false;
     private const double ProjectionFontAdjustmentStep = 2;
     private const double MinimumProjectionFontAdjustment = -24;
     private const double MaximumProjectionFontAdjustment = 24;
@@ -833,7 +839,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string SelectedBibleVersionShortDisplay =>
         SelectedBibleTranslation is null
             ? Loc.T("Info_VersionNone")
-            : Loc.F("Info_Version", SelectedBibleTranslation.Abbreviation);
+            : SelectedBibleTranslation.Name;
 
     public bool HasSingleBibleTranslation => BibleTranslations.Count == 1;
 
@@ -1234,6 +1240,9 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             await RefreshContentAvailabilityAsync();
+            App.LogStartupMessage(
+                $"Content availability for {ContentLanguageCode}: " +
+                $"sermons={HasSermonContentForCurrentLanguage}, songs={HasSongContentForCurrentLanguage}.");
         }
         catch (Exception ex)
         {
@@ -1245,6 +1254,11 @@ public sealed partial class MainViewModel : ObservableObject
             : string.Join(' ', startupMessages);
     }
 
+    public Task RefreshFavoritesAsync()
+    {
+        return LoadFavoritesAsync();
+    }
+
     public Task RefreshProjectionHistoryAsync()
     {
         return LoadProjectionHistoryAsync();
@@ -1252,6 +1266,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void QueueBrotherFrankPublicationMetadataRefresh()
     {
+        if (!ShowBrotherFrankLibrary)
+        {
+            App.LogStartupMessage("Brother Frank library is hidden until official import; skipping publication metadata refresh.");
+            return;
+        }
+
         _ = Task.Run(async () =>
         {
             try
@@ -1354,7 +1374,7 @@ public sealed partial class MainViewModel : ObservableObject
             var report = await BuildProductionVerificationReportAsync();
             var window = new MessageFlow.App.ProductionVerificationWindow(report)
             {
-                Owner = System.Windows.Application.Current.MainWindow,
+                Owner = WindowPlacement.ResolveOwner(),
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
 
@@ -1456,8 +1476,8 @@ public sealed partial class MainViewModel : ObservableObject
 
         items.Add(new ProductionVerificationItem(
             "Operator source list",
-            ManageableContentSources.All(source => !LooksLikeTestSource(source)),
-            "Test sources are hidden from normal source selection."));
+            ManageableContentSources.All(source => !LooksLikeTestSource(source) && !IsDeferredFrankLibrary(source)),
+            "Test sources and deferred Brother Frank placeholders are hidden from normal source selection."));
 
         var searchIndexExists = await SearchIndexExistsAsync();
         items.Add(new ProductionVerificationItem(
@@ -1576,7 +1596,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             var confirmationWindow = new MessageFlow.App.TestDataCleanupWindow(preview)
             {
-                Owner = System.Windows.Application.Current.MainWindow,
+                Owner = WindowPlacement.ResolveOwner(),
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
 
@@ -2132,7 +2152,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var dialog = new AddContentSourceWindow
         {
-            Owner = System.Windows.Application.Current.MainWindow
+            Owner = WindowPlacement.ResolveOwner()
         };
 
         if (dialog.ShowDialog() != true)
@@ -2206,7 +2226,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var dialog = new ManageSourcesWindow(this)
         {
-            Owner = System.Windows.Application.Current.MainWindow,
+            Owner = WindowPlacement.ResolveOwner(),
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
 
@@ -2217,7 +2237,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var dialog = new ImportBibleWindow
         {
-            Owner = System.Windows.Application.Current.MainWindow,
+            Owner = WindowPlacement.ResolveOwner(),
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
 
@@ -2426,17 +2446,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var previewWindow = new ImportPreviewWindow(preview)
             {
-                Owner = System.Windows.Application.Current.MainWindow,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                ShowInTaskbar = false,
-                ShowActivated = true
-            };
-
-            previewWindow.Loaded += (_, _) =>
-            {
-                previewWindow.Topmost = true;
-                previewWindow.Topmost = false;
-                previewWindow.Activate();
+                Owner = WindowPlacement.ResolveOwner(),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
 
             previewResult = previewWindow.ShowDialog();
@@ -3556,8 +3567,9 @@ public sealed partial class MainViewModel : ObservableObject
 
             await using var scope = scopeFactory.CreateAsyncScope();
             var searchService = scope.ServiceProvider.GetRequiredService<ISongSearchService>();
+            var language = ContentLanguageCode;
             var results = await searchService.SearchAsync(
-                new SongSearchQuery(queryText, 200, ContentLanguageCode),
+                new SongSearchQuery(queryText, 200, language),
                 cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -3576,7 +3588,7 @@ public sealed partial class MainViewModel : ObservableObject
             StatusText = SongResults.Count == 0
                 ? HasSongContentForCurrentLanguage
                     ? Loc.T("Status_NoSongsFound")
-                    : Loc.T("Song_NoFrenchContent")
+                    : Loc.F("Song_NoContentForLanguage", SelectedUiLanguage.NativeName)
                 : Loc.Count(SongResults.Count, "Count_Song_One", "Count_Song_Many") + ".";
         }
         catch (OperationCanceledException)
@@ -3734,7 +3746,8 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedSourceFilter?.Value,
             SelectedYear?.Value,
             Interlocked.Increment(ref searchRequestVersion),
-            projectBestResult);
+            projectBestResult,
+            ContentLanguageCode);
     }
 
     private bool IsCurrentSearch(SearchSnapshot snapshot)
@@ -3821,6 +3834,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var searchService = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var language = snapshot.Language;
 
             IReadOnlyList<SearchResult> results;
             if (snapshot.IsFilterOnlyBrowse)
@@ -3831,7 +3846,7 @@ public sealed partial class MainViewModel : ObservableObject
                     snapshot.Year,
                     maxResults: 2000,
                     cancellationToken: cancellationToken,
-                    language: ContentLanguageCode);
+                    language: language);
             }
             else if (snapshot.HasFilter)
             {
@@ -3842,7 +3857,7 @@ public sealed partial class MainViewModel : ObservableObject
                         SearchText: string.IsNullOrWhiteSpace(snapshot.QueryText) ? null : snapshot.QueryText,
                         Year: snapshot.Year,
                         MaxResults: 200,
-                        Language: ContentLanguageCode),
+                        Language: language),
                     cancellationToken);
             }
             else
@@ -3851,14 +3866,19 @@ public sealed partial class MainViewModel : ObservableObject
                     snapshot.QueryText,
                     200,
                     cancellationToken,
-                    ContentLanguageCode);
+                    language);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            return results
-                .Where(result => !LooksLikeTestSource(result.SourceDisplayName, result.SourceDisplayName, result.SourceFilePath))
+            var viewModels = results
+                .Where(result => !IsHiddenFromChurchUi(
+                    result.SourceDisplayName,
+                    result.AuthorDisplayName,
+                    result.SourceFilePath))
                 .Select(result => new ParagraphResultViewModel(result))
                 .ToList();
+            await ApplyFavoriteStateAsync(dbContext, viewModels, cancellationToken);
+            return viewModels;
         }, cancellationToken);
     }
 
@@ -3941,7 +3961,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (!HasSermonContentForCurrentLanguage)
             {
-                return Loc.T("Sermon_NoFrenchContent");
+                return Loc.F("Sermon_NoContentForLanguage", SelectedUiLanguage.NativeName);
             }
 
             var noMatchKind = SermonTextSearchPattern.Create(snapshot.QueryText).IsExactPhrase
@@ -5284,10 +5304,14 @@ public sealed partial class MainViewModel : ObservableObject
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        var language = ContentLanguageCode;
+        var bibleLanguage = SelectedUiLanguage.BibleLanguageName;
 
         var favorites = await dbContext.FavoriteParagraphs
             .AsNoTracking()
-            .Where(favorite => favorite.SermonParagraph!.Sermon!.Language == ContentLanguageCode)
+            .Where(favorite => favorite.SermonParagraph != null &&
+                               favorite.SermonParagraph.Sermon != null &&
+                               favorite.SermonParagraph.Sermon.Language == language)
             .OrderByDescending(favorite => favorite.CreatedAt)
             .Select(favorite => new
             {
@@ -5298,12 +5322,26 @@ public sealed partial class MainViewModel : ObservableObject
                 Text = favorite.SermonParagraph.Text,
                 SermonTitle = favorite.SermonParagraph.Sermon!.Title,
                 favorite.SermonParagraph.Sermon.SermonCode,
-                favorite.SermonParagraph.Sermon.Year
+                favorite.SermonParagraph.Sermon.Year,
+                SourceName = favorite.SermonParagraph.Sermon.ContentSource != null
+                    ? favorite.SermonParagraph.Sermon.ContentSource.Name
+                    : null,
+                SourceDisplayName = favorite.SermonParagraph.Sermon.ContentSource != null
+                    ? favorite.SermonParagraph.Sermon.ContentSource.DisplayName
+                    : null,
+                AuthorDisplayName = favorite.SermonParagraph.Sermon.Author != null
+                    ? favorite.SermonParagraph.Sermon.Author.DisplayName
+                    : null,
+                AuthorFullName = favorite.SermonParagraph.Sermon.Author != null
+                    ? favorite.SermonParagraph.Sermon.Author.FullName
+                    : null
             })
             .ToListAsync();
 
         FavoriteParagraphs.Clear();
-        foreach (var favorite in favorites)
+        foreach (var favorite in favorites.Where(favorite =>
+                     !IsHiddenFromChurchUi(favorite.SourceName, favorite.SourceDisplayName) &&
+                     !IsDeferredFrankLibrary(favorite.AuthorFullName, favorite.AuthorDisplayName)))
         {
             FavoriteParagraphs.Add(new SavedParagraphViewModel(
                 favorite.Id,
@@ -5319,7 +5357,9 @@ public sealed partial class MainViewModel : ObservableObject
 
         var bibleFavorites = await dbContext.BibleFavoriteVerses
             .AsNoTracking()
-            .Where(favorite => favorite.BibleVerse!.BibleTranslation!.Language == SelectedUiLanguage.BibleLanguageName)
+            .Where(favorite => favorite.BibleVerse != null &&
+                               favorite.BibleVerse.BibleTranslation != null &&
+                               favorite.BibleVerse.BibleTranslation.Language == bibleLanguage)
             .OrderByDescending(favorite => favorite.CreatedAt)
             .ThenByDescending(favorite => favorite.Id)
             .Select(favorite => new
@@ -5432,10 +5472,11 @@ public sealed partial class MainViewModel : ObservableObject
         int? preferredSourceId = null,
         int? preferredYear = null)
     {
+        var language = ContentLanguageCode;
         var linkedSourceRows = await dbContext.Sermons
             .AsNoTracking()
             .Where(sermon => sermon.ContentSourceId != null &&
-                             sermon.Language == ContentLanguageCode)
+                             sermon.Language == language)
             .Select(sermon => new
             {
                 sermon.ContentSource!.Id,
@@ -5447,7 +5488,7 @@ public sealed partial class MainViewModel : ObservableObject
             .ToListAsync();
 
         var linkedSources = linkedSourceRows
-            .Where(source => !LooksLikeTestSource(source.Name, source.DisplayName, source.LocalFolderPath))
+            .Where(source => !IsHiddenFromChurchUi(source.Name, source.DisplayName, source.LocalFolderPath))
             .OrderBy(source => source.DisplayName)
             .ThenBy(source => source.Name)
             .Select(source => new FilterOption(source.Id, source.DisplayName))
@@ -5460,7 +5501,7 @@ public sealed partial class MainViewModel : ObservableObject
         var linkedAuthorIds = await dbContext.Sermons
             .AsNoTracking()
             .Where(sermon => sermon.ContentSourceId != null &&
-                             sermon.Language == ContentLanguageCode &&
+                             sermon.Language == language &&
                              visibleSourceIds.Contains(sermon.ContentSourceId.Value))
             .Select(sermon => sermon.AuthorId)
             .Distinct()
@@ -5497,7 +5538,7 @@ public sealed partial class MainViewModel : ObservableObject
             .AsNoTracking()
             .Where(sermon =>
                 sermon.Year > 0 &&
-                sermon.Language == ContentLanguageCode &&
+                sermon.Language == language &&
                 sermon.ContentSourceId != null &&
                 visibleSourceIds.Contains(sermon.ContentSourceId.Value))
             .Select(sermon => sermon.Year)
@@ -5756,9 +5797,10 @@ public sealed partial class MainViewModel : ObservableObject
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
 
+        var bibleLanguage = SelectedUiLanguage.BibleLanguageName;
         var translations = await dbContext.BibleTranslations
             .AsNoTracking()
-            .Where(translation => translation.Language == SelectedUiLanguage.BibleLanguageName)
+            .Where(translation => translation.Language == bibleLanguage)
             .OrderBy(translation => translation.Abbreviation)
             .ThenBy(translation => translation.Name)
             .Select(translation => new BibleTranslationOption(
@@ -5800,7 +5842,10 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedBibleVerse = null;
         }
 
-        App.LogStartupMessage($"Loaded Bible translations: {BibleTranslations.Count}.");
+        App.LogStartupMessage(
+            $"Loaded Bible translations for {bibleLanguage}: {BibleTranslations.Count} " +
+            $"[{string.Join(", ", BibleTranslations.Select(translation => translation.Abbreviation))}]; " +
+            $"selected={SelectedBibleTranslation?.Abbreviation ?? "(none)"}.");
     }
 
     private async Task LoadContentSourcesAsync(int? preferredSourceId = null)
@@ -5837,7 +5882,6 @@ public sealed partial class MainViewModel : ObservableObject
             ? visibleSources.FirstOrDefault(source => source.Id == SelectedContentSource?.Id) ??
               visibleSources.FirstOrDefault()
             : visibleSources.FirstOrDefault(source => source.Id == preferredSourceId.Value) ??
-              ContentSources.FirstOrDefault(source => source.Id == preferredSourceId.Value) ??
               visibleSources.FirstOrDefault();
 
         if (sources.Count == 0)
@@ -5855,14 +5899,16 @@ public sealed partial class MainViewModel : ObservableObject
         var selectedSourceId = SelectedContentSource?.Id;
 
         ManageableContentSources.Clear();
-        foreach (var source in ContentSources.Where(source => ShowTestSourcesInManageSources || !LooksLikeTestSource(source)))
+        foreach (var source in ContentSources.Where(source =>
+                     (ShowTestSourcesInManageSources || !LooksLikeTestSource(source)) &&
+                     !IsDeferredFrankLibrary(source)))
         {
             ManageableContentSources.Add(source);
         }
 
         if (SelectedContentSource is not null &&
-            !ShowTestSourcesInManageSources &&
-            LooksLikeTestSource(SelectedContentSource))
+            ((!ShowTestSourcesInManageSources && LooksLikeTestSource(SelectedContentSource)) ||
+             IsDeferredFrankLibrary(SelectedContentSource)))
         {
             SelectedContentSource = ManageableContentSources.FirstOrDefault();
             return;
@@ -6218,10 +6264,13 @@ public sealed partial class MainViewModel : ObservableObject
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+        var language = ContentLanguageCode;
 
         var historyItems = await dbContext.ProjectionHistories
             .AsNoTracking()
-            .Where(history => history.SermonParagraph!.Sermon!.Language == ContentLanguageCode)
+            .Where(history => history.SermonParagraph != null &&
+                              history.SermonParagraph.Sermon != null &&
+                              history.SermonParagraph.Sermon.Language == language)
             .OrderByDescending(history => history.ProjectedAt)
             .ThenByDescending(history => history.Id)
             .Take(75)
@@ -6234,12 +6283,26 @@ public sealed partial class MainViewModel : ObservableObject
                 Text = history.SermonParagraph.Text,
                 SermonTitle = history.SermonParagraph.Sermon!.Title,
                 history.SermonParagraph.Sermon.SermonCode,
-                history.SermonParagraph.Sermon.Year
+                history.SermonParagraph.Sermon.Year,
+                SourceName = history.SermonParagraph.Sermon.ContentSource != null
+                    ? history.SermonParagraph.Sermon.ContentSource.Name
+                    : null,
+                SourceDisplayName = history.SermonParagraph.Sermon.ContentSource != null
+                    ? history.SermonParagraph.Sermon.ContentSource.DisplayName
+                    : null,
+                AuthorDisplayName = history.SermonParagraph.Sermon.Author != null
+                    ? history.SermonParagraph.Sermon.Author.DisplayName
+                    : null,
+                AuthorFullName = history.SermonParagraph.Sermon.Author != null
+                    ? history.SermonParagraph.Sermon.Author.FullName
+                    : null
             })
             .ToListAsync();
 
         ProjectionHistoryItems.Clear();
-        foreach (var history in historyItems)
+        foreach (var history in historyItems.Where(history =>
+                     !IsHiddenFromChurchUi(history.SourceName, history.SourceDisplayName) &&
+                     !IsDeferredFrankLibrary(history.AuthorFullName, history.AuthorDisplayName)))
         {
             ProjectionHistoryItems.Add(new SavedParagraphViewModel(
                 history.Id,
@@ -6457,6 +6520,42 @@ public sealed partial class MainViewModel : ObservableObject
                name.Contains("test", StringComparison.OrdinalIgnoreCase) ||
                (!string.IsNullOrWhiteSpace(localFolderPath) &&
                 localFolderPath.Contains("Ewald Frank Test", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsDeferredFrankLibrary(ContentSourceViewModel source)
+    {
+        return IsDeferredFrankLibrary(source.Name, source.DisplayName, source.LocalFolderPath);
+    }
+
+    private static bool IsHiddenFromChurchUi(string? name, string? displayName, string? path = null)
+    {
+        return LooksLikeTestSource(name ?? string.Empty, displayName ?? string.Empty, path) ||
+               IsDeferredFrankLibrary(name, displayName, path);
+    }
+
+    private static bool IsDeferredFrankLibrary(string? name, string? displayName, string? path = null)
+    {
+        if (ShowBrotherFrankLibrary)
+        {
+            return false;
+        }
+
+        return ContainsFrankLibraryMarker(name) ||
+               ContainsFrankLibraryMarker(displayName) ||
+               ContainsFrankLibraryMarker(path);
+    }
+
+    private static bool ContainsFrankLibraryMarker(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return value.Contains("brother_frank", StringComparison.OrdinalIgnoreCase) ||
+               value.Contains("ewald_frank", StringComparison.OrdinalIgnoreCase) ||
+               value.Contains("Ewald Frank", StringComparison.OrdinalIgnoreCase) ||
+               value.Contains("Brother Frank", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsCircularLetterMetadata(SermonMetadata metadata)
@@ -6869,13 +6968,42 @@ public sealed partial class MainViewModel : ObservableObject
         NextSermonWithinMatchCommand.RaiseCanExecuteChanged();
     }
 
+    private static async Task ApplyFavoriteStateAsync(
+        MessageFlowDbContext dbContext,
+        List<ParagraphResultViewModel> paragraphs,
+        CancellationToken cancellationToken)
+    {
+        if (paragraphs.Count == 0)
+        {
+            return;
+        }
+
+        var paragraphIds = paragraphs.Select(paragraph => paragraph.ParagraphId).ToList();
+        var favoriteIds = await dbContext.FavoriteParagraphs
+            .AsNoTracking()
+            .Where(favorite => paragraphIds.Contains(favorite.SermonParagraphId))
+            .Select(favorite => favorite.SermonParagraphId)
+            .ToListAsync(cancellationToken);
+        if (favoriteIds.Count == 0)
+        {
+            return;
+        }
+
+        var favoriteSet = favoriteIds.ToHashSet();
+        foreach (var paragraph in paragraphs)
+        {
+            paragraph.IsFavorite = favoriteSet.Contains(paragraph.ParagraphId);
+        }
+    }
+
     private sealed record SearchSnapshot(
         string QueryText,
         int? AuthorId,
         int? ContentSourceId,
         int? Year,
         int Version,
-        bool ProjectBestResult)
+        bool ProjectBestResult,
+        string Language)
     {
         public bool HasFilter => AuthorId is not null || ContentSourceId is not null || Year is not null;
 

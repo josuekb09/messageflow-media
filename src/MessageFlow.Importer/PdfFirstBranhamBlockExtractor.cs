@@ -197,6 +197,11 @@ public static partial class PdfFirstBranhamBlockExtractor
         }
 
         if (normalized.Contains("ENGLISH", StringComparison.Ordinal) ||
+            normalized.Contains("SWAHILI", StringComparison.Ordinal) ||
+            normalized.Contains("KISWAHILI", StringComparison.Ordinal) ||
+            normalized.Contains("FRANCAIS", StringComparison.Ordinal) ||
+            normalized.Contains("FRANÇAIS", StringComparison.Ordinal) ||
+            normalized.Contains("FRENCH", StringComparison.Ordinal) ||
             normalized.Contains("USA", StringComparison.Ordinal))
         {
             return true;
@@ -380,7 +385,7 @@ public static partial class PdfFirstBranhamBlockExtractor
     [GeneratedRegex(@"\bVGR\b\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex VgrSuffixRegex();
 
-    [GeneratedRegex(@"^\s*\d{2}-\d{4}[A-Z]?\s*", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\s*(?:SWA|FRA|FRE|FRN|FR|ENG|EN)?\s*\d{2}-\d{4}[A-Z]?\s*", RegexOptions.IgnoreCase)]
     private static partial Regex SermonCodePrefixRegex();
 
     [GeneratedRegex(@"^\s*(?<number>\d{1,3})(?:[.)])?\s+(?<text>(?:[""'\(\[]\s*)?[\p{L}][\s\S]*)$")]

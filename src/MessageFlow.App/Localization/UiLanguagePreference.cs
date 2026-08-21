@@ -1,27 +1,33 @@
 using System.IO;
 using MessageFlow.Core.Localization;
+using MessageFlow.Data;
 
 namespace MessageFlow.App.Localization;
 
 /// <summary>
-/// Persists the chosen UI language between launches, using the same
-/// %LocalAppData%\MessageFlow file convention as ProjectionDisplayService.
-/// No database table and no migration are involved.
+/// Persists the chosen UI language between launches, using the D: settings
+/// folder shared with ProjectionDisplayService. Never writes to %LocalAppData% on C:.
 /// </summary>
 public static class UiLanguagePreference
 {
     private static string SettingsPath =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MessageFlow",
-            "ui-language.txt");
+        Path.Combine(MessageFlowDatabase.UserSettingsDirectory, "ui-language.txt");
 
     public static AppLanguage Load()
     {
         try
         {
-            return File.Exists(SettingsPath)
-                ? AppLanguages.FromCode(File.ReadAllText(SettingsPath).Trim())
+            if (File.Exists(SettingsPath))
+            {
+                return AppLanguages.FromCode(File.ReadAllText(SettingsPath).Trim());
+            }
+
+            var legacyPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MessageFlow",
+                "ui-language.txt");
+            return File.Exists(legacyPath)
+                ? AppLanguages.FromCode(File.ReadAllText(legacyPath).Trim())
                 : AppLanguages.Default;
         }
         catch

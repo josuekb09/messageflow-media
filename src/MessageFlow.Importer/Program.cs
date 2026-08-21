@@ -1,7 +1,6 @@
 using MessageFlow.Data;
 using MessageFlow.Importer;
 using MessageFlow.Search;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 if (args.Length > 0 && string.Equals(args[0], "search", StringComparison.OrdinalIgnoreCase))
@@ -34,13 +33,14 @@ await using var scope = services.CreateAsyncScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
 
 MessageFlowDatabase.EnsureDatabaseDirectory(MessageFlowDatabase.DefaultDatabasePath);
-await dbContext.Database.MigrateAsync();
+await MessageFlowDatabaseRepair.RepairAsync(MessageFlowDatabase.DefaultDatabasePath);
 
 Console.WriteLine("MessageFlow PDF Importer");
 Console.WriteLine($"Source folder: {options.SourceRoot}");
 Console.WriteLine($"Database: {MessageFlowDatabase.DefaultDatabasePath}");
 Console.WriteLine($"Force re-import: {(options.Force ? "yes" : "no")}");
 Console.WriteLine($"Reset before import: {(options.Reset ? "yes" : "no")}");
+Console.WriteLine($"Language override: {options.LanguageOverride ?? "(detect from filenames)"}");
 Console.WriteLine("Mode: local PDFs only; no website scraping or downloads.");
 Console.WriteLine();
 

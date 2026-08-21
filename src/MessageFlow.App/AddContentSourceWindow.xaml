@@ -3,13 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MessageFlow.App.Localization"
         Title="{loc:Tr AddSource_Title}"
-        Height="660"
-        Width="660"
-        MinHeight="560"
-        MinWidth="600"
+        Height="520"
+        Width="560"
+        MinHeight="480"
+        MinWidth="520"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackgroundBrush}"
-        ResizeMode="CanResize">
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

@@ -193,6 +193,9 @@ public static class MessageFlowDatabaseRepair
                 """,
                 cancellationToken);
 
+            // Seed the built-in source only when missing. Never overwrite
+            // LocalFolderPath — that value is machine-specific and must stay
+            // as configured by the user (or as already stored in the database).
             await ExecuteAsync(
                 connection,
                 """
@@ -211,18 +214,16 @@ public static class MessageFlowDatabaseRepair
                     'Brother Branham',
                     'SermonPdfCollection',
                     'Local Brother William Marrion Branham sermon PDF library.',
-                    'D:\Br William Marrion Branham\PDF',
+                    NULL,
                     CURRENT_TIMESTAMP
                 )
                 ON CONFLICT("Name") DO UPDATE SET
                     "DisplayName" = excluded."DisplayName",
                     "SourceType" = excluded."SourceType",
-                    "Description" = excluded."Description",
-                    "LocalFolderPath" = excluded."LocalFolderPath"
+                    "Description" = excluded."Description"
                 WHERE "ContentSources"."DisplayName" IS NOT excluded."DisplayName"
                    OR "ContentSources"."SourceType" IS NOT excluded."SourceType"
-                   OR "ContentSources"."Description" IS NOT excluded."Description"
-                   OR "ContentSources"."LocalFolderPath" IS NOT excluded."LocalFolderPath";
+                   OR "ContentSources"."Description" IS NOT excluded."Description";
                 """,
                 cancellationToken);
 

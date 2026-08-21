@@ -8,11 +8,14 @@
         mc:Ignorable="d"
         Title="MessageFlow"
         Icon="pack://application:,,,/Assets/Brand/messageflow-app-icon-1024.png"
-        Height="820"
+        Height="720"
         Width="1180"
         MinHeight="500"
-        MinWidth="880"
+        MinWidth="980"
         WindowState="Maximized"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        ShowActivated="True"
         Background="{StaticResource WindowBackgroundBrush}"
         Loaded="Window_Loaded"
         PreviewKeyDown="Window_PreviewKeyDown">
@@ -23,8 +26,6 @@
     <Window.InputBindings>
         <KeyBinding Key="P" Modifiers="Control" Command="{Binding ProjectCommand}" />
         <KeyBinding Key="C" Modifiers="Control" Command="{Binding CopyCommand}" />
-        <KeyBinding Key="Right" Command="{Binding NextParagraphCommand}" />
-        <KeyBinding Key="Left" Command="{Binding PreviousParagraphCommand}" />
     </Window.InputBindings>
 
     <Grid>
@@ -35,7 +36,7 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-                Padding="14,8"
+                Padding="20,12"
                 Background="{StaticResource PanelBackgroundBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -68,7 +69,7 @@
                            Stretch="Uniform"
                            SnapsToDevicePixels="True" />
                     <TextBlock Text="MessageFlow"
-                               FontSize="24"
+                               FontSize="20"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center" />
                 </StackPanel>
@@ -104,8 +105,8 @@
                           SelectedItem="{Binding SelectedAuthor}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="142"
-                          Width="154"
+                          MinWidth="154"
+                          MaxWidth="240"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource TopToolbarComboBoxStyle}">
@@ -127,8 +128,8 @@
                           SelectedItem="{Binding SelectedSourceFilter}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="142"
-                          Width="154"
+                          MinWidth="154"
+                          MaxWidth="240"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource TopToolbarComboBoxStyle}">
@@ -150,8 +151,8 @@
                           SelectedItem="{Binding SelectedYear}"
                           DisplayMemberPath="Label"
                           TextSearch.TextPath="Label"
-                          MinWidth="104"
-                          Width="112"
+                          MinWidth="120"
+                          MaxWidth="180"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
                         <Style TargetType="ComboBox" BasedOn="{StaticResource TopToolbarComboBoxStyle}">
@@ -180,8 +181,9 @@
                           VerticalContentAlignment="Center" />
 
                 <Button Content="A-"
+                        Style="{StaticResource GhostButtonStyle}"
                         Command="{Binding DecreaseProjectionTextSizeCommand}"
-                        Width="38"
+                        Width="40"
                         MinHeight="40"
                         Margin="0,0,6,6"
                         Padding="0"
@@ -189,19 +191,21 @@
                         ToolTip="{loc:Tr Toolbar_DecreaseTextTooltip}" />
 
                 <Button Content="{loc:Tr Toolbar_Fit}"
+                        Style="{StaticResource GhostButtonStyle}"
                         Command="{Binding ResetProjectionTextSizeCommand}"
-                        Width="46"
+                        MinWidth="56"
                         MinHeight="40"
                         Margin="0,0,6,6"
-                        Padding="0"
+                        Padding="10,0"
                         FontSize="13"
                         ToolTip="{loc:Tr Toolbar_FitTextTooltip}" />
 
                 <Button Content="A+"
+                        Style="{StaticResource GhostButtonStyle}"
                         Command="{Binding IncreaseProjectionTextSizeCommand}"
-                        Width="38"
+                        Width="40"
                         MinHeight="40"
-                        Margin="0,0,6,6"
+                        Margin="0,0,8,6"
                         Padding="0"
                         FontSize="14"
                         ToolTip="{loc:Tr Toolbar_IncreaseTextTooltip}" />
@@ -211,8 +215,8 @@
                           ItemsSource="{Binding AvailableUiLanguages}"
                           SelectedItem="{Binding SelectedUiLanguage}"
                           DisplayMemberPath="NativeName"
-                          MinWidth="108"
-                          Width="118"
+                          MinWidth="118"
+                          MaxWidth="148"
                           ToolTip="{loc:Tr Lang_SelectorTooltip}"
                           VerticalContentAlignment="Center" />
                 </WrapPanel>
@@ -220,10 +224,10 @@
         </Border>
 
         <Grid Grid.Row="1"
-              Margin="12"
+              Margin="18"
               ClipToBounds="True">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.85*" MinWidth="260" />
+                <ColumnDefinition Width="0.85*" MinWidth="380" />
                 <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="1.35*" MinWidth="270" />
                 <ColumnDefinition Width="6" />
@@ -242,16 +246,24 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <DockPanel Grid.Row="0" Margin="16,14,16,10">
+                    <Grid Grid.Row="0" Margin="20,16,20,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <TextBlock Text="{loc:Tr Nav_Library}"
-                                   FontSize="18"
+                                   FontSize="16"
                                    FontWeight="SemiBold"
-                                   DockPanel.Dock="Left" />
-                        <TextBlock Text="{Binding LibraryCountText}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding LibraryCountText}"
                                    Foreground="{StaticResource MutedTextBrush}"
                                    FontSize="13"
-                                   HorizontalAlignment="Right" />
-                    </DockPanel>
+                                   Margin="12,0,0,0"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Grid>
 
                     <TabControl x:Name="LibraryTabs"
                                 Grid.Row="1"
@@ -259,6 +271,12 @@
                                 MinHeight="0"
                                 ClipToBounds="True"
                                 SelectionChanged="LibraryTabs_SelectionChanged">
+                        <TabControl.Resources>
+                            <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                <Setter Property="Padding" Value="8,7" />
+                                <Setter Property="FontSize" Value="12" />
+                            </Style>
+                        </TabControl.Resources>
                         <TabItem x:Name="SermonsTab"
                                  Header="{loc:Tr Nav_Sermons}">
                             <Grid Margin="0,10,0,0"
@@ -376,8 +394,8 @@
                                                   SelectedItem="{Binding SelectedBibleTranslation}"
                                                   DisplayMemberPath="DisplayName"
                                                   TextSearch.TextPath="DisplayName"
-                                                  Width="154"
                                                   MinWidth="142"
+                                                  MaxWidth="220"
                                                   Margin="12,0,0,0"
                                                   Padding="10,6"
                                                   FontSize="13"
@@ -644,7 +662,8 @@
                             </Grid>
                         </TabItem>
 
-                        <TabItem Header="{loc:Tr Nav_Favorites}">
+                        <TabItem x:Name="FavoritesTab"
+                                 Header="{loc:Tr Nav_Favorites}">
                             <ScrollViewer Margin="0,10,0,0"
                                           MinHeight="0"
                                           VerticalScrollBarVisibility="Visible"
@@ -1531,7 +1550,7 @@
         </Grid>
 
         <Border Grid.Row="2"
-                Padding="14,5"
+                Padding="18,8"
                 Background="{StaticResource PanelBackgroundBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -1556,10 +1575,11 @@
                            FontWeight="SemiBold" />
 
                 <Button Grid.Column="2"
+                        Style="{StaticResource GhostButtonStyle}"
                         Content="{loc:Tr Common_Admin}"
-                        Margin="14,0,0,0"
-                        MinHeight="28"
-                        Padding="12,4"
+                        Margin="16,0,0,0"
+                        MinHeight="32"
+                        Padding="14,5"
                         FontSize="12"
                         Click="Admin_Click"
                         ToolTip="{loc:Tr Admin_Title}" />

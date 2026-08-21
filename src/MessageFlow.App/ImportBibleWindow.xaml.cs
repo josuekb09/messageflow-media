@@ -9,17 +9,13 @@ namespace MessageFlow.App;
 
 public partial class ImportBibleWindow : Window
 {
-    private const string SuggestedKjvFolder = @"D:\Bible\KJV";
-    private const string SuggestedKjvFile = @"D:\Bible\KJV\kjv.csv";
     private bool isUpdatingPreview;
 
     public ImportBibleWindow()
     {
         InitializeComponent();
-        WindowPlacement.FitToWorkArea(this, 1120, 760, 860, 560);
-        SuggestedFileText.Visibility = File.Exists(SuggestedKjvFile)
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        WindowPlacement.ConfigureDialog(this, 880, 700, 720, 560, canResize: true);
+        SuggestedFileText.Visibility = Visibility.Visible;
     }
 
     public BibleImportPreviewSummary? PreviewSummary { get; private set; }
@@ -34,13 +30,10 @@ public partial class ImportBibleWindow : Window
             Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
         };
 
-        if (Directory.Exists(SuggestedKjvFolder))
+        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (!string.IsNullOrWhiteSpace(documents) && Directory.Exists(documents))
         {
-            dialog.InitialDirectory = SuggestedKjvFolder;
-            if (File.Exists(SuggestedKjvFile))
-            {
-                dialog.FileName = Path.GetFileName(SuggestedKjvFile);
-            }
+            dialog.InitialDirectory = documents;
         }
 
         if (dialog.ShowDialog(this) == true)

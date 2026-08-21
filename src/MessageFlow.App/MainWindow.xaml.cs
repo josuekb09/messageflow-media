@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using MessageFlow.App.Localization;
 using MessageFlow.App.ViewModels;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -287,6 +288,32 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F)
+        {
+            FocusActiveSearchBox();
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.Modifiers == ModifierKeys.Control && TrySelectLibraryTab(e.Key))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A)
+        {
+            ShowAdminTools();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            HandleEscape(e);
+            return;
+        }
+
         if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab) &&
             (BibleSearchBox.IsKeyboardFocusWithin || BibleNavigationList.IsKeyboardFocusWithin))
         {
@@ -315,43 +342,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F)
-        {
-            if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab))
-            {
-                BibleSearchBox.Focus();
-                BibleSearchBox.SelectAll();
-            }
-            else if (ReferenceEquals(LibraryTabs.SelectedItem, SongsTab))
-            {
-                SongSearchBox.Focus();
-                SongSearchBox.SelectAll();
-            }
-            else if (viewModel.IsSermonReadingMode)
-            {
-                SermonWithinSearchBox.Focus();
-                SermonWithinSearchBox.SelectAll();
-            }
-            else
-            {
-                SearchBox.Focus();
-                SearchBox.SelectAll();
-            }
-
-            e.Handled = true;
-            return;
-        }
-
         if (ReferenceEquals(LibraryTabs.SelectedItem, SermonsTab) &&
             SermonWithinSearchBox.IsKeyboardFocusWithin)
         {
-            if (e.Key == Key.Escape)
-            {
-                viewModel.ClearSermonWithinSearchCommand.Execute(null);
-                e.Handled = true;
-                return;
-            }
-
             if (e.Key == Key.Enter || e.Key == Key.Return)
             {
                 if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
@@ -368,19 +361,146 @@ public partial class MainWindow : Window
             }
         }
 
-        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A)
+        if (Keyboard.Modifiers == ModifierKeys.None &&
+            e.Key is Key.Left or Key.Right &&
+            !ShouldIgnoreParagraphNavigationKeys())
         {
-            ShowAdminTools();
+            var command = e.Key == Key.Left
+                ? viewModel.PreviousParagraphCommand
+                : viewModel.NextParagraphCommand;
+            if (command.CanExecute(null))
+            {
+                command.Execute(null);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private void HandleEscape(WpfKeyEventArgs e)
+    {
+        if (Keyboard.FocusedElement is ComboBox { IsDropDownOpen: true })
+        {
+            return;
+        }
+
+        if (SermonWithinSearchBox.IsKeyboardFocusWithin)
+        {
+            viewModel.ClearSermonWithinSearchCommand.Execute(null);
+            Keyboard.ClearFocus();
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Escape && (projectWindow is not null || testProjectionWindow is not null))
+        if (SearchBox.IsKeyboardFocusWithin && !string.IsNullOrEmpty(viewModel.SearchText))
+        {
+            viewModel.SearchText = string.Empty;
+            e.Handled = true;
+            return;
+        }
+
+        if (BibleSearchBox.IsKeyboardFocusWithin && !string.IsNullOrEmpty(viewModel.BibleSearchText))
+        {
+            viewModel.BibleSearchText = string.Empty;
+            e.Handled = true;
+            return;
+        }
+
+        if (SongSearchBox.IsKeyboardFocusWithin && !string.IsNullOrEmpty(viewModel.SongSearchText))
+        {
+            viewModel.SongSearchText = string.Empty;
+            e.Handled = true;
+            return;
+        }
+
+        if (IsEditableInputFocused())
+        {
+            Keyboard.ClearFocus();
+            e.Handled = true;
+            return;
+        }
+
+        if (viewModel.IsSermonReadingMode &&
+            viewModel.BackToSermonSearchResultsCommand.CanExecute(null))
+        {
+            viewModel.BackToSermonSearchResultsCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (projectWindow is not null || testProjectionWindow is not null)
         {
             CloseLiveProjectionWindow();
             CloseTestProjectionWindow();
             e.Handled = true;
         }
+    }
+
+    private void FocusActiveSearchBox()
+    {
+        if (ReferenceEquals(LibraryTabs.SelectedItem, BibleTab))
+        {
+            BibleSearchBox.Focus();
+            BibleSearchBox.SelectAll();
+            return;
+        }
+
+        if (ReferenceEquals(LibraryTabs.SelectedItem, SongsTab))
+        {
+            SongSearchBox.Focus();
+            SongSearchBox.SelectAll();
+            return;
+        }
+
+        if (viewModel.IsSermonReadingMode)
+        {
+            SermonWithinSearchBox.Focus();
+            SermonWithinSearchBox.SelectAll();
+            return;
+        }
+
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    private bool TrySelectLibraryTab(Key key)
+    {
+        TabItem? tab = key switch
+        {
+            Key.D1 or Key.NumPad1 => SermonsTab,
+            Key.D2 or Key.NumPad2 => BibleTab,
+            Key.D3 or Key.NumPad3 => SongsTab,
+            Key.D4 or Key.NumPad4 => FavoritesTab,
+            Key.D5 or Key.NumPad5 => HistoryTab,
+            _ => null
+        };
+
+        if (tab is null)
+        {
+            return false;
+        }
+
+        LibraryTabs.SelectedItem = tab;
+        return true;
+    }
+
+    private void AnimateLibraryTabChange()
+    {
+        var fade = new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(160))
+        {
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        LibraryTabs.BeginAnimation(OpacityProperty, fade);
+    }
+
+    private static bool IsEditableInputFocused()
+    {
+        return Keyboard.FocusedElement is TextBox or PasswordBox or RichTextBox
+            or ComboBox { IsEditable: true };
+    }
+
+    private static bool ShouldIgnoreParagraphNavigationKeys()
+    {
+        return Keyboard.FocusedElement is TextBox or PasswordBox or RichTextBox or ComboBox;
     }
 
     private bool TryHandleProjectionTextSizeShortcut(Key key)
@@ -485,6 +605,8 @@ public partial class MainWindow : Window
         viewModel.SetBibleMode(bibleSelected);
         viewModel.SetSongsMode(songsSelected);
 
+        AnimateLibraryTabChange();
+
         if (bibleSelected)
         {
             BibleSearchBox.Focus();
@@ -492,6 +614,11 @@ public partial class MainWindow : Window
         else if (songsSelected)
         {
             SongSearchBox.Focus();
+        }
+
+        if (ReferenceEquals(LibraryTabs.SelectedItem, FavoritesTab))
+        {
+            await viewModel.RefreshFavoritesAsync();
         }
 
         if (ReferenceEquals(LibraryTabs.SelectedItem, HistoryTab))
@@ -514,13 +641,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        adminToolsWindow = new AdminToolsWindow(viewModel)
+        var window = new AdminToolsWindow(viewModel)
         {
-            Owner = this,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
+            Owner = this
         };
-        adminToolsWindow.Closed += (_, _) => adminToolsWindow = null;
-        adminToolsWindow.Show();
-        adminToolsWindow.Activate();
+        adminToolsWindow = window;
+        try
+        {
+            window.ShowDialog();
+        }
+        finally
+        {
+            adminToolsWindow = null;
+        }
     }
 }

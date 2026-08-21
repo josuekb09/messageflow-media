@@ -4,6 +4,7 @@ obj/
 **/bin/
 **/obj/
 artifacts/
+dist/
 
 # IDE/user files
 .vs/

@@ -13,10 +13,13 @@ public static partial class SermonMetadataParser
     public static SermonMetadata Parse(string filePath, string sourceRoot)
     {
         var fileName = Path.GetFileNameWithoutExtension(filePath);
-        var sermonCode = TryFindSermonCode(fileName) ?? TrimTo(fileName, 80);
-        var date = TryParseDateFromCode(sermonCode);
+        var language = DetectLanguage(fileName, sourceRoot);
+        var fileNameWithoutLanguage = StripLanguagePrefix(fileName);
+        var dateCode = TryFindSermonCode(fileNameWithoutLanguage) ?? TrimTo(fileNameWithoutLanguage, 80);
+        var sermonCode = PrefixSermonCode(dateCode, language, fileName);
+        var date = TryParseDateFromCode(dateCode);
         var year = date?.Year ?? TryFindYearFromPath(filePath, sourceRoot) ?? DateTime.UtcNow.Year;
-        var title = BuildTitle(fileName);
+        var title = StripPublisherSuffix(BuildTitle(fileNameWithoutLanguage));
 
         return new SermonMetadata(
             TrimTo(title, 300),
@@ -24,7 +27,7 @@ public static partial class SermonMetadataParser
             year,
             date,
             Location: null,
-            Language: "en");
+            Language: language);
     }
 
     public static SermonMetadata Parse(
@@ -437,6 +440,9 @@ public static partial class SermonMetadataParser
         return value.Equals("en", StringComparison.OrdinalIgnoreCase) ||
                value.Equals("de", StringComparison.OrdinalIgnoreCase) ||
                value.Equals("fr", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("swa", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("frn", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("vgr", StringComparison.OrdinalIgnoreCase) ||
                value.Equals("rb", StringComparison.OrdinalIgnoreCase) ||
                value.Equals("pdf", StringComparison.OrdinalIgnoreCase);
     }
@@ -470,6 +476,79 @@ public static partial class SermonMetadataParser
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
+    private static string DetectLanguage(string fileName, string sourceRoot)
+    {
+        var prefix = LanguagePrefixRegex().Match(fileName);
+        if (prefix.Success)
+        {
+            return MapLanguagePrefix(prefix.Groups["lang"].Value);
+        }
+
+        var haystack = $"{fileName} {sourceRoot}";
+        if (haystack.Contains("kiswahili", StringComparison.OrdinalIgnoreCase) ||
+            haystack.Contains("swahili", StringComparison.OrdinalIgnoreCase) ||
+            haystack.Contains("swh", StringComparison.OrdinalIgnoreCase))
+        {
+            return "sw";
+        }
+
+        if (haystack.Contains("francais", StringComparison.OrdinalIgnoreCase) ||
+            haystack.Contains("français", StringComparison.OrdinalIgnoreCase) ||
+            haystack.Contains("french", StringComparison.OrdinalIgnoreCase))
+        {
+            return "fr";
+        }
+
+        return "en";
+    }
+
+    private static string MapLanguagePrefix(string prefix)
+    {
+        return prefix.ToUpperInvariant() switch
+        {
+            "SWA" => "sw",
+            "FRA" or "FRE" or "FRN" or "FR" => "fr",
+            _ => "en"
+        };
+    }
+
+    private static string StripLanguagePrefix(string fileName)
+    {
+        var stripped = LanguagePrefixRegex().Replace(fileName, string.Empty, 1);
+        return string.IsNullOrWhiteSpace(stripped) ? fileName : stripped.TrimStart(' ', '-', '_');
+    }
+
+    private static string PrefixSermonCode(string dateCode, string language, string originalFileName)
+    {
+        var prefixMatch = LanguagePrefixRegex().Match(originalFileName);
+        if (prefixMatch.Success)
+        {
+            var prefix = prefixMatch.Groups["lang"].Value.ToUpperInvariant();
+            return dateCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                ? dateCode
+                : $"{prefix}{dateCode}";
+        }
+
+        return language switch
+        {
+            "sw" => dateCode.StartsWith("SWA", StringComparison.OrdinalIgnoreCase) ? dateCode : "SWA" + dateCode,
+            "fr" => dateCode.StartsWith("FR", StringComparison.OrdinalIgnoreCase) ? dateCode : "FRN" + dateCode,
+            _ => dateCode
+        };
+    }
+
+    private static string StripPublisherSuffix(string title)
+    {
+        var cleaned = VgrSuffixRegex().Replace(title, string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? title : WhiteSpaceRegex().Replace(cleaned, " ").Trim();
+    }
+
+    [GeneratedRegex(@"^(?<lang>SWA|FRA|FRE|FRN|FR|ENG|EN)(?=[\d\-_ ])", RegexOptions.IgnoreCase)]
+    private static partial Regex LanguagePrefixRegex();
+
+    [GeneratedRegex(@"\bVGR\b\s*$", RegexOptions.IgnoreCase)]
+    private static partial Regex VgrSuffixRegex();
+
     private readonly record struct MonthYear(int Year, int Month);
 
     [GeneratedRegex(@"(?<!\d)(?:\d{2}|\d{4})[-_. ]?\d{2}[-_. ]?\d{2}[A-Za-z]?(?!\d)")]
@@ -487,7 +566,7 @@ public static partial class SermonMetadataParser
     [GeneratedRegex(@"(?<!\d)(?<year>19\d{2}|20\d{2})(?!\d)")]
     private static partial Regex FourDigitYearRegex();
 
-    [GeneratedRegex(@"\b(?:en|de|fr|rb|pdf)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(?:en|de|fr|swa|frn|vgr|rb|pdf)\b", RegexOptions.IgnoreCase)]
     private static partial Regex FileNoiseTokenRegex();
 
     [GeneratedRegex(@"\s*-\s*")]

@@ -8,7 +8,7 @@ public partial class ProductionVerificationWindow : Window
     public ProductionVerificationWindow(IReadOnlyList<ProductionVerificationItem> report)
     {
         InitializeComponent();
-        WindowPlacement.FitToWorkArea(this, 900, 680, 700, 520);
+        WindowPlacement.ConfigureDialog(this, 720, 580, 640, 480, canResize: false);
         DataContext = report;
     }
 

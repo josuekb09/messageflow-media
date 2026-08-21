@@ -31,6 +31,7 @@ public static class UiStringsFrench
 
         // ---- Sélecteur de langue ----
         ["Lang_SelectorTooltip"] = "Changer la langue de l'application",
+        ["Lang_Changed"] = "Langue de l'application définie sur {0}.",
         ["Lang_ChangedToEnglish"] = "Langue de l'application définie sur l'anglais.",
         ["Lang_ChangedToFrench"] = "Langue de l'application définie sur le français.",
 
@@ -78,6 +79,8 @@ public static class UiStringsFrench
         ["Sermon_ParagraphLabel"] = "Paragraphe {0}",
         ["Sermon_NoFrenchContent"] = "Aucun sermon en français n'est encore disponible.",
         ["Sermon_NoFrenchContentDetail"] = "Les sermons en français n'ont pas encore été ajoutés à cette bibliothèque. Les sermons en anglais restent dans l'interface anglaise et ne sont jamais présentés comme du contenu français.",
+        ["Sermon_NoContentForLanguage"] = "Aucun sermon n'est encore disponible en {0}.",
+        ["Sermon_NoContentForLanguageDetail"] = "Les sermons en {0} n'ont pas encore été ajoutés à cette bibliothèque. Le contenu des autres langues reste dans sa propre interface et n'est jamais présenté ici.",
 
         // ---- Bible ----
         ["Bible_SearchHint"] = "Rechercher par livre, chapitre, verset ou mot-clé.",
@@ -108,6 +111,8 @@ public static class UiStringsFrench
         ["Song_Source"] = "Source du chant",
         ["Song_NoFrenchContent"] = "Aucun chant en français n'est encore disponible.",
         ["Song_NoFrenchContentDetail"] = "Les chants en français n'ont pas encore été ajoutés à cette bibliothèque. Les chants en anglais restent dans l'interface anglaise et ne sont jamais présentés comme du contenu français.",
+        ["Song_NoContentForLanguage"] = "Aucun chant n'est encore disponible en {0}.",
+        ["Song_NoContentForLanguageDetail"] = "Les chants en {0} n'ont pas encore été ajoutés à cette bibliothèque. Le contenu des autres langues reste dans sa propre interface et n'est jamais présenté ici.",
 
         // ---- Favoris ----
         ["Fav_None"] = "Aucun favori pour le moment.",
@@ -187,7 +192,7 @@ public static class UiStringsFrench
         // ---- Importer une Bible ----
         ["ImportBible_Title"] = "Importer une Bible",
         ["ImportBible_Subtitle"] = "Sélectionnez un fichier CSV de Bible vérifié contenant les colonnes book, chapter, verse, text.",
-        ["ImportBible_SuggestedFile"] = "Dossier suggéré : D:\\Bible",
+        ["ImportBible_SuggestedFile"] = "Dossier suggéré : Documents\\Bible",
         ["ImportBible_TranslationName"] = "Nom de la traduction",
         ["ImportBible_Abbreviation"] = "Abréviation",
         ["ImportBible_Language"] = "Langue",

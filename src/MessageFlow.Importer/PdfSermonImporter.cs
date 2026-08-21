@@ -127,6 +127,23 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
         var pages = textExtractor.ExtractPages(filePath);
         var metadata = SermonMetadataParser.Parse(filePath, options.SourceRoot, sourceContext);
+        if (!string.IsNullOrWhiteSpace(options.LanguageOverride) &&
+            !string.Equals(metadata.Language, options.LanguageOverride, StringComparison.OrdinalIgnoreCase))
+        {
+            metadata = metadata with { Language = options.LanguageOverride };
+        }
+
+        if (string.Equals(metadata.Language, "sw", StringComparison.OrdinalIgnoreCase) &&
+            SwahiliPdfTitleExtractor.TryExtractFromPdf(filePath, out var swahiliTitle))
+        {
+            metadata = metadata with { Title = swahiliTitle };
+        }
+        else if (string.Equals(metadata.Language, "fr", StringComparison.OrdinalIgnoreCase) &&
+                 FrenchPdfTitleExtractor.TryExtractFromPdf(filePath, out var frenchTitle))
+        {
+            metadata = metadata with { Title = frenchTitle };
+        }
+
         var extractedParagraphs = SermonMetadataParser.IsBrotherBranhamSource(sourceContext)
             ? PdfFirstBranhamBlockExtractor.Split(pages, metadata)
             : ParagraphSplitter.Split(pages);
@@ -175,7 +192,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         var sermon = new Sermon
         {
             AuthorId = authorId,
-            ContentSourceId = options.ContentSourceId,
+            ContentSourceId = options.ContentSourceId ?? sourceContext?.Id,
             Title = metadata.Title,
             SermonCode = metadata.SermonCode,
             Year = metadata.Year,
@@ -278,7 +295,25 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
     {
         if (options.ContentSourceId is null)
         {
-            return null;
+            var branham = await dbContext.ContentSources
+                .AsNoTracking()
+                .Where(contentSource => contentSource.Name == "brother_branham")
+                .Select(contentSource => new
+                {
+                    contentSource.Id,
+                    contentSource.Name,
+                    contentSource.DisplayName,
+                    contentSource.SourceType
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return branham is null
+                ? null
+                : new SourceMetadataContext(
+                    branham.Id,
+                    branham.Name,
+                    branham.DisplayName,
+                    branham.SourceType);
         }
 
         var source = await dbContext.ContentSources

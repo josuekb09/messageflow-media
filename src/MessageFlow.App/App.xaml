@@ -5,14 +5,14 @@
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
-        <sys:Double x:Key="SpacingSmall">8</sys:Double>
-        <sys:Double x:Key="SpacingMedium">12</sys:Double>
-        <sys:Double x:Key="SpacingLarge">16</sys:Double>
+        <sys:Double x:Key="SpacingSmall">10</sys:Double>
+        <sys:Double x:Key="SpacingMedium">14</sys:Double>
+        <sys:Double x:Key="SpacingLarge">18</sys:Double>
         <sys:Double x:Key="SpacingXLarge">24</sys:Double>
-        <Thickness x:Key="CardPadding">16</Thickness>
-        <sys:Double x:Key="ControlHeight">48</sys:Double>
-        <sys:Double x:Key="ButtonHeight">52</sys:Double>
-        <CornerRadius x:Key="BorderRadius">10</CornerRadius>
+        <Thickness x:Key="CardPadding">20</Thickness>
+        <sys:Double x:Key="ControlHeight">44</sys:Double>
+        <sys:Double x:Key="ButtonHeight">44</sys:Double>
+        <CornerRadius x:Key="BorderRadius">8</CornerRadius>
 
         <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#0F141C" />
         <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#151B24" />
@@ -23,6 +23,8 @@
         <SolidColorBrush x:Key="SecondaryTextBrush" Color="#CBD5E1" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#94A3B8" />
         <SolidColorBrush x:Key="AccentBrush" Color="#38BDF8" />
+        <SolidColorBrush x:Key="SelectionFillBrush" Color="#123A55" />
+        <SolidColorBrush x:Key="HoverFillBrush" Color="#223044" />
         <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#2563EB" />
         <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#1D4ED8" />
         <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#374151" />
@@ -30,6 +32,7 @@
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
         </Style>
@@ -43,7 +46,7 @@
             <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="SelectionTextBrush" Value="#020617" />
             <Setter Property="Padding" Value="14,10" />
-            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -76,8 +79,8 @@
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource ButtonBackgroundBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="16,11" />
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="MinHeight" Value="{StaticResource ButtonHeight}" />
             <Setter Property="Cursor" Value="Hand" />
@@ -89,22 +92,48 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="{StaticResource BorderRadius}">
-                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
+                            <Grid>
+                                <Border x:Name="HoverWash"
+                                        Background="{StaticResource AccentBrush}"
+                                        CornerRadius="{StaticResource BorderRadius}"
+                                        Opacity="0" />
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverWash"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.12"
+                                                             Duration="0:0:0.14" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverWash"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0"
+                                                             Duration="0:0:0.12" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                                 <Setter TargetName="Chrome" Property="Background" Value="{StaticResource ButtonHoverBackgroundBrush}" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource ButtonHoverBackgroundBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Chrome" Property="Background" Value="{StaticResource DisabledBackgroundBrush}" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource DisabledBackgroundBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                <Setter TargetName="HoverWash" Property="Opacity" Value="0" />
                                 <Setter Property="Foreground" Value="{StaticResource DisabledTextBrush}" />
                                 <Setter Property="Cursor" Value="Arrow" />
                             </Trigger>
@@ -116,6 +145,12 @@
 
         <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}" />
 
+        <Style x:Key="GhostButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -125,8 +160,8 @@
         <Style TargetType="TabItem">
             <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="10,8" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
@@ -134,12 +169,12 @@
                     <ControlTemplate TargetType="{x:Type TabItem}">
                         <Grid>
                             <Border x:Name="Chrome"
-                                    Margin="0,0,6,0"
+                                    Margin="0,0,4,0"
                                     Padding="{TemplateBinding Padding}"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{StaticResource BorderRadius}">
+                                    BorderThickness="0,0,0,2"
+                                    CornerRadius="6,6,0,0">
                                 <ContentPresenter ContentSource="Header"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"
@@ -148,11 +183,12 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#223044" />
+                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource HoverFillBrush}" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
-                                <Setter TargetName="Chrome" Property="Background" Value="#123A55" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource SelectionFillBrush}" />
                                 <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -172,7 +208,13 @@
                         <Border x:Name="Chrome"
                                 Background="{TemplateBinding Background}"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
+                            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
@@ -196,7 +238,7 @@
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="12,8" />
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
             <Setter Property="Template">
@@ -302,7 +344,7 @@
 
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="Margin" Value="0,0,0,8" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -315,15 +357,41 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{StaticResource BorderRadius}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            <Grid>
+                                <Border x:Name="HoverWash"
+                                        Background="{StaticResource AccentBrush}"
+                                        CornerRadius="{StaticResource BorderRadius}"
+                                        Opacity="0" />
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#223044" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverWash"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.08"
+                                                             Duration="0:0:0.12" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverWash"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0"
+                                                             Duration="0:0:0.1" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource HoverFillBrush}" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#123A55" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource SelectionFillBrush}" />
                                 <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -335,10 +403,10 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#223044" />
+                    <Setter Property="Background" Value="{StaticResource HoverFillBrush}" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#123A55" />
+                    <Setter Property="Background" Value="{StaticResource SelectionFillBrush}" />
                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">

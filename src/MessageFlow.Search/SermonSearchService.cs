@@ -420,7 +420,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         }
     }
 
-    private static string BuildSimpleSearchSql(bool useFts, bool hasNumber, bool rankFtsCandidates = true)
+    private string BuildSimpleSearchSql(bool useFts, bool hasNumber, bool rankFtsCandidates = true)
     {
         if (useFts)
         {
@@ -449,7 +449,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             rankingOrder: SimpleRankingOrder);
     }
 
-    private static string BuildSimpleFtsSearchSql(bool rankCandidates)
+    private string BuildSimpleFtsSearchSql(bool rankCandidates)
     {
         return BuildBaseSelect(
             BuildRankedFtsCandidateJoin("$fts", rankCandidates),
@@ -458,7 +458,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             ftsRankExpression: rankCandidates ? "ftsMatches.FtsRank" : null);
     }
 
-    private static string BuildSimplePhraseFtsSearchSql()
+    private string BuildSimplePhraseFtsSearchSql()
     {
         return BuildBaseSelect(
             BuildRankedFtsCandidateJoin("$ftsPhrase", rankCandidates: false),
@@ -466,20 +466,36 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             orderByFtsRank: false);
     }
 
-    private static string BuildRankedFtsCandidateJoin(string ftsParameter, bool rankCandidates = true)
+    private string BuildRankedFtsCandidateJoin(string ftsParameter, bool rankCandidates = true)
     {
         // FTS5 can stop at LIMIT only while it owns the rank ordering.  Joining
         // and adding Sermon columns to that ordering forces SQLite to rank every
         // hit first (millions for common terms).  Materialize only the ranked
         // rowids needed for this page, then perform ordinary indexed joins.
-        var rankColumns = rankCandidates ? ", rank AS FtsRank" : string.Empty;
-        var rankOrder = rankCandidates ? "ORDER BY rank" : string.Empty;
-        return $$"""
+        // Language must be applied inside this subquery.  Filtering after LIMIT
+        // dropped French/Swahili hits whenever English filled the first page.
+        var rankColumns = rankCandidates ? $", {FtsTableName}.rank AS FtsRank" : string.Empty;
+        var rankOrder = rankCandidates ? $"ORDER BY {FtsTableName}.rank" : string.Empty;
+        var languageJoin = string.Empty;
+        var languagePredicate = string.Empty;
+        if (!string.IsNullOrWhiteSpace(queryLanguage))
+        {
+            languageJoin =
+                $"""
+
+                        JOIN SermonParagraphs languageParagraphs ON languageParagraphs.Id = {FtsTableName}.rowid
+                        JOIN Sermons languageSermons ON languageSermons.Id = languageParagraphs.SermonId
+                """;
+            languagePredicate = " AND languageSermons.Language = $language";
+        }
+
+        return
+            $"""
             (
-                SELECT rowid{{rankColumns}}
-                FROM {{FtsTableName}}
-                WHERE {{FtsTableName}} MATCH {{ftsParameter}}
-                {{rankOrder}}
+                SELECT {FtsTableName}.rowid{rankColumns}
+                FROM {FtsTableName}{languageJoin}
+                WHERE {FtsTableName} MATCH {ftsParameter}{languagePredicate}
+                {rankOrder}
                 LIMIT $limit
             ) ftsMatches
             JOIN SermonParagraphs p ON p.Id = ftsMatches.rowid

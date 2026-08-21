@@ -11,7 +11,7 @@ public partial class AdminToolsWindow : Window
     {
         this.viewModel = viewModel;
         InitializeComponent();
-        WindowPlacement.FitToWorkArea(this, 1120, 760, 860, 560);
+        WindowPlacement.ConfigureDialog(this, 920, 680, 760, 520, canResize: true);
         DataContext = viewModel;
     }
 

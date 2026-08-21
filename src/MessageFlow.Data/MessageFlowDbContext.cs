@@ -103,7 +103,7 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 DisplayName = "Brother Branham",
                 SourceType = "SermonPdfCollection",
                 Description = "Local Brother William Marrion Branham sermon PDF library.",
-                LocalFolderPath = @"D:\Br William Marrion Branham\PDF",
+                LocalFolderPath = null,
                 CreatedAt = new DateTime(2026, 6, 27, 0, 0, 0, DateTimeKind.Utc)
             });
         });

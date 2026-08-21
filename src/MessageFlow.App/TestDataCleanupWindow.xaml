@@ -3,10 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MessageFlow.App.Localization"
         Title="{loc:Tr Cleanup_Title}"
-        Height="760"
-        Width="980"
-        MinHeight="660"
-        MinWidth="860"
+        Height="600"
+        Width="760"
+        MinHeight="520"
+        MinWidth="640"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource WindowBackgroundBrush}">
     <Grid Margin="28">

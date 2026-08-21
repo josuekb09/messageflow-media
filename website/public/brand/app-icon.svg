@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="MessageFlow app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1C2737"/>
+      <stop offset="1" stop-color="#0E141C"/>
+    </linearGradient>
+    <linearGradient id="mf" x1="120" y1="190" x2="400" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F6FEA"/>
+      <stop offset="1" stop-color="#35C4F4"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="500" height="500" rx="118" fill="url(#bg)" stroke="rgba(255,255,255,0.07)" stroke-width="2"/>
+  <path d="M144 360 V180 C182 180 224 288 256 288 C288 288 330 180 368 180 V360"
+    fill="none" stroke="url(#mf)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

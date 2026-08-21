@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using MessageFlow.Core.Localization;
+using MessageFlow.Data;
 using Forms = System.Windows.Forms;
 
 namespace MessageFlow.App.ViewModels;
@@ -12,10 +13,7 @@ public static partial class ProjectionDisplayService
     public const string AutoPreferenceKey = "auto";
 
     private static string SettingsPath =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MessageFlow",
-            "projection-display.txt");
+        Path.Combine(MessageFlowDatabase.UserSettingsDirectory, "projection-display.txt");
 
     public static IReadOnlyList<ProjectionDisplayOption> GetDisplayOptions()
     {

@@ -10,7 +10,7 @@ public partial class AddContentSourceWindow : Window
     public AddContentSourceWindow()
     {
         InitializeComponent();
-        WindowPlacement.FitToWorkArea(this, 660, 640, 560, 500);
+        WindowPlacement.ConfigureDialog(this, 560, 520, 520, 480, canResize: false);
         SourceTypeBox.ItemsSource = ContentSourceTypeOption.All;
         SourceTypeBox.SelectedItem = ContentSourceTypeOption.All[0];
         UpdateFolderSuggestion();
@@ -47,6 +47,14 @@ public partial class AddContentSourceWindow : Window
         if (!string.IsNullOrWhiteSpace(currentPath) && Directory.Exists(currentPath))
         {
             dialog.InitialDirectory = currentPath;
+        }
+        else
+        {
+            var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (!string.IsNullOrWhiteSpace(documents) && Directory.Exists(documents))
+            {
+                dialog.InitialDirectory = documents;
+            }
         }
 
         if (dialog.ShowDialog(this) == true)
@@ -106,9 +114,9 @@ public partial class AddContentSourceWindow : Window
         FolderSuggestionText.Text = SourceTypeValue switch
         {
             "CircularLetter" =>
-                "Suggested folder example:\nD:\\Ewald Frank\\Circular Letters\\PDF",
+                "Suggested folder example:\nDocuments\\Sermons\\Circular Letters",
             "SermonPdfCollection" =>
-                "Suggested folder examples:\nD:\\Br William Marrion Branham\\PDF\nD:\\Ewald Frank\\Sermons\\PDF",
+                "Suggested folder example:\nDocuments\\Sermons",
             _ =>
                 "Choose a local folder when this source type needs files imported later."
         };

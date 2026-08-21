@@ -1,9 +1,77 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace MessageFlow.App;
 
 internal static class WindowPlacement
 {
+    public static Window? ResolveOwner()
+    {
+        var application = System.Windows.Application.Current;
+        if (application is null)
+        {
+            return null;
+        }
+
+        foreach (Window window in application.Windows)
+        {
+            if (window.IsVisible && window.IsActive)
+            {
+                return window;
+            }
+        }
+
+        return application.MainWindow;
+    }
+
+    public static void ConfigureDialog(
+        Window window,
+        double desiredWidth,
+        double desiredHeight,
+        double minWidth,
+        double minHeight,
+        bool canResize)
+    {
+        window.ShowInTaskbar = false;
+        window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        window.WindowState = WindowState.Normal;
+        window.ResizeMode = canResize ? ResizeMode.CanResize : ResizeMode.NoResize;
+        window.SizeToContent = SizeToContent.Manual;
+        window.Owner ??= ResolveOwner();
+
+        FitToWorkArea(window, desiredWidth, desiredHeight, minWidth, minHeight);
+
+        window.StateChanged += (_, _) =>
+        {
+            if (window.WindowState != WindowState.Maximized)
+            {
+                return;
+            }
+
+            // Child windows that inherit maximize from a maximized owner bleed off-screen.
+            // Snap them to the work area instead of using OS maximize.
+            window.WindowState = WindowState.Normal;
+            SnapToWorkArea(window);
+        };
+
+        window.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Escape || Keyboard.Modifiers != ModifierKeys.None)
+            {
+                return;
+            }
+
+            if (Keyboard.FocusedElement is TextBox or PasswordBox or RichTextBox)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            window.Close();
+        };
+    }
+
     public static void FitToWorkArea(
         Window window,
         double desiredWidth,
@@ -60,5 +128,17 @@ internal static class WindowPlacement
         {
             window.Top = minTop;
         }
+    }
+
+    private static void SnapToWorkArea(Window window, double margin = 24)
+    {
+        var workArea = SystemParameters.WorkArea;
+        var width = Math.Max(window.MinWidth, workArea.Width - (margin * 2));
+        var height = Math.Max(window.MinHeight, workArea.Height - (margin * 2));
+
+        window.Width = Math.Min(width, window.MaxWidth > 0 ? window.MaxWidth : width);
+        window.Height = Math.Min(height, window.MaxHeight > 0 ? window.MaxHeight : height);
+        window.Left = workArea.Left + margin;
+        window.Top = workArea.Top + margin;
     }
 }

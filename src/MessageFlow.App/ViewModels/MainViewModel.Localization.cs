@@ -68,22 +68,22 @@ public sealed partial class MainViewModel
     public string SermonEmptyStateTitle =>
         HasSermonContentForCurrentLanguage
             ? Loc.T("Sermon_ReadyToSearch")
-            : Loc.T("Sermon_NoFrenchContent");
+            : Loc.F("Sermon_NoContentForLanguage", SelectedUiLanguage.NativeName);
 
     public string SermonEmptyStateDetail =>
         HasSermonContentForCurrentLanguage
             ? Loc.T("Sermon_SearchHint")
-            : Loc.T("Sermon_NoFrenchContentDetail");
+            : Loc.F("Sermon_NoContentForLanguageDetail", SelectedUiLanguage.NativeName);
 
     public string SongEmptyStateTitle =>
         HasSongContentForCurrentLanguage
             ? Loc.T("Song_ReadyToSearch")
-            : Loc.T("Song_NoFrenchContent");
+            : Loc.F("Song_NoContentForLanguage", SelectedUiLanguage.NativeName);
 
     public string SongEmptyStateDetail =>
         HasSongContentForCurrentLanguage
             ? Loc.T("Song_SearchHintShort")
-            : Loc.T("Song_NoFrenchContentDetail");
+            : Loc.F("Song_NoContentForLanguageDetail", SelectedUiLanguage.NativeName);
 
     private void InitializeUiLanguage()
     {
@@ -131,6 +131,13 @@ public sealed partial class MainViewModel
         await LoadFavoritesAsync();
         await LoadProjectionHistoryAsync();
         await LoadBibleTranslationsAsync();
+        App.LogStartupMessage(
+            $"Language changed to {SelectedUiLanguage.Code} " +
+            $"(content={ContentLanguageCode}, bible={SelectedUiLanguage.BibleLanguageName}/" +
+            $"{SelectedUiLanguage.PreferredBibleAbbreviation}): " +
+            $"sermonsAvailable={HasSermonContentForCurrentLanguage}, " +
+            $"bibleTranslations={BibleTranslations.Count}, " +
+            $"selectedBible={SelectedBibleTranslation?.Abbreviation ?? "(none)"}.");
 
         if (IsBibleMode)
         {
@@ -145,9 +152,7 @@ public sealed partial class MainViewModel
             QueueSearch();
         }
 
-        StatusText = SelectedUiLanguage == AppLanguages.French
-            ? Loc.T("Lang_ChangedToFrench")
-            : Loc.T("Lang_ChangedToEnglish");
+        StatusText = Loc.F("Lang_Changed", SelectedUiLanguage.NativeName);
     }
 
     private async Task RefreshContentAvailabilityAsync()
@@ -158,7 +163,15 @@ public sealed partial class MainViewModel
 
         HasSermonContentForCurrentLanguage = await dbContext.Sermons
             .AsNoTracking()
-            .AnyAsync(sermon => sermon.Language == language);
+            .Where(sermon => sermon.Language == language)
+            .Where(sermon => ShowBrotherFrankLibrary ||
+                             ((sermon.ContentSource == null ||
+                               (!EF.Functions.Like(sermon.ContentSource.Name, "%frank%") &&
+                                !EF.Functions.Like(sermon.ContentSource.DisplayName, "%frank%"))) &&
+                              (sermon.Author == null ||
+                               (!EF.Functions.Like(sermon.Author.FullName, "%frank%") &&
+                                !EF.Functions.Like(sermon.Author.DisplayName, "%frank%")))))
+            .AnyAsync();
 
         HasSongContentForCurrentLanguage = await dbContext.Songs
             .AsNoTracking()

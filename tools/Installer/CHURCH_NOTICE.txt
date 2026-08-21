@@ -1,0 +1,11 @@
+Copyright (c) 2026 MessageFlow Media project author.
+
+MessageFlow Media is distributed free of charge for church use. It is not for sale.
+
+Do not sell this software or bundled content. Do not monetize it, place it behind a paid subscription, add advertisements, add in-app purchases, or use it for fundraising.
+
+MessageFlow Media is a projection and search tool for church services. Bundled sermon, Bible, and song content is included only under permission or allowed free-use conditions. Churches and redistributors should respect Voice of God Recordings and all original content owners.
+
+MessageFlow Media is not affiliated with or endorsed by Voice of God Recordings unless explicitly stated in writing.
+
+If a church has concerns about bundled content, it should use its own authorized local content instead.
