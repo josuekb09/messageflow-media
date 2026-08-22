@@ -8,6 +8,7 @@ export const site = {
   releaseDate: "August 2026",
   platform: "Windows 10 / 11 (64-bit)",
   exeName: "MessageFlow.App.exe",
-  downloadHref: "/MessageFlowMediaSetup.exe",
+  downloadHref:
+    "https://github.com/josuekb09/messageflow-media/releases/download/v1.0.2/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
 } as const;
