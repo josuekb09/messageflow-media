@@ -134,7 +134,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Français",
-          body: "384 sermons, 866 hymns (Dinanga and Chants des aigles), and Louis Segond.",
+          body: "384 sermons, 499 hymns (Recueil de cantiques français, Tabernacle Dinanga), and Louis Segond.",
         },
         {
           title: "Kiswahili",
@@ -217,7 +217,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Français",
-          body: "384 prédications, 866 cantiques (Dinanga et Chants des aigles) et Louis Segond.",
+          body: "384 prédications, 499 cantiques (Recueil de cantiques français, Tabernacle Dinanga) et Louis Segond.",
         },
         {
           title: "Kiswahili",
@@ -300,7 +300,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Français",
-          body: "Mahubiri 384, nyimbo 866 (Dinanga na Chants des aigles), na Louis Segond.",
+          body: "Mahubiri 384, nyimbo 499 (Recueil de cantiques français, Tabernacle Dinanga), na Louis Segond.",
         },
         {
           title: "Kiswahili",

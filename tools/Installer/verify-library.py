@@ -6,7 +6,7 @@ import sys
 
 
 EXPECTED_SERMONS = {"en": 1208, "fr": 384, "sw": 622}
-EXPECTED_SONGS = {"en": 357, "fr": 866}
+EXPECTED_SONGS = {"en": 357, "fr": 499}
 EXPECTED_BIBLES = {"KJV", "LSG", "SWHULB"}
 
 

@@ -40,18 +40,14 @@ if (!File.Exists(pdfPath))
 Directory.CreateDirectory(@"D:\Temp");
 if (dumpText)
 {
-    var dumpPath = pairColumns
-        ? @"D:\Temp\aigles-songbook-dump.txt"
-        : @"D:\Temp\french-songbook-dump.txt";
+    var dumpPath = @"D:\Temp\french-songbook-dump.txt";
     File.WriteAllText(dumpPath, FrenchSongbookParser.DumpRawText(pdfPath, pairColumns), Encoding.UTF8);
     Console.WriteLine($"Wrote raw text dump: {dumpPath}");
     return 0;
 }
 
 var songs = FrenchSongbookParser.Parse(pdfPath, parseOptions);
-var previewPath = pairColumns
-    ? @"D:\Temp\aigles-songbook-preview.txt"
-    : @"D:\Temp\french-songbook-preview.txt";
+var previewPath = @"D:\Temp\french-songbook-preview.txt";
 WritePreview(previewPath, songs);
 Console.WriteLine($"Parsed {songs.Count} French songs. Preview: {previewPath}");
 Console.WriteLine($"Numbers: {songs.FirstOrDefault()?.Number} .. {songs.LastOrDefault()?.Number}");
