@@ -58,6 +58,10 @@ export type Dictionary = {
     title: string;
     items: { title: string; body: string }[];
   };
+  library: {
+    title: string;
+    items: { title: string; body: string }[];
+  };
   install: {
     title: string;
     steps: { n: string; title: string }[];
@@ -85,7 +89,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "v{version} · {date} · {platform}",
       title: "Welcome to MessageFlow Media",
       subtitle:
-        "The ultimate free desktop presentation suite for churches. Search and project sermons, Bibles, and songs offline with ease.",
+        "Free Windows software for the church operator desk. Search and project sermons and Scripture offline in English, French, and Kiswahili — with English and French songbooks included.",
       secondaryCta: "Install",
     },
     download: {
@@ -94,7 +98,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Download for Windows",
       pageSubtitle:
         "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Download MessageFlowMediaSetup.exe, then run the installer.",
+      note: "Download MessageFlowMediaSetup.exe, then run the installer. English and French songbooks are included; the Swahili songbook is forthcoming.",
     },
     product: {
       title: "Product",
@@ -108,16 +112,33 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Features",
       items: [
         {
-          title: "Multilingual Library",
-          body: "Access KJV Bible, Louis Segond, Swahili Biblia Takatifu, and sermons of Brother William Marrion Branham.",
+          title: "Multilingual library",
+          body: "1,208 English, 384 French, and 622 Swahili sermons of Brother William Marrion Branham. Bibles: KJV, Louis Segond, and SWHULB.",
         },
         {
-          title: "Keyboard-Driven",
-          body: "Navigate verses, paragraphs, and songs using simple keyboard shortcuts. Built for live service.",
+          title: "Operator workflow",
+          body: "Built for live church projection. Search, prepare, and project verses, sermon paragraphs, and hymns from the operator desk with keyboard shortcuts.",
         },
         {
-          title: "Local-First",
-          body: "Works offline. Your library is on your PC. No account, no cloud, no ads.",
+          title: "Works offline",
+          body: "The library lives on your PC. No account, no cloud, no ads.",
+        },
+      ],
+    },
+    library: {
+      title: "What's included",
+      items: [
+        {
+          title: "English",
+          body: "1,208 sermons, English songs, and the King James Version (KJV).",
+        },
+        {
+          title: "Français",
+          body: "384 sermons, 866 hymns (Dinanga and Chants des aigles), and Louis Segond.",
+        },
+        {
+          title: "Kiswahili",
+          body: "622 sermons and the SWHULB Bible. Swahili songbook forthcoming.",
         },
       ],
     },
@@ -132,7 +153,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     footer: {
       blurb:
-        "The ultimate free desktop presentation suite for churches.",
+        "Free Windows desktop software for church projection — sermons, Bibles, and hymns, fully offline.",
       product: "Product",
       release: "Release",
       copyright: "Copyright © 2026 MessageFlow Media.",
@@ -152,7 +173,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "v{version} · {date} · {platform}",
       title: "Bienvenue sur MessageFlow Media",
       subtitle:
-        "La suite de présentation de bureau gratuite ultime pour les églises. Recherchez et projetez des prédications, des Bibles et des chants hors ligne en toute simplicité.",
+        "Logiciel Windows gratuit pour le pupitre de projection. Recherchez et projetez prédications et Écritures hors ligne en anglais, français et kiswahili — cantiques anglais et français inclus.",
       secondaryCta: "Installation",
     },
     download: {
@@ -160,7 +181,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Télécharger pour Windows",
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
-      note: "Téléchargez MessageFlowMediaSetup.exe, puis exécutez le programme.",
+      note: "Téléchargez MessageFlowMediaSetup.exe, puis exécutez le programme. Les recueils anglais et français sont inclus ; le recueil swahili est à venir.",
     },
     product: {
       title: "Produit",
@@ -174,16 +195,33 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Fonctionnalités",
       items: [
         {
-          title: "Bibliothèque Multilingue",
-          body: "Accédez à la Bible Louis Segond, KJV, Swahili Biblia Takatifu, et aux prédications de Frère William Marrion Branham.",
+          title: "Bibliothèque multilingue",
+          body: "1 208 prédications en anglais, 384 en français et 622 en kiswahili de Frère William Marrion Branham. Bibles : KJV, Louis Segond et SWHULB.",
         },
         {
-          title: "Contrôle Clavier",
-          body: "Naviguez entre les versets, paragraphes et chants avec des raccourcis clavier simples. Conçu pour le direct.",
+          title: "Pupitre de projection",
+          body: "Conçu pour le direct. Recherchez, préparez et projetez versets, paragraphes de prédication et cantiques depuis le pupitre avec des raccourcis clavier.",
         },
         {
-          title: "100% Hors Ligne",
-          body: "Fonctionne sans internet. Votre bibliothèque est sur votre PC. Aucun compte, aucune publicité.",
+          title: "Hors ligne",
+          body: "La bibliothèque reste sur votre PC. Aucun compte, aucun cloud, aucune publicité.",
+        },
+      ],
+    },
+    library: {
+      title: "Contenu de la bibliothèque",
+      items: [
+        {
+          title: "English",
+          body: "1 208 prédications, chants anglais et King James Version (KJV).",
+        },
+        {
+          title: "Français",
+          body: "384 prédications, 866 cantiques (Dinanga et Chants des aigles) et Louis Segond.",
+        },
+        {
+          title: "Kiswahili",
+          body: "622 prédications et la Bible SWHULB. Recueil swahili à venir.",
         },
       ],
     },
@@ -198,7 +236,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     footer: {
       blurb:
-        "La suite de présentation de bureau gratuite ultime pour les églises.",
+        "Logiciel Windows gratuit pour la projection à l'église — prédications, Bibles et cantiques, entièrement hors ligne.",
       product: "Produit",
       release: "Version",
       copyright: "Copyright © 2026 MessageFlow Media.",
@@ -218,7 +256,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "v{version} · {date} · {platform}",
       title: "Karibu kwenye MessageFlow Media",
       subtitle:
-        "Programu bora ya bure ya kompyuta kwa ajili ya vyumba vya vyombo vya habari kanisani. Tafuta na uonyeshe mahubiri, Bibilia, na nyimbo nje ya mtandao.",
+        "Programu ya bure ya Windows kwa dawati la kuonyesha kanisani. Tafuta na uonyeshe mahubiri na Maandiko nje ya mtandao kwa Kiingereza, Kifaransa na Kiswahili — nyimbo za Kiingereza na Kifaransa zimo.",
       secondaryCta: "Sakinisha",
     },
     download: {
@@ -226,7 +264,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Pakua kwa ajili ya Windows",
       pageTitle: "Pakua kwa ajili ya Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
-      note: "Pakua MessageFlowMediaSetup.exe, kisha fungua programu.",
+      note: "Pakua MessageFlowMediaSetup.exe, kisha fungua programu. Nyimbo za Kiingereza na Kifaransa zimo; kitabu cha nyimbo za Kiswahili kinakuja.",
     },
     product: {
       title: "Bidhaa",
@@ -240,16 +278,33 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Vipengele",
       items: [
         {
-          title: "Maktaba ya Lugha Nyingi",
-          body: "Pata Bibilia ya KJV, Louis Segond, Swahili Biblia Takatifu (SWHULB), na mahubiri ya Ndugu William Marrion Branham.",
+          title: "Maktaba ya lugha nyingi",
+          body: "Mahubiri 1,208 ya Kiingereza, 384 ya Kifaransa, na 622 ya Kiswahili ya Ndugu William Marrion Branham. Biblia: KJV, Louis Segond, na SWHULB.",
         },
         {
-          title: "Udhibiti wa Kibodi",
-          body: "Nenda kwenye mistari, aya, na nyimbo kwa kutumia vibodi. Imetengenezwa kwa ajili ya ibada.",
+          title: "Kazi ya operator",
+          body: "Imetengenezwa kwa ajili ya kuonyesha ibada moja kwa moja. Tafuta, andaa, na uonyeshe mistari, aya za mahubiri, na nyimbo kutoka dawati kwa vibodi.",
         },
         {
-          title: "Nje ya Mtandao",
-          body: "Inafanya kazi bila mtandao. Maktaba yako iko kwenye kompyuta yako. Hakuna akaunti, hakuna matangazo.",
+          title: "Nje ya mtandao",
+          body: "Maktaba yako iko kwenye kompyuta yako. Hakuna akaunti, hakuna wingu, hakuna matangazo.",
+        },
+      ],
+    },
+    library: {
+      title: "Kilichomo kwenye maktaba",
+      items: [
+        {
+          title: "English",
+          body: "Mahubiri 1,208, nyimbo za Kiingereza, na King James Version (KJV).",
+        },
+        {
+          title: "Français",
+          body: "Mahubiri 384, nyimbo 866 (Dinanga na Chants des aigles), na Louis Segond.",
+        },
+        {
+          title: "Kiswahili",
+          body: "Mahubiri 622 na Biblia ya SWHULB. Kitabu cha nyimbo za Kiswahili kinakuja.",
         },
       ],
     },
@@ -264,7 +319,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     footer: {
       blurb:
-        "Programu bora ya bure ya kompyuta kwa ajili ya vyumba vya vyombo vya habari kanisani.",
+        "Programu ya bure ya Windows kwa kuonyesha kanisani — mahubiri, Biblia, na nyimbo, nje ya mtandao.",
       product: "Bidhaa",
       release: "Toleo",
       copyright: "Hakimiliki © 2026 MessageFlow Media.",

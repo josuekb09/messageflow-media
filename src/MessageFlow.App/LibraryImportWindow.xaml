@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource WindowBackgroundBrush}">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -25,7 +25,7 @@
                        FontWeight="SemiBold" />
             <TextBlock Margin="0,6,0,0"
                        Text="Import files already downloaded to this computer. Accepted files are copied into MessageFlow-managed storage. No Internet access, AI completion, or OCR is used."
-                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        TextWrapping="Wrap" />
         </StackPanel>
 
@@ -80,7 +80,7 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="StatusTextBlock"
                        Text="Choose files or a folder, then review the scan results."
-                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        VerticalAlignment="Center"
                        TextWrapping="Wrap" />
             <Button x:Name="ImportButton"

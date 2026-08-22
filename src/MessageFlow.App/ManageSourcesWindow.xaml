@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource WindowBackgroundBrush}">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -26,13 +26,13 @@
                            FontWeight="SemiBold" />
                 <TextBlock Text="Review local folders and run source imports from here."
                            Margin="0,6,0,0"
-                           Foreground="{StaticResource SecondaryTextBrush}"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="14"
                            TextWrapping="Wrap" />
             </StackPanel>
             <CheckBox Content="Show test sources"
                       IsChecked="{Binding ShowTestSourcesInManageSources}"
-                      Foreground="{StaticResource SecondaryTextBrush}"
+                      Foreground="{DynamicResource SecondaryTextBrush}"
                       FontSize="13"
                       VerticalAlignment="Bottom"
                       HorizontalAlignment="Right" />
@@ -47,8 +47,8 @@
 
             <Border Grid.Column="0"
                     Padding="{StaticResource CardPadding}"
-                    Background="{StaticResource PanelBackgroundBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource BorderRadius}">
                 <Grid>
@@ -78,12 +78,12 @@
                                                    TextWrapping="Wrap" />
                                         <TextBlock Text="{Binding SourceTypeDisplay}"
                                                    Margin="0,6,0,0"
-                                                   Foreground="{StaticResource AccentBrush}"
+                                                   Foreground="{DynamicResource AccentBrush}"
                                                    FontSize="13"
                                                    FontWeight="SemiBold" />
                                         <TextBlock Text="{Binding LocationDisplay}"
                                                    Margin="0,7,0,0"
-                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   Foreground="{DynamicResource MutedTextBrush}"
                                                    FontSize="12"
                                                    LineHeight="17"
                                                    TextWrapping="Wrap" />
@@ -97,8 +97,8 @@
 
             <Border Grid.Column="2"
                     Padding="{StaticResource CardPadding}"
-                    Background="{StaticResource PanelBackgroundBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource BorderRadius}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -110,7 +110,7 @@
                                    TextWrapping="Wrap" />
                         <TextBlock Text="{Binding SelectedSourceDetails.SourceTypeDisplay}"
                                    Margin="0,6,0,18"
-                                   Foreground="{StaticResource AccentBrush}"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold"
                                    TextWrapping="Wrap" />
@@ -125,17 +125,17 @@
                             </Grid.ColumnDefinitions>
 
                             <Border Padding="14"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
                                     <TextBlock Text="Status"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12" />
                                     <TextBlock Text="{Binding SelectedSourceDetails.SourceStatus}"
                                                Margin="0,6,0,0"
-                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               Foreground="{DynamicResource SecondaryTextBrush}"
                                                FontSize="15"
                                                FontWeight="SemiBold"
                                                TextWrapping="Wrap" />
@@ -144,13 +144,13 @@
 
                             <Border Grid.Column="2"
                                     Padding="14"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
                                     <TextBlock Text="Documents"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12" />
                                     <TextBlock Text="{Binding SelectedSourceDetails.ImportedDocumentCountDisplay}"
                                                Margin="0,6,0,0"
@@ -161,13 +161,13 @@
 
                             <Border Grid.Column="4"
                                     Padding="14"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
                                     <TextBlock Text="Paragraphs"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12" />
                                     <TextBlock Text="{Binding SelectedSourceDetails.ImportedParagraphCountDisplay}"
                                                Margin="0,6,0,0"
@@ -179,15 +179,15 @@
 
                         <TextBlock Text="Folder"
                                    Margin="2,22,2,6"
-                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
                                    FontSize="12" />
                         <Border Padding="14"
-                                Background="{StaticResource CardBackgroundBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
+                                Background="{DynamicResource CardBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{StaticResource BorderRadius}">
                             <TextBlock Text="{Binding SelectedSourceDetails.LocalFolderPathDisplay}"
-                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
                                        FontSize="14"
                                        TextWrapping="Wrap" />
                         </Border>
@@ -225,7 +225,7 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="Local PDFs"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="12" />
                             <TextBlock Grid.Column="1"
                                        Text="{Binding SelectedSourceDetails.PdfFilesFoundDisplay}"
@@ -234,7 +234,7 @@
                             <TextBlock Grid.Row="1"
                                        Text="Author"
                                        Margin="0,9,0,0"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="12" />
                             <TextBlock Grid.Row="1"
                                        Grid.Column="1"
@@ -246,7 +246,7 @@
                             <TextBlock Grid.Row="2"
                                        Text="Test source"
                                        Margin="0,9,0,0"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="12" />
                             <TextBlock Grid.Row="2"
                                        Grid.Column="1"
@@ -257,7 +257,7 @@
                             <TextBlock Grid.Row="3"
                                        Text="Suspicious"
                                        Margin="0,9,0,0"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="12" />
                             <TextBlock Grid.Row="3"
                                        Grid.Column="1"
@@ -270,7 +270,7 @@
                                        Grid.ColumnSpan="2"
                                        Text="{Binding SelectedSourceDetails.SuspiciousMetadataSamplesDisplay}"
                                        Margin="0,14,0,0"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="12"
                                        LineHeight="17"
                                        TextWrapping="Wrap" />
@@ -283,7 +283,7 @@
         <Border Grid.Row="2"
                 Margin="0,20,0,0"
                 Padding="0,16,0,0"
-                BorderBrush="{StaticResource BorderBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>

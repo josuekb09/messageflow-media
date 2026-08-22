@@ -35,6 +35,10 @@ public static class UiStringsSwahili
         ["Lang_Changed"] = "Lugha ya programu imewekwa kuwa {0}.",
         ["Lang_ChangedToEnglish"] = "Lugha ya programu imewekwa kuwa Kiingereza.",
         ["Lang_ChangedToFrench"] = "Lugha ya programu imewekwa kuwa Kifaransa.",
+        ["Theme_Light"] = "Mandhari meupe",
+        ["Theme_LightTooltip"] = "Tumia muonekano mweupe na buluu. Kuzima kunahifadhi mandhari ya giza chaguo-msingi.",
+        ["Theme_Enabled"] = "Mandhari meupe yamewashwa.",
+        ["Theme_Disabled"] = "Mandhari ya giza yamerejeshwa.",
 
         // ---- Top toolbar ----
         ["Toolbar_SearchSermonsTooltip"] = "Tafuta mahubiri kwa kichwa, msimbo, kifungu, au namba ya ibara",

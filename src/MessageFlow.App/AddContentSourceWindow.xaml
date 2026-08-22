@@ -8,7 +8,7 @@
         MinHeight="480"
         MinWidth="520"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource WindowBackgroundBrush}"
+        Background="{DynamicResource WindowBackgroundBrush}"
         ResizeMode="NoResize"
         ShowInTaskbar="False">
     <Grid Margin="24">
@@ -24,7 +24,7 @@
                        FontWeight="SemiBold" />
             <TextBlock Text="Register a local content folder for future imports."
                        Margin="0,7,0,0"
-                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        FontSize="14"
                        TextWrapping="Wrap" />
         </StackPanel>
@@ -36,7 +36,7 @@
                 <TextBlock Text="Display Name"
                            FontSize="13"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
+                           Foreground="{DynamicResource SecondaryTextBrush}" />
                 <TextBox x:Name="DisplayNameBox"
                          Margin="0,7,0,16"
                          VerticalContentAlignment="Center" />
@@ -44,7 +44,7 @@
                 <TextBlock Text="Source Type"
                            FontSize="13"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
+                           Foreground="{DynamicResource SecondaryTextBrush}" />
                 <ComboBox x:Name="SourceTypeBox"
                           Margin="0,7,0,16"
                           DisplayMemberPath="Label"
@@ -55,7 +55,7 @@
                 <TextBlock Text="Description"
                            FontSize="13"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
+                           Foreground="{DynamicResource SecondaryTextBrush}" />
                 <TextBox x:Name="DescriptionBox"
                          Margin="0,7,0,16"
                          MinHeight="120"
@@ -66,7 +66,7 @@
                 <TextBlock Text="Local Folder Path"
                            FontSize="13"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource SecondaryTextBrush}" />
+                           Foreground="{DynamicResource SecondaryTextBrush}" />
                 <Grid Margin="0,7,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -83,7 +83,7 @@
                 </Grid>
                 <TextBlock x:Name="FolderSuggestionText"
                            Margin="0,0,0,16"
-                           Foreground="{StaticResource MutedTextBrush}"
+                           Foreground="{DynamicResource MutedTextBrush}"
                            FontSize="13"
                            LineHeight="18"
                            TextWrapping="Wrap" />
@@ -101,14 +101,14 @@
 
             <TextBlock x:Name="ValidationMessage"
                        Grid.Column="0"
-                       Foreground="{StaticResource AccentBrush}"
+                       Foreground="{DynamicResource AccentBrush}"
                        FontSize="13"
                        VerticalAlignment="Center"
                        TextWrapping="Wrap" />
             <Button Grid.Column="2"
                     Content="Cancel"
-                    Background="{StaticResource DisabledBackgroundBrush}"
-                    BorderBrush="{StaticResource DisabledBackgroundBrush}"
+                    Background="{DynamicResource DisabledBackgroundBrush}"
+                    BorderBrush="{DynamicResource DisabledBackgroundBrush}"
                     Click="Cancel_Click" />
             <Button Grid.Column="4"
                     Content="Save Source"

@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using MessageFlow.App.Localization;
+using MessageFlow.App.Themes;
 using MessageFlow.App.ViewModels;
 using MessageFlow.Core.Localization;
 using MessageFlow.Data;
@@ -57,6 +58,7 @@ public partial class App : System.Windows.Application
             MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
 
             Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
+            AppTheme.Apply(UiThemePreference.LoadIsLight());
 
             serviceProvider = new ServiceCollection()
                 .AddMessageFlowData(databasePath)

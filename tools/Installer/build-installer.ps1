@@ -21,11 +21,11 @@ $env:NUGET_HTTP_CACHE_PATH = "D:\Temp\nuget-http"
 $env:DOTNET_CLI_HOME = "D:\Temp\dotnet-cli"
 New-Item -ItemType Directory -Force -Path "D:\Temp\nuget", "D:\Temp\nuget-http", "D:\Temp\dotnet-cli" | Out-Null
 
+$scriptDir = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($scriptDir)) {
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
-    $scriptDir = $PSScriptRoot
-    if ([string]::IsNullOrWhiteSpace($scriptDir)) {
-        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    }
     $RepoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 }
 
@@ -41,17 +41,31 @@ if (-not (Test-Path -LiteralPath $databaseFile)) {
 
 New-Item -ItemType Directory -Force -Path $publishDir, $outputDir, "D:\Temp" | Out-Null
 
-Write-Host "Checkpointing SQLite WAL..."
-python -c @"
-import sqlite3, sys
-path = sys.argv[1]
-con = sqlite3.connect(path)
-con.execute('PRAGMA wal_checkpoint(TRUNCATE)')
-con.close()
-print('checkpoint ok')
-"@ $databaseFile
+$snapshotDb = "D:\Temp\bundled-messageflow.db"
+$snapshotScript = Join-Path $scriptDir "snapshot-sqlite.py"
+$verifyScript = Join-Path $scriptDir "verify-library.py"
+if (Test-Path -LiteralPath $snapshotDb) {
+    Remove-Item -LiteralPath $snapshotDb -Force
+}
+
+Write-Host "Checkpointing SQLite WAL and creating a consistent snapshot (VACUUM INTO)..."
+python $snapshotScript $databaseFile $snapshotDb
+if ($LASTEXITCODE -ne 0) {
+    throw "SQLite snapshot failed."
+}
+
+Write-Host "Verifying bundled library counts..."
+python $verifyScript $snapshotDb
+if ($LASTEXITCODE -ne 0) {
+    throw "Bundled SQLite snapshot failed library verification."
+}
 
 Write-Host "Publishing self-contained win-x64 Release..."
+$env:TEMP = "D:\Temp"
+$env:TMP = "D:\Temp"
+$env:NUGET_PACKAGES = "D:\Temp\nuget"
+$env:NUGET_HTTP_CACHE_PATH = "D:\Temp\nuget-http"
+$env:DOTNET_CLI_HOME = "D:\Temp\dotnet-cli"
 dotnet publish $appProject `
     -c $Configuration `
     -r win-x64 `
@@ -65,7 +79,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $publishDatabaseDir = Join-Path $publishDir "database"
 New-Item -ItemType Directory -Force -Path $publishDatabaseDir | Out-Null
-Copy-Item -LiteralPath $databaseFile -Destination (Join-Path $publishDatabaseDir "messageflow.db") -Force
+Copy-Item -LiteralPath $snapshotDb -Destination (Join-Path $publishDatabaseDir "messageflow.db") -Force
 
 $isccCandidates = @(
     (Join-Path $RepoRoot "Inno Setup 6\ISCC.exe"),
@@ -78,7 +92,7 @@ if (-not $iscc) {
 }
 
 Write-Host "Compiling installer with $iscc..."
-& $iscc $issFile
+& $iscc "/DDatabaseFile=$snapshotDb" $issFile
 if ($LASTEXITCODE -ne 0) {
     throw "ISCC failed."
 }

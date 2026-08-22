@@ -1,8 +1,8 @@
 export const site = {
   name: "MessageFlow Media",
-  tagline: "Welcome to MessageFlow Media",
+  tagline: "Church projection for sermons, Bibles, and hymns",
   description:
-    "The ultimate free desktop presentation suite for churches. Search and project sermons, Bibles, and songs offline with ease.",
+    "Free Windows desktop software for the church operator desk. Search and project sermons and Scripture offline in English, French, and Kiswahili. English and French songbooks are included; the Swahili songbook is forthcoming. Bibles: KJV, Louis Segond, and SWHULB.",
   url: "https://messageflow.app",
   version: "1.0.0",
   releaseDate: "August 2026",

@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource WindowBackgroundBrush}">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -26,21 +26,21 @@
                            FontWeight="SemiBold" />
                 <TextBlock Text="{loc:Tr ImportBible_Subtitle}"
                            Margin="0,6,0,6"
-                           Foreground="{StaticResource SecondaryTextBrush}"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="14"
                            TextWrapping="Wrap" />
                 <TextBlock x:Name="SuggestedFileText"
                            Text="{loc:Tr ImportBible_SuggestedFile}"
                            Margin="0,0,0,20"
-                           Foreground="{StaticResource AccentBrush}"
+                           Foreground="{DynamicResource AccentBrush}"
                            FontSize="13"
                            FontWeight="SemiBold"
                            Visibility="Visible"
                            TextWrapping="Wrap" />
 
                 <Border Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="{StaticResource BorderRadius}">
                     <Grid>
@@ -61,7 +61,7 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="{loc:Tr ImportBible_TranslationName}"
-                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
                                    FontSize="12" />
                         <TextBox x:Name="TranslationNameBox"
                                  Grid.Row="1"
@@ -71,7 +71,7 @@
 
                         <TextBlock Grid.Column="2"
                                    Text="{loc:Tr ImportBible_Abbreviation}"
-                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
                                    FontSize="12" />
                         <TextBox x:Name="AbbreviationBox"
                                  Grid.Row="1"
@@ -82,7 +82,7 @@
 
                         <TextBlock Grid.Column="4"
                                    Text="{loc:Tr ImportBible_Language}"
-                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
                                    FontSize="12" />
                         <TextBox x:Name="LanguageBox"
                                  Grid.Row="1"
@@ -94,7 +94,7 @@
                         <TextBlock Grid.Row="2"
                                    Grid.ColumnSpan="5"
                                    Text="{loc:Tr Common_Description}"
-                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
                                    FontSize="12"
                                    Margin="0,16,0,6" />
                         <TextBox x:Name="DescriptionBox"
@@ -107,7 +107,7 @@
                         <TextBlock Grid.Row="4"
                                    Grid.ColumnSpan="5"
                                    Text="{loc:Tr ImportBible_CsvFile}"
-                                   Foreground="{StaticResource MutedTextBrush}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
                                    FontSize="12"
                                    Margin="0,16,0,6" />
                         <Grid Grid.Row="5"
@@ -129,8 +129,8 @@
 
                 <Border Margin="0,22,0,0"
                         Padding="{StaticResource CardPadding}"
-                        Background="{StaticResource PanelBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
@@ -141,7 +141,7 @@
                                        DockPanel.Dock="Left" />
                             <TextBlock x:Name="PreviewStatusText"
                                        Text="{loc:Tr ImportBible_ChooseFileHint}"
-                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
                                        FontSize="13"
                                        HorizontalAlignment="Right"
                                        TextTrimming="CharacterEllipsis" />
@@ -155,13 +155,13 @@
                             </Grid.ColumnDefinitions>
 
                             <Border Padding="14"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
                                     <TextBlock Text="{loc:Tr ImportBible_Translation}"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12" />
                                     <TextBlock x:Name="PreviewTranslationText"
                                                Text="-"
@@ -175,13 +175,13 @@
                             <Border Grid.Column="1"
                                     Margin="14,0,0,0"
                                     Padding="14"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
                                     <TextBlock Text="{loc:Tr ImportBible_VersesFound}"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12" />
                                     <TextBlock x:Name="PreviewVerseCountText"
                                                Text="0"
@@ -194,13 +194,13 @@
                             <Border Grid.Column="2"
                                     Margin="14,0,0,0"
                                     Padding="14"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
                                     <TextBlock Text="{loc:Tr ImportBible_InvalidRows}"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12" />
                                     <TextBlock x:Name="PreviewInvalidCountText"
                                                Text="0"
@@ -221,18 +221,18 @@
                                 <DataTemplate>
                                     <Border Margin="0,0,0,12"
                                             Padding="16"
-                                            Background="{StaticResource CardBackgroundBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}"
+                                            Background="{DynamicResource CardBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="{StaticResource BorderRadius}">
                                         <StackPanel>
                                             <TextBlock Text="{Binding Reference}"
-                                                       Foreground="{StaticResource AccentBrush}"
+                                                       Foreground="{DynamicResource AccentBrush}"
                                                        FontSize="14"
                                                        FontWeight="SemiBold" />
                                             <TextBlock Text="{Binding Text}"
                                                        Margin="0,7,0,0"
-                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
                                                        FontSize="14"
                                                        LineHeight="20"
                                                        TextWrapping="Wrap" />
@@ -248,12 +248,12 @@
                                    Margin="2,10,2,12" />
                         <Border x:Name="NoInvalidRowsPanel"
                                 Padding="16"
-                                Background="{StaticResource CardBackgroundBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
+                                Background="{DynamicResource CardBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{StaticResource BorderRadius}">
                             <TextBlock Text="{loc:Tr ImportBible_NoInvalidRows}"
-                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
                                        FontSize="14" />
                         </Border>
                         <ItemsControl x:Name="InvalidRowsList"
@@ -263,12 +263,12 @@
                                 <DataTemplate>
                                     <Border Margin="0,0,0,10"
                                             Padding="14"
-                                            Background="{StaticResource CardBackgroundBrush}"
-                                            BorderBrush="{StaticResource BorderBrush}"
+                                            Background="{DynamicResource CardBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="{StaticResource BorderRadius}">
                                         <TextBlock Text="{Binding}"
-                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
                                                    FontSize="13"
                                                    LineHeight="18"
                                                    TextWrapping="Wrap" />
@@ -284,7 +284,7 @@
         <Border Grid.Row="1"
                 Margin="0,20,0,0"
                 Padding="0,16,0,0"
-                BorderBrush="{StaticResource BorderBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -298,7 +298,7 @@
 
                 <TextBlock Grid.Column="0"
                            Text="{loc:Tr ImportBible_Footer}"
-                           Foreground="{StaticResource MutedTextBrush}"
+                           Foreground="{DynamicResource MutedTextBrush}"
                            FontSize="13"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />

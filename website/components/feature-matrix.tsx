@@ -24,6 +24,26 @@ export function FeatureMatrix() {
             </article>
           ))}
         </div>
+
+        <h3
+          id="library"
+          className="mt-16 text-2xl font-semibold tracking-tight text-ink"
+        >
+          {t.library.title}
+        </h3>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          {t.library.items.map((item) => (
+            <article
+              key={item.title}
+              className="rounded-xl border border-line bg-white p-6 sm:p-7"
+            >
+              <h4 className="text-base font-semibold text-ink">{item.title}</h4>
+              <p className="mt-3 text-sm leading-6 text-ink-secondary">
+                {item.body}
+              </p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );

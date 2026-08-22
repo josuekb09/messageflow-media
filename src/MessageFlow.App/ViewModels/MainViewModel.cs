@@ -212,6 +212,7 @@ public sealed partial class MainViewModel : ObservableObject
             () => IsSermonReadingMode);
 
         InitializeUiLanguage();
+        InitializeUiTheme();
         RefreshProjectionDisplayOptions();
 
         ParagraphResults.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsParagraphResultsEmpty));

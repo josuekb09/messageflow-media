@@ -7,15 +7,15 @@ namespace ImportFrenchSongbook;
 
 internal static class TwoColumnPdfExtractor
 {
-    public static IReadOnlyList<ExtractedPage> ExtractPages(string pdfPath)
+    public static IReadOnlyList<ExtractedPage> ExtractPages(string pdfPath, bool pairColumns = false)
     {
         using var document = PdfDocument.Open(pdfPath);
         return document.GetPages()
-            .Select(page => new ExtractedPage(page.Number, ExtractPageText(page)))
+            .Select(page => new ExtractedPage(page.Number, ExtractPageText(page, pairColumns)))
             .ToList();
     }
 
-    private static string ExtractPageText(Page page)
+    private static string ExtractPageText(Page page, bool pairColumns)
     {
         var words = page.GetWords()
             .Where(word => !string.IsNullOrWhiteSpace(word.Text))
@@ -29,6 +29,11 @@ internal static class TwoColumnPdfExtractor
         }
 
         var columns = SplitColumns(words, page.Width);
+        if (pairColumns && columns.Count == 2)
+        {
+            return PairColumnLines(columns[0], columns[1]);
+        }
+
         var builder = new StringBuilder();
         foreach (var column in columns)
         {
@@ -48,6 +53,87 @@ internal static class TwoColumnPdfExtractor
         }
 
         return builder.ToString().Trim();
+    }
+
+    private static string PairColumnLines(
+        IReadOnlyList<PositionedWord> leftWords,
+        IReadOnlyList<PositionedWord> rightWords)
+    {
+        var tolerance = Math.Max(CalculateLineTolerance(leftWords), CalculateLineTolerance(rightWords)) * 1.35;
+        var leftLines = GroupIntoLines(leftWords, tolerance).OrderByDescending(line => line.CenterY).ToList();
+        var rightLines = GroupIntoLines(rightWords, tolerance).OrderByDescending(line => line.CenterY).ToList();
+        var usedRight = new bool[rightLines.Count];
+        var merged = new List<(double Y, string Text)>();
+
+        foreach (var left in leftLines)
+        {
+            var leftText = BuildLineText(left.Words);
+            if (string.IsNullOrWhiteSpace(leftText))
+            {
+                continue;
+            }
+
+            var matchIndex = -1;
+            var bestDelta = double.MaxValue;
+            for (var i = 0; i < rightLines.Count; i++)
+            {
+                if (usedRight[i])
+                {
+                    continue;
+                }
+
+                var delta = Math.Abs(rightLines[i].CenterY - left.CenterY);
+                if (delta <= tolerance && delta < bestDelta)
+                {
+                    bestDelta = delta;
+                    matchIndex = i;
+                }
+            }
+
+            if (matchIndex >= 0)
+            {
+                usedRight[matchIndex] = true;
+                var rightText = BuildLineText(rightLines[matchIndex].Words);
+                merged.Add((left.CenterY, CollapsePair(leftText, rightText)));
+            }
+            else
+            {
+                merged.Add((left.CenterY, leftText));
+            }
+        }
+
+        for (var i = 0; i < rightLines.Count; i++)
+        {
+            if (usedRight[i])
+            {
+                continue;
+            }
+
+            var rightText = BuildLineText(rightLines[i].Words);
+            if (!string.IsNullOrWhiteSpace(rightText))
+            {
+                merged.Add((rightLines[i].CenterY, rightText));
+            }
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            merged.OrderByDescending(line => line.Y).Select(line => line.Text));
+    }
+
+    private static string CollapsePair(string left, string right)
+    {
+        if (string.IsNullOrWhiteSpace(right))
+        {
+            return left;
+        }
+
+        if (string.IsNullOrWhiteSpace(left))
+        {
+            return right;
+        }
+
+        return $"{left.TrimEnd()} {right.TrimStart()}";
     }
 
     private static IReadOnlyList<IReadOnlyList<PositionedWord>> SplitColumns(

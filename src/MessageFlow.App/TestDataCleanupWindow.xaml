@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource WindowBackgroundBrush}">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -25,7 +25,7 @@
                        FontWeight="SemiBold" />
             <TextBlock Text="{Binding Summary}"
                        Margin="0,6,0,0"
-                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        FontSize="14"
                        TextWrapping="Wrap" />
         </StackPanel>
@@ -39,8 +39,8 @@
                         <DataTemplate>
                             <Border Margin="0,0,0,12"
                                     Padding="16"
-                                    Background="{StaticResource CardBackgroundBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Background="{DynamicResource CardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="{StaticResource BorderRadius}">
                                 <StackPanel>
@@ -50,15 +50,15 @@
                                                TextWrapping="Wrap" />
                                     <TextBlock Text="{Binding SourceTypeDisplay}"
                                                Margin="0,6,0,0"
-                                               Foreground="{StaticResource AccentBrush}"
+                                               Foreground="{DynamicResource AccentBrush}"
                                                FontSize="13"
                                                FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding Folder}"
                                                Margin="0,7,0,12"
-                                               Foreground="{StaticResource MutedTextBrush}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap" />
-                                    <TextBlock Foreground="{StaticResource SecondaryTextBrush}"
+                                    <TextBlock Foreground="{DynamicResource SecondaryTextBrush}"
                                                FontSize="13"
                                                TextWrapping="Wrap">
                                         <Run Text="Documents: " />
@@ -78,13 +78,13 @@
 
                 <Border Margin="0,10,0,0"
                         Padding="16"
-                        Background="{StaticResource CardBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
                         <TextBlock Text="Type this confirmation phrase to continue:"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
                                    FontSize="13" />
                         <TextBlock Text="I understand this removes test source data only."
                                    Margin="0,8,0,8"
@@ -101,7 +101,7 @@
         <Border Grid.Row="2"
                 Margin="0,20,0,0"
                 Padding="0,16,0,0"
-                BorderBrush="{StaticResource BorderBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -113,7 +113,7 @@
 
                 <TextBlock Grid.Column="0"
                            Text="A database backup will be created before anything is deleted."
-                           Foreground="{StaticResource MutedTextBrush}"
+                           Foreground="{DynamicResource MutedTextBrush}"
                            FontSize="13"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />

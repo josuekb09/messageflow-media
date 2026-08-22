@@ -9,12 +9,27 @@ using Microsoft.EntityFrameworkCore;
 
 const string DefaultPdfPath =
     @"D:\My Projects\MessageFlow\database\custom-library\songs\Receuil-de-cantiques-francais-TABERNACLE-DINANGA-CORRIGE.pdf";
-const string SourceKeyPrefix = FrenchSongbookParser.SourceKeyPrefix;
 
-var apply = args.Any(arg => string.Equals(arg, "--apply", StringComparison.OrdinalIgnoreCase));
-var dumpText = args.Any(arg => string.Equals(arg, "--dump-text", StringComparison.OrdinalIgnoreCase));
+var apply = HasFlag(args, "--apply");
+var dumpText = HasFlag(args, "--dump-text");
+var pairColumns = HasFlag(args, "--pair-columns");
+var noAppendix = HasFlag(args, "--no-appendix");
 var pdfPath = GetOption(args, "--pdf") ?? DefaultPdfPath;
+var sourceKeyPrefix = NormalizeSourcePrefix(
+    GetOption(args, "--source-prefix") ?? FrenchSongbookParser.SourceKeyPrefix);
+var sourceFolder = GetOption(args, "--source-folder") ?? FrenchSongbookParser.SourceFolder;
+var maxNumber = ParsePositiveInt(GetOption(args, "--max-number"), defaultValue: 396);
 var databasePath = GetOption(args, "--database") ?? MessageFlowDatabase.DefaultDatabasePath;
+var parseOptions = new FrenchSongbookParseOptions
+{
+    PairColumns = pairColumns,
+    StopOnIndex = !pairColumns,
+    EnableAppendix = !noAppendix,
+    RequireDottedNumbers = pairColumns,
+    OneSongPerPage = pairColumns || HasFlag(args, "--one-song-per-page"),
+    JoinWrappedTitles = pairColumns,
+    MaxNumber = maxNumber
+};
 
 if (!File.Exists(pdfPath))
 {
@@ -25,24 +40,31 @@ if (!File.Exists(pdfPath))
 Directory.CreateDirectory(@"D:\Temp");
 if (dumpText)
 {
-    var dumpPath = @"D:\Temp\french-songbook-dump.txt";
-    File.WriteAllText(dumpPath, FrenchSongbookParser.DumpRawText(pdfPath), Encoding.UTF8);
+    var dumpPath = pairColumns
+        ? @"D:\Temp\aigles-songbook-dump.txt"
+        : @"D:\Temp\french-songbook-dump.txt";
+    File.WriteAllText(dumpPath, FrenchSongbookParser.DumpRawText(pdfPath, pairColumns), Encoding.UTF8);
     Console.WriteLine($"Wrote raw text dump: {dumpPath}");
     return 0;
 }
 
-var songs = FrenchSongbookParser.Parse(pdfPath);
-var previewPath = @"D:\Temp\french-songbook-preview.txt";
+var songs = FrenchSongbookParser.Parse(pdfPath, parseOptions);
+var previewPath = pairColumns
+    ? @"D:\Temp\aigles-songbook-preview.txt"
+    : @"D:\Temp\french-songbook-preview.txt";
 WritePreview(previewPath, songs);
 Console.WriteLine($"Parsed {songs.Count} French songs. Preview: {previewPath}");
 Console.WriteLine($"Numbers: {songs.FirstOrDefault()?.Number} .. {songs.LastOrDefault()?.Number}");
+Console.WriteLine($"Missing numbers: {FormatMissingNumbers(songs, maxNumber)}");
 Console.WriteLine($"With refrain: {songs.Count(song => song.Sections.Any(section => section.Type == "Chorus"))}");
+Console.WriteLine($"Interleaved verse-chorus: {songs.Count(IsInterleaved)}");
+Console.WriteLine($"Source: {sourceKeyPrefix} / {sourceFolder}");
 Console.WriteLine($"Database: {databasePath}");
 
 if (!apply)
 {
     Console.WriteLine("Preview only. Pass --apply to write songs into the database.");
-    return songs.Count >= 300 ? 0 : 2;
+    return songs.Count >= Math.Min(300, maxNumber) ? 0 : 2;
 }
 
 var targets = DiscoverWritableDatabases(databasePath);
@@ -55,7 +77,7 @@ if (targets.Count == 0)
 foreach (var target in targets)
 {
     Console.WriteLine($"Importing into {target}");
-    await ImportSongsAsync(target, pdfPath, songs);
+    await ImportSongsAsync(target, pdfPath, songs, sourceKeyPrefix, sourceFolder);
 }
 
 return 0;
@@ -65,6 +87,15 @@ static string? GetOption(string[] args, string name)
     var index = Array.FindIndex(args, arg => string.Equals(arg, name, StringComparison.OrdinalIgnoreCase));
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
 }
+
+static bool HasFlag(string[] args, string name)
+    => args.Any(arg => string.Equals(arg, name, StringComparison.OrdinalIgnoreCase));
+
+static int ParsePositiveInt(string? value, int defaultValue)
+    => int.TryParse(value, out var parsed) && parsed > 0 ? parsed : defaultValue;
+
+static string NormalizeSourcePrefix(string prefix)
+    => prefix.EndsWith('/') ? prefix : prefix + "/";
 
 static List<string> DiscoverWritableDatabases(string preferred)
 {
@@ -84,7 +115,12 @@ static List<string> DiscoverWritableDatabases(string preferred)
         .ToList();
 }
 
-static async Task ImportSongsAsync(string databasePath, string pdfPath, IReadOnlyList<ParsedFrenchSong> songs)
+static async Task ImportSongsAsync(
+    string databasePath,
+    string pdfPath,
+    IReadOnlyList<ParsedFrenchSong> songs,
+    string sourceKeyPrefix,
+    string sourceFolder)
 {
     await MessageFlowDatabaseRepair.RepairAsync(databasePath, Console.WriteLine);
 
@@ -96,7 +132,7 @@ static async Task ImportSongsAsync(string databasePath, string pdfPath, IReadOnl
     await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
     var existing = await dbContext.Songs
-        .Where(song => song.SourceFilePath.StartsWith(SourceKeyPrefix))
+        .Where(song => song.SourceFilePath.StartsWith(sourceKeyPrefix))
         .ToListAsync();
     if (existing.Count > 0)
     {
@@ -110,8 +146,8 @@ static async Task ImportSongsAsync(string databasePath, string pdfPath, IReadOnl
         {
             Title = song.Title,
             NormalizedTitle = SongTextNormalizer.Normalize(song.Title),
-            SourceFilePath = SourceKeyPrefix + song.Number,
-            SourceFolder = FrenchSongbookParser.SourceFolder,
+            SourceFilePath = sourceKeyPrefix + song.Number,
+            SourceFolder = sourceFolder,
             FileName = Path.GetFileName(pdfPath),
             ImportedAtUtc = DateTime.UtcNow,
             ContentHash = ComputeHash(song),
@@ -134,10 +170,16 @@ static async Task ImportSongsAsync(string databasePath, string pdfPath, IReadOnl
     await dbContext.SaveChangesAsync();
     await transaction.CommitAsync();
 
+    var importedCount = await dbContext.Songs.CountAsync(song =>
+        song.IsActive && song.SourceFilePath.StartsWith(sourceKeyPrefix));
     var frenchCount = await dbContext.Songs.CountAsync(song => song.IsActive && song.Language == "fr");
+    var dinangaCount = await dbContext.Songs.CountAsync(song =>
+        song.IsActive && song.SourceFilePath.StartsWith(FrenchSongbookParser.SourceKeyPrefix));
     var englishCount = await dbContext.Songs.CountAsync(song => song.IsActive && song.Language == "en");
     var swahiliCount = await dbContext.Songs.CountAsync(song => song.IsActive && song.Language == "sw");
-    Console.WriteLine($"Imported {songs.Count} French songs into {databasePath}. Active songs en={englishCount}, fr={frenchCount}, sw={swahiliCount}.");
+    Console.WriteLine(
+        $"Imported {importedCount} songs ({sourceKeyPrefix}) into {databasePath}. " +
+        $"Active songs en={englishCount}, fr={frenchCount} (dinanga={dinangaCount}), sw={swahiliCount}.");
 }
 
 static string ComputeHash(ParsedFrenchSong song)
@@ -145,6 +187,35 @@ static string ComputeHash(ParsedFrenchSong song)
     var payload = song.Number + "\n" + song.Title + "\n" +
                   string.Join("\n---\n", song.Sections.Select(section => section.Type + "\n" + section.Text));
     return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
+}
+
+static bool IsInterleaved(ParsedFrenchSong song)
+{
+    var types = song.Sections.Select(section => section.Type).ToList();
+    if (types.Count < 2 || !types.Contains("Chorus"))
+    {
+        return false;
+    }
+
+    for (var i = 0; i < types.Count - 1; i++)
+    {
+        if (types[i] == "Verse" && types[i + 1] != "Chorus")
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static string FormatMissingNumbers(IReadOnlyList<ParsedFrenchSong> songs, int maxNumber)
+{
+    var present = songs
+        .Select(song => int.TryParse(song.Number, out var value) ? value : 0)
+        .Where(value => value > 0)
+        .ToHashSet();
+    var missing = Enumerable.Range(1, maxNumber).Where(value => !present.Contains(value)).ToList();
+    return missing.Count == 0 ? "(none)" : string.Join(", ", missing);
 }
 
 static void WritePreview(string path, IReadOnlyList<ParsedFrenchSong> songs)

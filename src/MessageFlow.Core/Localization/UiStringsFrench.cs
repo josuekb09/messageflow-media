@@ -35,6 +35,12 @@ public static class UiStringsFrench
         ["Lang_ChangedToEnglish"] = "Langue de l'application définie sur l'anglais.",
         ["Lang_ChangedToFrench"] = "Langue de l'application définie sur le français.",
 
+        // ---- Thème de l'opérateur ----
+        ["Theme_Light"] = "Thème clair",
+        ["Theme_LightTooltip"] = "Utiliser une apparence claire blanc et bleu. Désactivé conserve le thème sombre par défaut.",
+        ["Theme_Enabled"] = "Thème clair activé.",
+        ["Theme_Disabled"] = "Thème sombre rétabli.",
+
         // ---- Barre d'outils ----
         ["Toolbar_SearchSermonsTooltip"] = "Rechercher des sermons par titre, code, expression ou numéro de paragraphe",
         ["Toolbar_FontSizeTooltip"] = "Taille du texte de projection",

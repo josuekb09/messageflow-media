@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource WindowBackgroundBrush}">
+        Background="{DynamicResource WindowBackgroundBrush}">
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -22,17 +22,17 @@
             <TextBlock Text="{loc:Tr Admin_Title}" FontSize="28" FontWeight="SemiBold" />
             <TextBlock Text="{loc:Tr Admin_Subtitle}"
                        Margin="0,6,0,0"
-                       Foreground="{StaticResource SecondaryTextBrush}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        FontSize="14"
                        TextWrapping="Wrap" />
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <UniformGrid Columns="2" Rows="3">
-                <Border Margin="0,0,14,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="0,0,14,14" Padding="{StaticResource CardPadding}" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section1}" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="{loc:Tr Admin_Section1Detail}" Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{loc:Tr Admin_Section1Detail}" Margin="0,7,0,16" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
                         <ComboBox ItemsSource="{Binding ProjectionDisplayOptions}" SelectedItem="{Binding SelectedProjectionDisplayOption}" DisplayMemberPath="Label" TextSearch.TextPath="Label" MinHeight="36" VerticalContentAlignment="Center" />
                         <Button Content="{loc:Tr Admin_TestProjection}" Margin="0,10,0,0" Command="{Binding TestProjectionDisplayCommand}" ToolTip="{loc:Tr Admin_TestProjectionTooltip}" />
                         <Button Content="{loc:Tr Admin_OpenProjectionPreview}" Margin="0,10,0,0" Command="{Binding OpenProjectionPreviewCommand}" ToolTip="{loc:Tr Admin_OpenProjectionPreviewTooltip}" />
@@ -40,10 +40,10 @@
                     </StackPanel>
                 </Border>
 
-                <Border Margin="14,0,0,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="14,0,0,14" Padding="{StaticResource CardPadding}" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section2}" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="{loc:Tr Admin_Section2Detail}" Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{loc:Tr Admin_Section2Detail}" Margin="0,7,0,16" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
                         <Button Content="{loc:Tr Admin_OpenLibraryImport}" Click="OpenLibraryImport_Click" ToolTip="{loc:Tr Admin_OpenLibraryImportTooltip}" />
                         <Button Content="{loc:Tr Admin_ManageSources}" Margin="0,10,0,0" Command="{Binding ManageSourcesCommand}" ToolTip="{loc:Tr Admin_ManageSourcesTooltip}" />
                         <Button Content="{loc:Tr Admin_AddSermonSource}" Margin="0,10,0,0" Command="{Binding AddNewSourceCommand}" ToolTip="{loc:Tr Admin_AddSermonSourceTooltip}" />
@@ -52,19 +52,19 @@
                     </StackPanel>
                 </Border>
 
-                <Border Margin="0,14,14,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="0,14,14,14" Padding="{StaticResource CardPadding}" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section3}" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="{loc:Tr Admin_Section3Detail}" Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{loc:Tr Admin_Section3Detail}" Margin="0,7,0,16" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
                         <Button Content="{loc:Tr Admin_RepairMetadata}" Command="{Binding RepairSourceMetadataCommand}" ToolTip="{loc:Tr Admin_RepairMetadataTooltip}" />
                         <Button Content="{loc:Tr Admin_RebuildIndex}" Margin="0,10,0,0" Command="{Binding RebuildSermonSearchIndexCommand}" ToolTip="{loc:Tr Admin_RebuildIndexTooltip}" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="14,14,0,14" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="14,14,0,14" Padding="{StaticResource CardPadding}" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section4}" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="{loc:Tr Admin_Section4Detail}" Margin="0,7,0,16" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{loc:Tr Admin_Section4Detail}" Margin="0,7,0,16" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
                         <Button Content="{loc:Tr Admin_BackupDatabase}" Command="{Binding BackupDatabaseCommand}" />
                         <Button Content="{loc:Tr Admin_RestoreDatabase}" Margin="0,10,0,0" Command="{Binding RestoreDatabaseCommand}" />
                         <Button Content="{loc:Tr Admin_OpenBackupFolder}" Margin="0,10,0,0" Command="{Binding OpenBackupFolderCommand}" />
@@ -72,20 +72,20 @@
                     </StackPanel>
                 </Border>
 
-                <Border Margin="0,14,14,0" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="0,14,14,0" Padding="{StaticResource CardPadding}" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section5}" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding ProjectionStatusText}" Margin="0,7,0,4" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding CurrentBibleTranslationDisplay}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding CurrentBibleVerseCountDisplay}" Margin="0,4,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ProjectionStatusText}" Margin="0,7,0,4" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding CurrentBibleTranslationDisplay}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding CurrentBibleVerseCountDisplay}" Margin="0,4,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 
-                <Border Margin="14,14,0,0" Padding="{StaticResource CardPadding}" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
+                <Border Margin="14,14,0,0" Padding="{StaticResource CardPadding}" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource BorderRadius}">
                     <StackPanel>
-                        <Expander Header="{loc:Tr Admin_AdvancedCleanup}" Foreground="{StaticResource SecondaryTextBrush}">
+                        <Expander Header="{loc:Tr Admin_AdvancedCleanup}" Foreground="{DynamicResource SecondaryTextBrush}">
                             <StackPanel Margin="0,12,0,0">
-                                <TextBlock Text="{loc:Tr Admin_AdvancedCleanupDetail}" Foreground="{StaticResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
+                                <TextBlock Text="{loc:Tr Admin_AdvancedCleanupDetail}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" />
                                 <Button Content="{loc:Tr Admin_CleanupTestData}" Margin="0,10,0,0" Command="{Binding CleanupTestDataCommand}" ToolTip="{loc:Tr Admin_CleanupTestDataTooltip}" />
                                 <Button Content="{loc:Tr Admin_CleanupBrotherFrank}" Margin="0,10,0,0" Command="{Binding CleanupBrotherFrankCircularLettersCommand}" ToolTip="{loc:Tr Admin_CleanupBrotherFrankTooltip}" />
                             </StackPanel>
@@ -95,7 +95,7 @@
             </UniformGrid>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Margin="0,20,0,0" Padding="0,16,0,0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Margin="0,20,0,0" Padding="0,16,0,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Button Grid.Column="1" MinWidth="110" Content="{loc:Tr Common_Close}" Click="Close_Click" />

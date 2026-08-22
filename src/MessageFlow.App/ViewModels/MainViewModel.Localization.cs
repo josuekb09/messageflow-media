@@ -1,4 +1,5 @@
 using MessageFlow.App.Localization;
+using MessageFlow.App.Themes;
 using MessageFlow.Core.Localization;
 using MessageFlow.Data;
 using MessageFlow.Search;
@@ -11,6 +12,8 @@ public sealed partial class MainViewModel
 {
     private AppLanguage selectedUiLanguage = AppLanguages.Default;
     private bool suppressUiLanguageSave;
+    private bool isLightTheme;
+    private bool suppressThemeSave;
     private bool hasSermonContentForCurrentLanguage = true;
     private bool hasSongContentForCurrentLanguage = true;
 
@@ -33,6 +36,27 @@ public sealed partial class MainViewModel
                 UiLanguagePreference.Save(value);
                 Localizer.Instance.SetLanguage(value);
                 _ = ApplyContentLanguageAsync();
+            }
+        }
+    }
+
+    public bool IsLightTheme
+    {
+        get => isLightTheme;
+        set
+        {
+            if (isLightTheme == value)
+            {
+                return;
+            }
+
+            isLightTheme = value;
+            OnPropertyChanged();
+            AppTheme.Apply(value);
+            if (!suppressThemeSave)
+            {
+                UiThemePreference.Save(value);
+                StatusText = value ? Loc.T("Theme_Enabled") : Loc.T("Theme_Disabled");
             }
         }
     }
@@ -100,6 +124,19 @@ public sealed partial class MainViewModel
 
         RebuildProjectionFontSizes();
         Localizer.Instance.LanguageChanged += (_, _) => RefreshLocalizedProperties();
+    }
+
+    private void InitializeUiTheme()
+    {
+        suppressThemeSave = true;
+        try
+        {
+            IsLightTheme = UiThemePreference.LoadIsLight();
+        }
+        finally
+        {
+            suppressThemeSave = false;
+        }
     }
 
     private async Task ApplyContentLanguageAsync()

@@ -35,6 +35,12 @@ public static class UiStringsEnglish
         ["Lang_ChangedToEnglish"] = "Application language set to English.",
         ["Lang_ChangedToFrench"] = "Application language set to French.",
 
+        // ---- Operator theme ----
+        ["Theme_Light"] = "Light theme",
+        ["Theme_LightTooltip"] = "Use a light white-and-blue appearance. Off keeps the default dark theme.",
+        ["Theme_Enabled"] = "Light theme on.",
+        ["Theme_Disabled"] = "Dark theme restored.",
+
         // ---- Top toolbar ----
         ["Toolbar_SearchSermonsTooltip"] = "Search sermons by title, code, phrase, or paragraph number",
         ["Toolbar_FontSizeTooltip"] = "Projection font size",

@@ -5,7 +5,7 @@ import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Download",
-  description: `Download MessageFlow ${site.version} for Windows.`,
+  description: `Download MessageFlow Media ${site.version} for Windows. English, French, and Kiswahili sermons and Bibles; English and French songbooks included.`,
 };
 
 export default function DownloadPage() {

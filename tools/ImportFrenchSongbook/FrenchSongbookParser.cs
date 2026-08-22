@@ -10,25 +10,36 @@ internal static partial class FrenchSongbookParser
     public const string SourceFolder = "Recueil de cantiques français";
     public const string LanguageCode = "fr";
 
-    public static IReadOnlyList<ParsedFrenchSong> Parse(string pdfPath)
+    public static IReadOnlyList<ParsedFrenchSong> Parse(string pdfPath, FrenchSongbookParseOptions? options = null)
     {
-        var lines = TwoColumnPdfExtractor.ExtractPages(pdfPath)
-            .SelectMany(page => SplitPageLines(page.Text))
-            .Where(line => !IsNoiseLine(line))
-            .TakeWhile(line => !IsIndexLine(line))
-            .ToList();
+        options ??= new FrenchSongbookParseOptions();
+        if (options.OneSongPerPage)
+        {
+            return TwoColumnPdfExtractor.ExtractPages(pdfPath, options.PairColumns)
+                .Select(page => BuildSongFromPage(page.PageNumber, page.Text, options))
+                .Where(song => song.Sections.Count > 0)
+                .ToList();
+        }
 
-        var songs = SplitSongs(lines);
+        var extracted = TwoColumnPdfExtractor.ExtractPages(pdfPath, options.PairColumns)
+            .SelectMany(page => SplitPageLines(page.Text))
+            .Where(line => !IsNoiseLine(line));
+
+        var lines = options.StopOnIndex
+            ? extracted.TakeWhile(line => !IsIndexLine(line)).ToList()
+            : extracted.Where(line => !IsIndexLine(line)).ToList();
+
+        var songs = SplitSongs(lines, options);
         return songs
-            .Select(BuildSong)
+            .Select(song => BuildSong(song, options))
             .Where(song => song.Sections.Count > 0 && !string.Equals(song.Number, "0", StringComparison.Ordinal))
             .ToList();
     }
 
-    public static string DumpRawText(string pdfPath)
+    public static string DumpRawText(string pdfPath, bool pairColumns = false)
     {
         var builder = new StringBuilder();
-        foreach (var page in TwoColumnPdfExtractor.ExtractPages(pdfPath))
+        foreach (var page in TwoColumnPdfExtractor.ExtractPages(pdfPath, pairColumns))
         {
             builder.AppendLine($"===== PAGE {page.PageNumber} =====");
             builder.AppendLine(page.Text);
@@ -57,7 +68,7 @@ internal static partial class FrenchSongbookParser
 
     private static bool IsNoiseLine(string text)
     {
-        return PageBannerRegex().IsMatch(text);
+        return PageBannerRegex().IsMatch(text) || TableHeadingRegex().IsMatch(text);
     }
 
     private static bool IsIndexLine(string text)
@@ -65,7 +76,7 @@ internal static partial class FrenchSongbookParser
         return IndexEntryRegex().IsMatch(text);
     }
 
-    private static List<SongDraft> SplitSongs(IReadOnlyList<string> lines)
+    private static List<SongDraft> SplitSongs(IReadOnlyList<string> lines, FrenchSongbookParseOptions options)
     {
         var songs = new List<SongDraft>();
         SongDraft? current = null;
@@ -74,14 +85,15 @@ internal static partial class FrenchSongbookParser
 
         foreach (var line in lines)
         {
-            if (TryReadSongNumber(line, out var number, out var rest))
+            if (TryReadSongNumber(line, options, out var number, out var rest))
             {
                 if (int.TryParse(number.TrimEnd('A', 'B', 'C', 'a', 'b', 'c'), out var numeric) && numeric >= 50)
                 {
                     seenHighNumber = true;
                 }
 
-                if (appendix is false &&
+                if (options.EnableAppendix &&
+                    appendix is false &&
                     seenHighNumber &&
                     string.Equals(number, "1", StringComparison.OrdinalIgnoreCase))
                 {
@@ -115,12 +127,23 @@ internal static partial class FrenchSongbookParser
         return songs;
     }
 
-    private static bool TryReadSongNumber(string text, out string number, out string rest)
+    private static bool TryReadSongNumber(
+        string text,
+        FrenchSongbookParseOptions options,
+        out string number,
+        out string rest)
     {
         number = string.Empty;
         rest = string.Empty;
 
-        var match = SongNumberLineRegex().Match(text);
+        var match = options.RequireDottedNumbers
+            ? DottedSongNumberLineRegex().Match(text)
+            : SongNumberLineRegex().Match(text);
+        if (!match.Success && !options.RequireDottedNumbers)
+        {
+            match = DottedSongNumberLineRegex().Match(text);
+        }
+
         if (!match.Success)
         {
             return false;
@@ -134,7 +157,7 @@ internal static partial class FrenchSongbookParser
             return false;
         }
 
-        if (!int.TryParse(digits, out var value) || value is < 1 or > 396)
+        if (!int.TryParse(digits, out var value) || value < 1 || value > options.MaxNumber)
         {
             return false;
         }
@@ -155,7 +178,32 @@ internal static partial class FrenchSongbookParser
         return letters >= 3 && upper >= letters * 0.45 && text.Length <= 90;
     }
 
-    private static ParsedFrenchSong BuildSong(SongDraft draft)
+    private static ParsedFrenchSong BuildSongFromPage(
+        int pageNumber,
+        string pageText,
+        FrenchSongbookParseOptions options)
+    {
+        var lines = SplitPageLines(pageText)
+            .Where(line => !IsNoiseLine(line) && !IsIndexLine(line))
+            .ToList();
+        if (lines.Count > 0 && TryReadSongNumber(lines[0], options, out _, out var rest))
+        {
+            if (string.IsNullOrWhiteSpace(rest))
+            {
+                lines.RemoveAt(0);
+            }
+            else
+            {
+                lines[0] = rest;
+            }
+        }
+
+        var draft = new SongDraft(pageNumber.ToString(CultureInfo.InvariantCulture));
+        draft.Lines.AddRange(lines);
+        return BuildSong(draft, options);
+    }
+
+    private static ParsedFrenchSong BuildSong(SongDraft draft, FrenchSongbookParseOptions options)
     {
         var lines = UnwrapLines(draft.Lines);
         var title = string.Empty;
@@ -170,6 +218,18 @@ internal static partial class FrenchSongbookParser
             title = StripMusicalKey(lines[i]);
             bodyStart = i + 1;
             break;
+        }
+
+        var extraTitleLines = 0;
+        while (options.JoinWrappedTitles &&
+               extraTitleLines < 2 &&
+               bodyStart < lines.Count &&
+               title.Length < 90 &&
+               LooksLikeTitle(lines[bodyStart]))
+        {
+            title = CollapseSpaces(title + " " + StripMusicalKey(lines[bodyStart]));
+            bodyStart++;
+            extraTitleLines++;
         }
 
         while (bodyStart < lines.Count && IsTranslationCue(lines[bodyStart]))
@@ -193,9 +253,23 @@ internal static partial class FrenchSongbookParser
         var marked = ParseMarkedBlocks(body);
         if (marked.Any(block => block.Type == "Chorus"))
         {
-            var refrainBlock = marked.First(block => block.Type == "Chorus");
-            var verses = ExpandVerseChunks(
-                marked.Where(block => block.Type != "Chorus").Select(block => block.Lines).ToList());
+            var chorusBlocks = marked.Where(block => block.Type == "Chorus").ToList();
+            var verseChunks = marked.Where(block => block.Type != "Chorus").Select(block => block.Lines).ToList();
+            var refrainBlock = chorusBlocks[0];
+            if (chorusBlocks.Count == 1)
+            {
+                var stanzaLength = verseChunks.FirstOrDefault()?.Count is >= 2 and <= 8
+                    ? verseChunks[0].Count
+                    : 4;
+                var (chorusLines, trailing) = SplitChorusAndTrailingVerses(refrainBlock.Lines, stanzaLength);
+                refrainBlock = new LyricBlock("Chorus", refrainBlock.Label, chorusLines);
+                if (trailing.Count > 0)
+                {
+                    verseChunks.Add(trailing);
+                }
+            }
+
+            var verses = ExpandVerseChunks(verseChunks);
             var verseBlocks = verses
                 .Select((verse, index) => new LyricBlock("Verse", $"Couplet {index + 1}", verse))
                 .ToList();
@@ -380,6 +454,65 @@ internal static partial class FrenchSongbookParser
         return verses;
     }
 
+    private static (List<string> Chorus, List<string> TrailingVerses) SplitChorusAndTrailingVerses(
+        IReadOnlyList<string> lines,
+        int verseLength)
+    {
+        if (lines.Count <= 2)
+        {
+            return (lines.ToList(), []);
+        }
+
+        var chorusLength = GuessChorusLength(lines, verseLength);
+        if (chorusLength >= lines.Count)
+        {
+            return (lines.ToList(), []);
+        }
+
+        return ([.. lines.Take(chorusLength)], [.. lines.Skip(chorusLength)]);
+    }
+
+    private static int GuessChorusLength(IReadOnlyList<string> lines, int verseLength)
+    {
+        var totalLines = lines.Count;
+        var max = Math.Min(8, totalLines);
+        var candidates = new List<int>();
+        for (var length = 1; length <= max; length++)
+        {
+            var remaining = totalLines - length;
+            if (remaining == 0 ||
+                remaining % verseLength == 0 ||
+                LooksLikeChorusEnd(lines[length - 1]))
+            {
+                candidates.Add(length);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            for (var length = 1; length <= max; length++)
+            {
+                var remaining = totalLines - length;
+                if (remaining >= verseLength && remaining % verseLength <= 2)
+                {
+                    candidates.Add(length);
+                }
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            return Math.Min(Math.Max(verseLength, 2), totalLines);
+        }
+
+        return candidates
+            .OrderBy(length => LooksLikeChorusEnd(lines[length - 1]) ? 0 : 1)
+            .ThenBy(length => LooksLikeChorusEnd(lines[length - 1]) ? length : Math.Abs(length - 4))
+            .ThenBy(length => Math.Abs(length - 4))
+            .ThenBy(length => length)
+            .First();
+    }
+
     private static List<List<string>> ExpandVerseChunks(IReadOnlyList<List<string>> chunks)
     {
         var firstCount = chunks.FirstOrDefault()?.Count ?? 4;
@@ -550,6 +683,12 @@ internal static partial class FrenchSongbookParser
         var unwrapped = new List<string>();
         foreach (var line in lines)
         {
+            if (unwrapped.Count > 0 && RepeatOnlyLineRegex().IsMatch(line))
+            {
+                unwrapped[^1] = CollapseSpaces(unwrapped[^1] + " " + line);
+                continue;
+            }
+
             if (unwrapped.Count > 0 && ShouldJoin(unwrapped[^1], line))
             {
                 unwrapped[^1] = CollapseSpaces(unwrapped[^1] + " " + line);
@@ -564,7 +703,10 @@ internal static partial class FrenchSongbookParser
 
     private static bool ShouldJoin(string previous, string next)
     {
-        if (SongNumberLineRegex().IsMatch(next) || RefrainMarkerRegex().IsMatch(next) || VerseMarkerRegex().IsMatch(next))
+        if (DottedSongNumberLineRegex().IsMatch(next) ||
+            SongNumberLineRegex().IsMatch(next) ||
+            RefrainMarkerRegex().IsMatch(next) ||
+            VerseMarkerRegex().IsMatch(next))
         {
             return false;
         }
@@ -584,7 +726,11 @@ internal static partial class FrenchSongbookParser
     }
 
     private static bool IsTranslationCue(string text)
-        => text.StartsWith('(') && text.EndsWith(')') && text.Length <= 80 && !text.Contains("2x", StringComparison.OrdinalIgnoreCase);
+        => text.StartsWith('(') &&
+           text.EndsWith(')') &&
+           text.Length <= 80 &&
+           !text.Contains("2x", StringComparison.OrdinalIgnoreCase) &&
+           !RepeatMarkerRegex().IsMatch(text);
 
     private static string StripMusicalKey(string title)
     {
@@ -592,6 +738,9 @@ internal static partial class FrenchSongbookParser
         title = CollapseSpaces(title.Trim(' ', '.', '-', '–', '—'));
         return title;
     }
+
+    private static bool LooksLikeChorusEnd(string line)
+        => BisEndRegex().IsMatch(line) || PeriodRepeatRegex().IsMatch(line);
 
     private static string JoinLines(IReadOnlyList<string> lines)
         => string.Join(Environment.NewLine, lines.Select(line => line.Trim()).Where(line => line.Length > 0));
@@ -642,16 +791,22 @@ internal static partial class FrenchSongbookParser
     [GeneratedRegex(@"^(?:page(?:\s+\d+\s+sur\s+\d+)?|\d{1,3}\s+sur\s+\d{1,3})$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PageBannerRegex();
 
+    [GeneratedRegex(@"^table(?:\s+des\s+mati[eè]res)?(?:\s*\.{3,}.*)?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex TableHeadingRegex();
+
     [GeneratedRegex(@"\.{5,}\s*\d{1,3}\s*[A-Za-z]?\s*$")]
     private static partial Regex IndexEntryRegex();
 
     [GeneratedRegex(@"^(?<num>\d{1,3})\s*(?<letter>[A-Za-z])?(?:\s+(?<rest>.+))?$")]
     private static partial Regex SongNumberLineRegex();
 
+    [GeneratedRegex(@"^(?<num>\d{1,3})(?<letter>[A-Za-z])?\s*\.\s*(?<rest>.*)$")]
+    private static partial Regex DottedSongNumberLineRegex();
+
     [GeneratedRegex(@"\s+(?:[A-G](?:\s*[b#♭♯])?)$|\.{2,}[A-G](?:\s*[b#♭♯])?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MusicalKeyRegex();
 
-    [GeneratedRegex(@"^(?:refrain|choeur|chœur|chorus)\b(?:\s*[:.\-–—)]\s*(?<rest>.*))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?:refrain|choeur|chœur|chorus)\b\s*[:.\-–—)]?\s*(?<rest>.*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RefrainMarkerRegex();
 
     [GeneratedRegex(@"^(?:couplet|strophe|verse|vs\.?)\s*(?<num>\d+)?\s*(?:[.\-–—:)]\s*(?<rest>.*)?)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
@@ -659,6 +814,15 @@ internal static partial class FrenchSongbookParser
 
     [GeneratedRegex(@"\s*\((?:bis|\d+\s*[x×]|2x)\)\s*\.?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RepeatMarkerRegex();
+
+    [GeneratedRegex(@"\(bis\)\s*\.?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex BisEndRegex();
+
+    [GeneratedRegex(@"\.\s*\(\d+\s*[x×]\)\s*\.?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex PeriodRepeatRegex();
+
+    [GeneratedRegex(@"^\((?:bis|\d+\s*[x×]|2x)\)\.?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex RepeatOnlyLineRegex();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();
@@ -678,6 +842,23 @@ internal static partial class FrenchSongbookParser
 
         public List<string> Lines { get; } = lines;
     }
+}
+
+internal sealed record FrenchSongbookParseOptions
+{
+    public bool PairColumns { get; init; }
+
+    public bool StopOnIndex { get; init; } = true;
+
+    public bool EnableAppendix { get; init; } = true;
+
+    public bool RequireDottedNumbers { get; init; }
+
+    public bool OneSongPerPage { get; init; }
+
+    public bool JoinWrappedTitles { get; init; }
+
+    public int MaxNumber { get; init; } = 396;
 }
 
 internal sealed record ParsedFrenchSong(
