@@ -18,7 +18,7 @@ Church operator and projection software for Windows. Search and project sermons,
 
 ## Download
 
-Installer: [MessageFlowMediaSetup.exe](https://github.com/josuekb09/messageflow-media/releases/download/v1.0.2/MessageFlowMediaSetup.exe)
+Installer: [GitHub release v1.0.2](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.2)
 
 GitHub release: [v1.0.2](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.2)
 
