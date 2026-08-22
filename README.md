@@ -1,123 +1,101 @@
 # MessageFlow Media
 
-MessageFlow Media is a free Windows desktop app for church media rooms. It helps an operator search and project sermons, King James Version Bible verses, and songs during church services.
+Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-The app is designed for offline use with a second screen, projector, or TV. The congregation sees only the projected text while the operator controls the service from the computer.
+Current public release: **v1.0.2** (August 2026).
 
-## Free Church Use
+Website: [messageflow.app](https://messageflow.app)  
+Download: [GitHub Releases v1.0.2](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.2)
 
-MessageFlow Media is distributed free of charge for church use.
+## Library in this build
 
-- Not for sale.
-- No paid subscription.
-- No ads.
-- No in-app purchases.
-- Do not sell this software or bundled content.
-- Do not use the software or bundled content for fundraising.
+| | English | French | Kiswahili |
+|---|---|---|---|
+| Sermons (William Marrion Branham) | 1,208 | 384 | 622 |
+| Bibles | KJV | Louis Segond 1910 (LSG) | SWHULB (Biblia Takatifu) |
+| Songs | 357 | 499 (Recueil de cantiques français, Tabernacle Dinanga) | 281 (Nyimbo za Kiswahili) |
 
-See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERMISSION_AND_CONTENT_NOTICE.md) before redistributing the app or installer.
+French hymns that have a refrain use **verse → chorus → verse → chorus**. Chants des aigles is not included.
 
 ## Features
 
-- Sermon search and projection
-- King James Version Bible search and projection
-- Song search and projection
+- Full-text sermon search, filtered by the selected language
+- Bible lookup with KJV, Louis Segond, and SWHULB
+- Song search and projection with verse/chorus sections
 - Favorites and projection history
-- Second-screen projection for a projector or TV
-- Offline use after installation
-- Local database storage
+- Dual-screen projection (operator chrome vs congregation screen)
+- Optional light theme (white and blue); dark remains the default
+- Keyboard shortcuts: `Ctrl+F` search, `Ctrl+P` project, arrow keys to move
+- Offline use after installation — no account, no ads, no subscription
 
-## Install From GitHub Releases
+## Free church use
 
-1. Open the GitHub repository Releases page.
-2. Download `MessageFlowMediaSetup.exe` from the latest release.
-3. Run the installer on the church media computer.
-4. Launch `MessageFlow Media` from the desktop shortcut or Start menu.
+- Not for sale
+- No paid subscription, ads, or in-app purchases
+- Do not sell this software or bundled content
+- Do not use the software or bundled content for fundraising
 
-The installer is attached to GitHub Releases. It is not intended to be committed directly into normal git source history.
+See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERMISSION_AND_CONTENT_NOTICE.md) before redistributing the app or installer.
 
-## Use With a Projector or TV
+## Install on Windows 10 / 11 (64-bit)
 
-1. Connect the projector or TV to the Windows computer.
-2. Press `Windows + P`.
-3. Choose `Extend`.
-4. Open MessageFlow Media.
-5. Use the projection test from the app before service.
-6. Confirm the projector or TV shows only the projection window, not the operator controls.
+1. Open the [v1.0.2 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.2) and download `MessageFlowMediaSetup.exe` (or use the Download button on [messageflow.app/download](https://messageflow.app/download)).
+2. Run the installer. Prefer installing on drive **D:** if that is the church media disk.
+3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
+4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
+5. Choose English, Français, or Kiswahili. Search a sermon, verse, or hymn. Press `Ctrl+P` to project.
 
-## Screenshots
+The installer is attached to GitHub Releases (or kept in `dist\` locally). It is not committed to git.
 
-Screenshots will be added here before public release:
+## Use with a projector or TV
 
-- Search, preview, and project
-- Bible projection
-- Song projection
-- Second-screen setup
+1. Connect the display to the Windows computer.
+2. Press `Win+P` and choose `Extend`.
+3. Open MessageFlow Media.
+4. Confirm the projector shows only the projection window, not the operator controls.
 
-Suggested paths:
+## Build from source
 
-```text
-docs/screenshots/search-preview-project.png
-docs/screenshots/bible-preview-project.png
-docs/screenshots/song-preview-project.png
-docs/screenshots/second-screen-projection.png
-```
-
-## Build From Source
-
-Requirements:
-
-- Windows
-- .NET SDK
-
-From the repository root:
+Requirements: Windows, .NET SDK.
 
 ```powershell
 dotnet restore MessageFlow.sln
-dotnet build MessageFlow.sln
-```
-
-Run the WPF app:
-
-```powershell
+dotnet build MessageFlow.sln -c Release
 dotnet run --project src\MessageFlow.App
 ```
 
-## Project Structure
+Website (from `website/`):
+
+```powershell
+npm install
+npm run build
+npm run dev
+```
+
+## Project structure
 
 ```text
 MessageFlow/
-  src/
-    MessageFlow.App/       WPF desktop application
-    MessageFlow.Core/      Domain models and interfaces
-    MessageFlow.Data/      SQLite database and EF Core infrastructure
-    MessageFlow.Importer/  Local PDF importer
-    MessageFlow.Search/    Search services
-  tools/                   Verification, audit, release, and installer tools
-  docs/                    Public documentation and release planning
-  database/                Local production database location
+  src/           WPF app, core, data, search, importer
+  tools/         Songbook importers, audits, installer scripts
+  website/       Next.js site (white-and-blue SaaS theme)
+  docs/          Release, store, and content notices
+  database/      Local production SQLite location (not in git)
 ```
 
-## Content Notice
+## Content notice
 
 MessageFlow Media is a projection and search tool. Sermon, Bible, and song content should only be distributed or imported when the church has permission or an allowed free-use basis for that content.
 
-Bundled sermon content is included only under permission or allowed free-use conditions. Churches should respect Voice of God Recordings and all original content owners. If a church has concerns about bundled content, it should use its own authorized local content instead.
+Bundled sermon content is included only under permission or allowed free-use conditions. Churches should respect Voice of God Recordings and all original content owners.
 
 MessageFlow Media is not affiliated with or endorsed by Voice of God Recordings unless explicitly stated in writing.
 
-## Known Limitations
-
-- Windows desktop is the first supported platform.
-- Microsoft Store distribution is planned later.
-- Android and iOS mobile apps are planned later as separate apps.
-- Mobile versions cannot be produced by uploading the current WPF app directly to mobile stores.
-
-## Release Documentation
+## Documentation
 
 - [GitHub release guide](docs/GITHUB_RELEASE_GUIDE.md)
-- [Microsoft Store plan](docs/MICROSOFT_STORE_PLAN.md)
-- [Store listing draft](docs/STORE_LISTING_DRAFT.md)
-- [Mobile app plan](docs/MOBILE_APP_PLAN.md)
 - [Privacy policy](docs/PRIVACY_POLICY.md)
 - [Versioning](docs/VERSIONING.md)
+- [Permission and content notice](docs/PERMISSION_AND_CONTENT_NOTICE.md)
+- [Microsoft Store plan](docs/MICROSOFT_STORE_PLAN.md)
+- [Mobile app plan](docs/MOBILE_APP_PLAN.md)

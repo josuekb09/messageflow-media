@@ -1,4 +1,4 @@
-# MessageFlow Media 1.0.0
+# MessageFlow Media 1.0.2
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
 

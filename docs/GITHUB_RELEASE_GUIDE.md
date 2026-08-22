@@ -6,30 +6,25 @@ This guide prepares a free public GitHub release. Do not upload or publish anyth
 
 1. Create the GitHub repository.
 2. Push the source code.
-3. Create a release tag, for example `v1.0.0`.
+3. Create a release tag, for example `v1.0.2`.
 4. Create a GitHub Release from that tag.
-5. Attach this installer:
+5. Attach this installer (do not commit it to git):
 
 ```text
-D:\MessageFlow Release\Installer\MessageFlowMediaSetup.exe
+D:\My Projects\MessageFlow\dist\MessageFlowMediaSetup.exe
 ```
+
+A local copy for the Next.js site lives at `website/public/MessageFlowMediaSetup.exe` (gitignored). Vercel cannot host this ~563 MB file; the public download button should open the GitHub Release.
 
 ## Release Title
 
 ```text
-MessageFlow Media v1.0.0
+MessageFlow Media v1.0.2
 ```
 
 ## Release Notes
 
-```text
-Free church media projection app.
-
-Includes sermon search, KJV Bible, songs, and second-screen projection.
-
-Distributed free of charge. Not for sale.
-Do not sell this software or bundled content.
-```
+See [RELEASE_NOTES.md](../RELEASE_NOTES.md) for the current inventory (English, French, and Kiswahili sermons, Bibles, and songbooks).
 
 ## Distribution Notes
 

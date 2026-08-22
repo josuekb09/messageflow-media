@@ -98,7 +98,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Download for Windows",
       pageSubtitle:
         "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Download MessageFlowMediaSetup.exe, then run the installer. English, French, and Swahili songbooks are included.",
+      note: "Opens the v1.0.2 GitHub release. Download MessageFlowMediaSetup.exe, run it on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project. English, French, and Swahili libraries are included.",
     },
     product: {
       title: "Product",
@@ -145,10 +145,10 @@ export const dictionaries: Record<Locale, Dictionary> = {
     install: {
       title: "Install",
       steps: [
-        { n: "01", title: "Download MessageFlowMediaSetup.exe." },
-        { n: "02", title: "Run the installer." },
-        { n: "03", title: "Connect projector (Win+P -> Extend)." },
-        { n: "04", title: "Launch and project." },
+        { n: "01", title: "Open Download and save MessageFlowMediaSetup.exe from the v1.0.2 GitHub release." },
+        { n: "02", title: "Run the installer on Windows 10 or 11 (64-bit). Prefer drive D: for the church media disk." },
+        { n: "03", title: "Connect the projector or TV, press Win+P, and choose Extend." },
+        { n: "04", title: "Launch MessageFlow Media, pick a language, search, then press Ctrl+P to project." },
       ],
     },
     footer: {
@@ -181,7 +181,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Télécharger pour Windows",
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
-      note: "Téléchargez MessageFlowMediaSetup.exe, puis exécutez le programme. Les recueils anglais, français et swahili sont inclus.",
+      note: "Ouvre la version v1.0.2 sur GitHub. Téléchargez MessageFlowMediaSetup.exe, installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre avant de projeter. Les bibliothèques anglaise, française et swahili sont incluses.",
     },
     product: {
       title: "Produit",
@@ -228,10 +228,10 @@ export const dictionaries: Record<Locale, Dictionary> = {
     install: {
       title: "Installation",
       steps: [
-        { n: "01", title: "Téléchargez MessageFlowMediaSetup.exe." },
-        { n: "02", title: "Exécutez le programme." },
-        { n: "03", title: "Connectez votre projecteur (Win+P -> Étendre)." },
-        { n: "04", title: "Lancez et projetez." },
+        { n: "01", title: "Ouvrez Télécharger et enregistrez MessageFlowMediaSetup.exe depuis GitHub v1.0.2." },
+        { n: "02", title: "Exécutez l'installateur sous Windows 10 ou 11 (64 bits). Préférez le disque D: pour le pupitre." },
+        { n: "03", title: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P, puis choisissez Étendre." },
+        { n: "04", title: "Lancez MessageFlow Media, choisissez la langue, recherchez, puis Ctrl+P pour projeter." },
       ],
     },
     footer: {
@@ -264,7 +264,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Pakua kwa ajili ya Windows",
       pageTitle: "Pakua kwa ajili ya Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
-      note: "Pakua MessageFlowMediaSetup.exe, kisha fungua programu. Nyimbo za Kiingereza, Kifaransa na Kiswahili zimo.",
+      note: "Inafungua toleo la v1.0.2 kwenye GitHub. Pakua MessageFlowMediaSetup.exe, isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend kabla ya kuonyesha. Maktaba za Kiingereza, Kifaransa na Kiswahili zimo.",
     },
     product: {
       title: "Bidhaa",
@@ -311,10 +311,10 @@ export const dictionaries: Record<Locale, Dictionary> = {
     install: {
       title: "Sakinisha",
       steps: [
-        { n: "01", title: "Pakua MessageFlowMediaSetup.exe." },
-        { n: "02", title: "Fungua programu." },
-        { n: "03", title: "Unganisha projekta (Win+P -> Extend)." },
-        { n: "04", title: "Fungua na uonyeshe maandishi." },
+        { n: "01", title: "Fungua Pakua na uhifadhi MessageFlowMediaSetup.exe kutoka GitHub v1.0.2." },
+        { n: "02", title: "Sakinisha kwenye Windows 10 au 11 (biti 64). Pendekeza diski D: kwa kompyuta ya kanisa." },
+        { n: "03", title: "Unganisha projekta au TV, bonyeza Win+P, kisha chagua Extend." },
+        { n: "04", title: "Fungua MessageFlow Media, chagua lugha, tafuta, kisha Ctrl+P ili kuonyesha." },
       ],
     },
     footer: {

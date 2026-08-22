@@ -3,23 +3,24 @@
 ## Current Version
 
 ```text
-v1.0.0
+v1.0.2
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.0 - Free Church Release
+MessageFlow Media v1.0.2
 ```
 
-## Included In v1.0.0
+## Included In v1.0.2
 
-- 1,203 Brother Branham sermons
-- PDF-first sermon import
-- King James Version Bible
-- Songs
-- Second-screen projection
-- Offline use
+- 1,208 English, 384 French, and 622 Swahili sermons
+- Bibles: KJV, Louis Segond (LSG), SWHULB
+- 357 English songs
+- 499 French hymns (Dinanga) with verse → chorus interleaving
+- 281 Swahili hymns from the official PowerPoint collection
+- Optional light theme; dark remains the default
+- Dual-screen projection, favorites, history, offline use
 
 ## Release Rules
 
