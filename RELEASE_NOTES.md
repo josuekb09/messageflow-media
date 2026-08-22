@@ -6,8 +6,7 @@ Church operator and projection software for Windows. Search and project sermons,
 
 - **Sermons:** 1,208 English, 384 French, 622 Swahili
 - **Bibles:** KJV, Louis Segond (LSG), SWHULB
-- **Songs:** English library plus **499 French hymns** (Recueil de cantiques français, Tabernacle Dinanga), interleaved verse then chorus
-- **Swahili songbook:** forthcoming (not in this build)
+- **Songs:** English library, **499 French hymns** (Recueil de cantiques français, Tabernacle Dinanga), and **281 Swahili hymns** (Nyimbo za Kiswahili) with verse/chorus sections from the official PowerPoint files
 
 ## Desktop app
 

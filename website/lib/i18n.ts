@@ -89,7 +89,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "v{version} · {date} · {platform}",
       title: "Welcome to MessageFlow Media",
       subtitle:
-        "Free Windows software for the church operator desk. Search and project sermons and Scripture offline in English, French, and Kiswahili — with English and French songbooks included.",
+        "Free Windows software for the church operator desk. Search and project sermons and Scripture offline in English, French, and Kiswahili — with English, French, and Swahili songbooks included.",
       secondaryCta: "Install",
     },
     download: {
@@ -98,7 +98,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Download for Windows",
       pageSubtitle:
         "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Download MessageFlowMediaSetup.exe, then run the installer. English and French songbooks are included; the Swahili songbook is forthcoming.",
+      note: "Download MessageFlowMediaSetup.exe, then run the installer. English, French, and Swahili songbooks are included.",
     },
     product: {
       title: "Product",
@@ -138,7 +138,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Kiswahili",
-          body: "622 sermons and the SWHULB Bible. Swahili songbook forthcoming.",
+          body: "622 sermons, 281 hymns from PowerPoint (Nyimbo za Kiswahili), and the SWHULB Bible.",
         },
       ],
     },
@@ -173,7 +173,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "v{version} · {date} · {platform}",
       title: "Bienvenue sur MessageFlow Media",
       subtitle:
-        "Logiciel Windows gratuit pour le pupitre de projection. Recherchez et projetez prédications et Écritures hors ligne en anglais, français et kiswahili — cantiques anglais et français inclus.",
+        "Logiciel Windows gratuit pour le pupitre de projection. Recherchez et projetez prédications et Écritures hors ligne en anglais, français et kiswahili — cantiques anglais, français et swahili inclus.",
       secondaryCta: "Installation",
     },
     download: {
@@ -181,7 +181,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Télécharger pour Windows",
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
-      note: "Téléchargez MessageFlowMediaSetup.exe, puis exécutez le programme. Les recueils anglais et français sont inclus ; le recueil swahili est à venir.",
+      note: "Téléchargez MessageFlowMediaSetup.exe, puis exécutez le programme. Les recueils anglais, français et swahili sont inclus.",
     },
     product: {
       title: "Produit",
@@ -221,7 +221,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Kiswahili",
-          body: "622 prédications et la Bible SWHULB. Recueil swahili à venir.",
+          body: "622 prédications, 281 cantiques (Nyimbo za Kiswahili) et la Bible SWHULB.",
         },
       ],
     },
@@ -256,7 +256,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "v{version} · {date} · {platform}",
       title: "Karibu kwenye MessageFlow Media",
       subtitle:
-        "Programu ya bure ya Windows kwa dawati la kuonyesha kanisani. Tafuta na uonyeshe mahubiri na Maandiko nje ya mtandao kwa Kiingereza, Kifaransa na Kiswahili — nyimbo za Kiingereza na Kifaransa zimo.",
+        "Programu ya bure ya Windows kwa dawati la kuonyesha kanisani. Tafuta na uonyeshe mahubiri na Maandiko nje ya mtandao kwa Kiingereza, Kifaransa na Kiswahili — nyimbo za Kiingereza, Kifaransa na Kiswahili zimo.",
       secondaryCta: "Sakinisha",
     },
     download: {
@@ -264,7 +264,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Pakua kwa ajili ya Windows",
       pageTitle: "Pakua kwa ajili ya Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
-      note: "Pakua MessageFlowMediaSetup.exe, kisha fungua programu. Nyimbo za Kiingereza na Kifaransa zimo; kitabu cha nyimbo za Kiswahili kinakuja.",
+      note: "Pakua MessageFlowMediaSetup.exe, kisha fungua programu. Nyimbo za Kiingereza, Kifaransa na Kiswahili zimo.",
     },
     product: {
       title: "Bidhaa",
@@ -304,7 +304,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Kiswahili",
-          body: "Mahubiri 622 na Biblia ya SWHULB. Kitabu cha nyimbo za Kiswahili kinakuja.",
+          body: "Mahubiri 622, nyimbo 281 (Nyimbo za Kiswahili), na Biblia ya SWHULB.",
         },
       ],
     },
