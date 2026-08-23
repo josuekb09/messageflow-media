@@ -17,6 +17,10 @@ type GuideProps = {
   labels: GuideLabels;
 };
 
+const textStyle = {
+  fontFamily: "ui-sans-serif, system-ui, Segoe UI, sans-serif",
+} as const;
+
 export function HowItWorks() {
   const { t } = useI18n();
 
@@ -29,21 +33,21 @@ export function HowItWorks() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-secondary">
           {t.install.lead}
         </p>
-        <ol className="mt-10 grid gap-6 sm:grid-cols-2">
+        <ol className="mt-10 grid gap-8 sm:grid-cols-2">
           {t.install.steps.map((step, index) => {
             const Icon = icons[index] ?? DownloadGuide;
             return (
               <li
                 key={step.n}
-                className="rounded-xl border border-line bg-page p-5"
+                className="rounded-xl border border-line bg-page p-5 sm:p-6"
               >
-                <div className="overflow-hidden rounded-lg border border-line bg-white">
+                <div className="rounded-lg border border-line bg-white">
                   <Icon title={step.title} labels={step.labels} />
                 </div>
                 <p className="mt-4 text-xs font-semibold tracking-wide text-brand">
                   {step.n}
                 </p>
-                <p className="mt-2 text-base font-semibold text-ink">
+                <p className="mt-2 text-lg font-semibold text-ink">
                   {step.title}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-ink-secondary">
@@ -67,19 +71,48 @@ function GuideFrame({
 }) {
   return (
     <svg
-      viewBox="0 0 320 240"
-      className="h-auto w-full min-h-[200px] sm:min-h-[220px]"
+      viewBox="0 0 480 300"
+      width="100%"
+      height="300"
+      className="h-[300px] w-full"
       role="img"
       aria-label={title}
+      data-guide="labeled-v3"
+      xmlns="http://www.w3.org/2000/svg"
     >
-      <rect width="320" height="240" fill="#F8FAFC" />
-      <g
-        fontFamily="ui-sans-serif, system-ui, Segoe UI, sans-serif"
-        letterSpacing="-0.01em"
-      >
-        {children}
-      </g>
+      <rect width="480" height="300" fill="#F8FAFC" />
+      {children}
     </svg>
+  );
+}
+
+function Word({
+  x,
+  y,
+  size,
+  fill,
+  children,
+  anchor = "middle",
+}: {
+  x: number;
+  y: number;
+  size: number;
+  fill: string;
+  children: ReactNode;
+  anchor?: "start" | "middle" | "end";
+}) {
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor={anchor}
+      fontSize={size}
+      fontWeight={800}
+      fill={fill}
+      style={{ ...textStyle, fontSize: size, fontWeight: 800, fill }}
+    >
+      {children}
+    </text>
   );
 }
 
@@ -87,71 +120,30 @@ function DownloadGuide({ title, labels }: GuideProps) {
   return (
     <GuideFrame title={title}>
       <rect
-        x="24"
-        y="20"
-        width="272"
-        height="200"
-        rx="14"
+        x="28"
+        y="22"
+        width="424"
+        height="256"
+        rx="16"
         fill="#fff"
         stroke="#E2E8F0"
         strokeWidth="2"
       />
-      <rect x="24" y="20" width="272" height="40" rx="14" fill="#fff" />
-      <rect x="24" y="44" width="272" height="16" fill="#fff" />
-      <circle cx="44" cy="40" r="5" fill="#CBD5E1" />
-      <circle cx="60" cy="40" r="5" fill="#CBD5E1" />
-      <circle cx="76" cy="40" r="5" fill="#CBD5E1" />
-      <text
-        x="160"
-        y="45"
-        textAnchor="middle"
-        fontSize="15"
-        fontWeight="700"
-        fill="#334155"
-      >
+      <rect x="28" y="22" width="424" height="52" rx="16" fill="#2563EB" />
+      <rect x="28" y="58" width="424" height="16" fill="#2563EB" />
+      <Word x={240} y={56} size={22} fill="#FFFFFF">
         {labels.badge}
-      </text>
-      <text
-        x="160"
-        y="92"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
-        fill="#0F172A"
-      >
-        MessageFlowMedia
-      </text>
-      <text
-        x="160"
-        y="114"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
-        fill="#0F172A"
-      >
-        Setup.exe
-      </text>
-      <text
-        x="160"
-        y="140"
-        textAnchor="middle"
-        fontSize="14"
-        fontWeight="600"
-        fill="#334155"
-      >
+      </Word>
+      <Word x={240} y={136} size={20} fill="#0F172A">
+        MessageFlowMediaSetup.exe
+      </Word>
+      <Word x={240} y={172} size={20} fill="#334155">
         {labels.secondary}
-      </text>
-      <rect x="70" y="160" width="180" height="40" rx="10" fill="#2563EB" />
-      <text
-        x="160"
-        y="186"
-        textAnchor="middle"
-        fontSize="18"
-        fontWeight="700"
-        fill="#fff"
-      >
+      </Word>
+      <rect x="130" y="210" width="220" height="48" rx="12" fill="#2563EB" />
+      <Word x={240} y={242} size={24} fill="#FFFFFF">
         {labels.action}
-      </text>
+      </Word>
     </GuideFrame>
   );
 }
@@ -160,70 +152,34 @@ function InstallGuide({ title, labels }: GuideProps) {
   return (
     <GuideFrame title={title}>
       <rect
-        x="24"
-        y="20"
-        width="272"
-        height="200"
-        rx="14"
+        x="28"
+        y="22"
+        width="424"
+        height="256"
+        rx="16"
         fill="#fff"
         stroke="#E2E8F0"
         strokeWidth="2"
       />
-      <rect x="24" y="20" width="272" height="44" rx="14" fill="#2563EB" />
-      <rect x="24" y="48" width="272" height="16" fill="#2563EB" />
-      <circle cx="44" cy="42" r="5" fill="#93C5FD" />
-      <text
-        x="160"
-        y="48"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
-        fill="#fff"
-      >
+      <rect x="28" y="22" width="424" height="56" rx="16" fill="#2563EB" />
+      <rect x="28" y="62" width="424" height="16" fill="#2563EB" />
+      <Word x={240} y={58} size={22} fill="#FFFFFF">
         {labels.secondary}
-      </text>
-      <text
-        x="160"
-        y="100"
-        textAnchor="middle"
-        fontSize="18"
-        fontWeight="700"
-        fill="#0F172A"
-      >
+      </Word>
+      <Word x={240} y={128} size={26} fill="#0F172A">
         {labels.primary}
-      </text>
-      <text
-        x="160"
-        y="126"
-        textAnchor="middle"
-        fontSize="14"
-        fontWeight="600"
-        fill="#334155"
-      >
+      </Word>
+      <Word x={240} y={162} size={20} fill="#334155">
         Windows 10 / 11
-      </text>
-      <rect x="40" y="148" width="108" height="36" rx="10" fill="#E2E8F0" />
-      <text
-        x="94"
-        y="172"
-        textAnchor="middle"
-        fontSize="15"
-        fontWeight="700"
-        fill="#0F172A"
-      >
+      </Word>
+      <rect x="56" y="196" width="160" height="48" rx="12" fill="#E2E8F0" />
+      <Word x={136} y={228} size={22} fill="#0F172A">
         {labels.badge}
-      </text>
-      <rect x="160" y="148" width="120" height="36" rx="10" fill="#2563EB" />
-      <text
-        x="220"
-        y="172"
-        textAnchor="middle"
-        fontSize="15"
-        fontWeight="700"
-        fill="#fff"
-      >
+      </Word>
+      <rect x="248" y="196" width="176" height="48" rx="12" fill="#2563EB" />
+      <Word x={336} y={228} size={22} fill="#FFFFFF">
         {labels.action}
-      </text>
+      </Word>
     </GuideFrame>
   );
 }
@@ -232,71 +188,37 @@ function ExtendGuide({ title, labels }: GuideProps) {
   return (
     <GuideFrame title={title}>
       <rect
-        x="20"
-        y="52"
-        width="118"
-        height="78"
-        rx="10"
-        fill="#fff"
-        stroke="#E2E8F0"
-        strokeWidth="2"
-      />
-      <rect x="30" y="62" width="98" height="50" rx="6" fill="#0F172A" />
-      <rect x="58" y="130" width="42" height="8" rx="2" fill="#CBD5E1" />
-      <text
-        x="79"
-        y="164"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
-        fill="#0F172A"
-      >
-        {labels.primary}
-      </text>
-      <rect
-        x="182"
+        x="28"
         y="36"
-        width="118"
-        height="94"
-        rx="10"
-        fill="#fff"
-        stroke="#2563EB"
-        strokeWidth="3"
-      />
-      <rect x="192" y="46" width="98" height="66" rx="6" fill="#2563EB" />
-      <rect x="220" y="130" width="42" height="8" rx="2" fill="#93C5FD" />
-      <text
-        x="241"
-        y="164"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
+        width="176"
+        height="128"
+        rx="14"
         fill="#0F172A"
-      >
+      />
+      <Word x={116} y={100} size={24} fill="#FFFFFF">
+        {labels.primary}
+      </Word>
+      <rect x="86" y="168" width="60" height="10" rx="3" fill="#CBD5E1" />
+      <rect
+        x="276"
+        y="28"
+        width="176"
+        height="144"
+        rx="14"
+        fill="#2563EB"
+      />
+      <Word x={364} y={108} size={22} fill="#FFFFFF">
         {labels.secondary}
-      </text>
-      <rect x="118" y="78" width="84" height="28" rx="8" fill="#0F172A" />
-      <text
-        x="160"
-        y="97"
-        textAnchor="middle"
-        fontSize="14"
-        fontWeight="700"
-        fill="#fff"
-      >
+      </Word>
+      <rect x="326" y="176" width="76" height="10" rx="3" fill="#93C5FD" />
+      <rect x="176" y="80" width="128" height="40" rx="10" fill="#0F172A" />
+      <Word x={240} y={107} size={20} fill="#FFFFFF">
         {labels.badge}
-      </text>
-      <rect x="94" y="184" width="132" height="36" rx="10" fill="#2563EB" />
-      <text
-        x="160"
-        y="208"
-        textAnchor="middle"
-        fontSize="18"
-        fontWeight="700"
-        fill="#fff"
-      >
+      </Word>
+      <rect x="150" y="216" width="180" height="48" rx="12" fill="#2563EB" />
+      <Word x={240} y={248} size={24} fill="#FFFFFF">
         {labels.action}
-      </text>
+      </Word>
     </GuideFrame>
   );
 }
@@ -305,95 +227,46 @@ function ProjectGuide({ title, labels }: GuideProps) {
   return (
     <GuideFrame title={title}>
       <rect
-        x="16"
-        y="20"
-        width="148"
-        height="200"
-        rx="14"
+        x="24"
+        y="22"
+        width="200"
+        height="256"
+        rx="16"
         fill="#fff"
         stroke="#E2E8F0"
         strokeWidth="2"
       />
-      <text
-        x="90"
-        y="52"
-        textAnchor="middle"
-        fontSize="16"
-        fontWeight="700"
-        fill="#0F172A"
-      >
+      <Word x={124} y={62} size={22} fill="#0F172A">
         {labels.primary}
-      </text>
+      </Word>
       <rect
-        x="30"
-        y="66"
-        width="120"
-        height="32"
-        rx="8"
+        x="40"
+        y="80"
+        width="168"
+        height="44"
+        rx="10"
         fill="#F8FAFC"
-        stroke="#E2E8F0"
+        stroke="#CBD5E1"
         strokeWidth="2"
       />
-      <text
-        x="90"
-        y="87"
-        textAnchor="middle"
-        fontSize="13"
-        fontWeight="600"
-        fill="#64748B"
-      >
+      <Word x={124} y={110} size={18} fill="#0F172A">
         {labels.primary}
-      </text>
-      <rect x="30" y="112" width="120" height="36" rx="10" fill="#2563EB" />
-      <text
-        x="90"
-        y="136"
-        textAnchor="middle"
-        fontSize="15"
-        fontWeight="700"
-        fill="#fff"
-      >
+      </Word>
+      <rect x="40" y="140" width="168" height="46" rx="12" fill="#2563EB" />
+      <Word x={124} y={171} size={22} fill="#FFFFFF">
         {labels.action}
-      </text>
-      <rect x="42" y="164" width="96" height="28" rx="8" fill="#0F172A" />
-      <text
-        x="90"
-        y="183"
-        textAnchor="middle"
-        fontSize="14"
-        fontWeight="700"
-        fill="#fff"
-      >
+      </Word>
+      <rect x="52" y="202" width="144" height="40" rx="10" fill="#0F172A" />
+      <Word x={124} y={229} size={20} fill="#FFFFFF">
         {labels.badge}
-      </text>
-      <rect
-        x="176"
-        y="36"
-        width="128"
-        height="168"
-        rx="14"
-        fill="#0F172A"
-      />
-      <text
-        x="240"
-        y="118"
-        textAnchor="middle"
-        fontSize="18"
-        fontWeight="700"
-        fill="#F8FAFC"
-      >
+      </Word>
+      <rect x="248" y="36" width="208" height="228" rx="16" fill="#0F172A" />
+      <Word x={352} y={140} size={26} fill="#FFFFFF">
         {labels.secondary}
-      </text>
-      <text
-        x="240"
-        y="144"
-        textAnchor="middle"
-        fontSize="13"
-        fontWeight="600"
-        fill="#93C5FD"
-      >
+      </Word>
+      <Word x={352} y={176} size={22} fill="#FFFFFF">
         {labels.action}
-      </text>
+      </Word>
     </GuideFrame>
   );
 }
