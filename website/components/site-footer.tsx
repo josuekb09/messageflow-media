@@ -44,6 +44,11 @@ export function SiteFooter() {
                   {t.nav.download}
                 </Link>
               </li>
+              <li>
+                <Link href="/feedback" className="hover:text-ink">
+                  {t.nav.feedback}
+                </Link>
+              </li>
             </ul>
           </div>
           <div>

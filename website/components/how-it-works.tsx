@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { useI18n } from "@/components/language-provider";
 
 const icons = [DownloadGuide, InstallGuide, ExtendGuide, ProjectGuide] as const;
@@ -57,6 +58,22 @@ export function HowItWorks() {
             );
           })}
         </ol>
+        <aside className="mt-10 rounded-xl border border-line bg-page p-5 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-6">
+          <div>
+            <p className="text-base font-semibold text-ink">
+              {t.feedback.calloutTitle}
+            </p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-secondary">
+              {t.feedback.calloutBody}
+            </p>
+          </div>
+          <Link
+            href="/feedback"
+            className="mt-4 inline-flex h-11 shrink-0 items-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white hover:bg-brand-hover sm:mt-0"
+          >
+            {t.feedback.calloutCta}
+          </Link>
+        </aside>
       </div>
     </section>
   );

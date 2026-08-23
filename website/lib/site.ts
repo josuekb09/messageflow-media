@@ -10,4 +10,5 @@ export const site = {
   exeName: "MessageFlow.App.exe",
   downloadHref: "/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
+  supportEmail: "kabuyatambwe03@gmail.com",
 } as const;

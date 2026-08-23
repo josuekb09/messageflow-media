@@ -13,6 +13,7 @@ export function SiteHeader() {
     { href: "/#features", label: t.nav.features },
     { href: "/#product", label: t.nav.product },
     { href: "/#install", label: t.nav.install },
+    { href: "/feedback", label: t.nav.feedback },
     { href: "/download", label: t.nav.download },
   ];
 
@@ -25,7 +26,7 @@ export function SiteHeader() {
             {site.name}
           </span>
         </Link>
-        <nav className="hidden items-center gap-7 text-[14px] text-ink-secondary lg:flex">
+        <nav className="hidden items-center gap-6 text-[14px] text-ink-secondary lg:flex">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="hover:text-ink">
               {link.label}

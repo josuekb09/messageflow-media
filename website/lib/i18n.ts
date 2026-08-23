@@ -29,6 +29,7 @@ export type Dictionary = {
     product: string;
     install: string;
     download: string;
+    feedback: string;
   };
   header: {
     languageLabel: string;
@@ -83,6 +84,36 @@ export type Dictionary = {
     release: string;
     copyright: string;
   };
+  feedback: {
+    title: string;
+    pageSubtitle: string;
+    lead: string;
+    calloutTitle: string;
+    calloutBody: string;
+    calloutCta: string;
+    nameLabel: string;
+    nameOptional: string;
+    namePlaceholder: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    categoryLabel: string;
+    categories: {
+      comment: string;
+      feature: string;
+      bug: string;
+    };
+    messageLabel: string;
+    messagePlaceholder: string;
+    submit: string;
+    submitting: string;
+    again: string;
+    success: string;
+    error: string;
+    errorConfig: string;
+    errorValidation: string;
+    emailInvalid: string;
+    messageRequired: string;
+  };
 };
 
 export const dictionaries: Record<Locale, Dictionary> = {
@@ -92,6 +123,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       product: "Product",
       install: "Install",
       download: "Download",
+      feedback: "Feedback",
     },
     header: {
       languageLabel: "Language",
@@ -210,6 +242,38 @@ export const dictionaries: Record<Locale, Dictionary> = {
       release: "Release",
       copyright: "MessageFlow 2026, All rights reserved",
     },
+    feedback: {
+      title: "Feedback & Support",
+      pageSubtitle:
+        "Send a comment, feature request, or bug report. We read every message.",
+      lead: "The Windows app stays offline. Use this form to reach the MessageFlow team.",
+      calloutTitle: "Questions or ideas?",
+      calloutBody:
+        "Send feedback from this site — comments, feature requests, or bug reports. The Windows app itself stays fully offline.",
+      calloutCta: "Open the form",
+      nameLabel: "Name",
+      nameOptional: "(optional)",
+      namePlaceholder: "Your name",
+      emailLabel: "Email",
+      emailPlaceholder: "you@example.com",
+      categoryLabel: "Category",
+      categories: {
+        comment: "Comment",
+        feature: "Feature request",
+        bug: "Bug report",
+      },
+      messageLabel: "Message",
+      messagePlaceholder: "How can we help?",
+      submit: "Send message",
+      submitting: "Sending…",
+      again: "Send another message",
+      success: "Thank you. Your message was sent.",
+      error: "Something went wrong. Please try again in a moment.",
+      errorConfig: "Feedback is not configured yet. Please try again later.",
+      errorValidation: "Please check the highlighted fields.",
+      emailInvalid: "Enter a valid email address.",
+      messageRequired: "Enter a message.",
+    },
   },
   fr: {
     nav: {
@@ -217,6 +281,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       product: "Produit",
       install: "Installation",
       download: "Télécharger",
+      feedback: "Avis",
     },
     header: {
       languageLabel: "Langue",
@@ -334,6 +399,38 @@ export const dictionaries: Record<Locale, Dictionary> = {
       release: "Version",
       copyright: "MessageFlow 2026, All rights reserved",
     },
+    feedback: {
+      title: "Avis et assistance",
+      pageSubtitle:
+        "Envoyez un commentaire, une demande de fonctionnalité ou un signalement de bug. Nous lisons chaque message.",
+      lead: "L'application Windows reste hors ligne. Utilisez ce formulaire pour contacter l'équipe MessageFlow.",
+      calloutTitle: "Une question ou une idée ?",
+      calloutBody:
+        "Envoyez un avis depuis ce site — commentaires, demandes de fonctionnalités ou signalements de bugs. L'application Windows reste entièrement hors ligne.",
+      calloutCta: "Ouvrir le formulaire",
+      nameLabel: "Nom",
+      nameOptional: "(facultatif)",
+      namePlaceholder: "Votre nom",
+      emailLabel: "E-mail",
+      emailPlaceholder: "vous@exemple.com",
+      categoryLabel: "Catégorie",
+      categories: {
+        comment: "Commentaire",
+        feature: "Demande de fonctionnalité",
+        bug: "Signalement de bug",
+      },
+      messageLabel: "Message",
+      messagePlaceholder: "Comment pouvons-nous vous aider ?",
+      submit: "Envoyer",
+      submitting: "Envoi…",
+      again: "Envoyer un autre message",
+      success: "Merci. Votre message a été envoyé.",
+      error: "Une erreur s'est produite. Veuillez réessayer dans un instant.",
+      errorConfig: "L'envoi d'avis n'est pas encore configuré. Veuillez réessayer plus tard.",
+      errorValidation: "Veuillez vérifier les champs indiqués.",
+      emailInvalid: "Saisissez une adresse e-mail valide.",
+      messageRequired: "Saisissez un message.",
+    },
   },
   sw: {
     nav: {
@@ -341,6 +438,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       product: "Bidhaa",
       install: "Sakinisha",
       download: "Pakua",
+      feedback: "Maoni",
     },
     header: {
       languageLabel: "Lugha",
@@ -457,6 +555,38 @@ export const dictionaries: Record<Locale, Dictionary> = {
       product: "Bidhaa",
       release: "Toleo",
       copyright: "MessageFlow 2026, All rights reserved",
+    },
+    feedback: {
+      title: "Maoni na msaada",
+      pageSubtitle:
+        "Tuma maoni, ombi la kipengele, au ripoti ya hitilafu. Tunasoma kila ujumbe.",
+      lead: "Programu ya Windows inabaki nje ya mtandao. Tumia fomu hii kuwasiliana na timu ya MessageFlow.",
+      calloutTitle: "Una swali au wazo?",
+      calloutBody:
+        "Tuma maoni kutoka kwenye tovuti hii — maoni, maombi ya vipengele, au ripoti za hitilafu. Programu ya Windows inabaki nje ya mtandao kabisa.",
+      calloutCta: "Fungua fomu",
+      nameLabel: "Jina",
+      nameOptional: "(si lazima)",
+      namePlaceholder: "Jina lako",
+      emailLabel: "Barua pepe",
+      emailPlaceholder: "wewe@mfano.com",
+      categoryLabel: "Aina",
+      categories: {
+        comment: "Maoni",
+        feature: "Ombi la kipengele",
+        bug: "Ripoti ya hitilafu",
+      },
+      messageLabel: "Ujumbe",
+      messagePlaceholder: "Tunawezaje kusaidia?",
+      submit: "Tuma ujumbe",
+      submitting: "Inatuma…",
+      again: "Tuma ujumbe mwingine",
+      success: "Asante. Ujumbe wako umetumwa.",
+      error: "Kumetokea hitilafu. Tafadhali jaribu tena baadaye kidogo.",
+      errorConfig: "Maoni bado hayajawekwa. Tafadhali jaribu tena baadaye.",
+      errorValidation: "Tafadhali kagua sehemu zilizoonyeshwa.",
+      emailInvalid: "Weka anwani sahihi ya barua pepe.",
+      messageRequired: "Weka ujumbe.",
     },
   },
 };
