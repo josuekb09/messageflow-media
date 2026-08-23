@@ -11,7 +11,7 @@ import {
 } from "@/lib/feedback";
 
 type Status = "idle" | "submitting" | "success" | "error";
-type ErrorCode = "validation" | "not_configured" | "upstream" | "invalid_json";
+type ErrorCode = "validation" | "upstream" | "invalid_json";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
@@ -47,7 +47,6 @@ export function FeedbackForm() {
   }
 
   function errorMessage() {
-    if (errorCode === "not_configured") return t.feedback.errorConfig;
     if (errorCode === "validation") return t.feedback.errorValidation;
     return t.feedback.error;
   }
@@ -100,8 +99,6 @@ export function FeedbackForm() {
       if (result?.code === "validation") {
         setFieldErrors(result.fields ?? {});
         setErrorCode("validation");
-      } else if (result?.code === "not_configured") {
-        setErrorCode("not_configured");
       } else {
         setErrorCode("upstream");
       }

@@ -45,10 +45,10 @@ The Windows installer is too large for Git or Vercel. Keep `MessageFlowMediaSetu
 
 ## Feedback & Support
 
-The `/feedback` form posts to `app/api/feedback/route.ts`, which forwards to [Web3Forms](https://web3forms.com) (`https://api.web3forms.com/submit`). Destination inbox: `kabuyatambwe03@gmail.com` (bound to the access key you create, plus a `to` field in the payload).
+The `/feedback` form posts to `app/api/feedback/route.ts`. Submissions go to **kabuyatambwe03@gmail.com**.
 
-1. Sign up at https://web3forms.com with **kabuyatambwe03@gmail.com** and copy the access key.
-2. Local: copy `website/.env.example` to `website/.env.local` and set `WEB3FORMS_ACCESS_KEY`.
-3. Production: Vercel project **messageflow-media** → **Settings → Environment Variables** → add `WEB3FORMS_ACCESS_KEY` for Production, Preview, and Development. Redeploy after saving.
+Default delivery is [FormSubmit](https://formsubmit.co) AJAX (`https://formsubmit.co/ajax/kabuyatambwe03@gmail.com`). No access key or Vercel env var is required.
 
-The form UI still loads if the key is missing; submit then shows a configuration error. Keep the key server-side (do not use `NEXT_PUBLIC_`). Web3Forms documents that server-side submits may need IP allowlisting on paid plans — if Vercel deliveries fail after the key is set, check the Web3Forms inbox/spam folder and their dashboard.
+The first live submit to a new FormSubmit inbox sends a confirmation email to that Gmail. Open it and click the confirmation link so later messages are forwarded. Check spam if it does not appear.
+
+[Web3Forms](https://web3forms.com) is optional. If `WEB3FORMS_ACCESS_KEY` is set (local `.env.local` or Vercel env), the route tries Web3Forms first and falls back to FormSubmit. Keep the key server-side (do not use `NEXT_PUBLIC_`). The form never blocks on a missing key.
