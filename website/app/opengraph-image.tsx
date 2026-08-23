@@ -16,27 +16,37 @@ export default function OpenGraphImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: 80,
-          background: "#ffffff",
-          color: "#0F172A",
+          background: "linear-gradient(180deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%)",
+          color: "#f8fafc",
         }}
       >
-        <div style={{ display: "flex", fontSize: 20, color: "#2563EB", fontWeight: 600 }}>
-          MessageFlow · v{site.version}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            fontSize: 20,
+            color: "#a5b4fc",
+            fontWeight: 600,
+            letterSpacing: 0.4,
+          }}
+        >
+          {site.name} · v{site.version}
         </div>
         <div
           style={{
             display: "flex",
-            fontSize: 48,
-            fontWeight: 650,
-            marginTop: 18,
-            lineHeight: 1.2,
-            maxWidth: 920,
+            fontSize: 52,
+            fontWeight: 700,
+            marginTop: 22,
+            lineHeight: 1.15,
+            maxWidth: 940,
+            letterSpacing: -1.2,
           }}
         >
           {site.tagline}
         </div>
-        <div style={{ display: "flex", marginTop: 28, fontSize: 22, color: "#64748B" }}>
-          {site.releaseDate} · Windows 10 / 11
+        <div style={{ display: "flex", marginTop: 28, fontSize: 22, color: "#cbd5e1" }}>
+          Offline · English · Français · Kiswahili · {site.platform}
         </div>
       </div>
     ),

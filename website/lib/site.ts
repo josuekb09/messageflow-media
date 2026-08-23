@@ -1,14 +1,15 @@
 export const site = {
   name: "MessageFlow Media",
-  tagline: "Church projection for sermons, Bibles, and hymns",
+  tagline: "The modern standard for church media projection",
   description:
-    "Free Windows desktop software for the church operator desk. Search and project sermons and Scripture offline in English, French, and Kiswahili. English, French, and Swahili songbooks are included. Bibles: KJV, Louis Segond, and SWHULB.",
+    "Lightning-fast offline Windows software to search and project sermons, Bibles, and multilingual songbooks in English, French, and Kiswahili — no internet required.",
   url: "https://messageflow.app",
   version: "1.0.2",
   releaseDate: "August 2026",
-  platform: "Windows 10 / 11 (64-bit)",
+  platform: "Windows 10 / 11",
   exeName: "MessageFlow.App.exe",
   downloadHref: "/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
+  installerSize: "~563 MB",
   supportEmail: "kabuyatambwe03@gmail.com",
 } as const;
