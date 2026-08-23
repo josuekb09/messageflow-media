@@ -65,7 +65,17 @@ export type Dictionary = {
   install: {
     title: string;
     lead: string;
-    steps: { n: string; title: string; body: string }[];
+    steps: {
+      n: string;
+      title: string;
+      body: string;
+      labels: {
+        primary: string;
+        secondary: string;
+        action: string;
+        badge: string;
+      };
+    }[];
   };
   footer: {
     blurb: string;
@@ -147,10 +157,50 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Install",
       lead: "Four steps from download to live projection.",
       steps: [
-        { n: "01", title: "Download", body: "Save MessageFlowMediaSetup.exe for Windows 10 or 11 (64-bit)." },
-        { n: "02", title: "Install", body: "Run the setup file. Choose a disk with enough space for the offline library." },
-        { n: "03", title: "Extend the display", body: "Connect the projector or TV, press Win+P, and choose Extend." },
-        { n: "04", title: "Search and project", body: "Open MessageFlow Media, pick a language, then press Ctrl+P." },
+        {
+          n: "01",
+          title: "Download",
+          body: "Save MessageFlowMediaSetup.exe for Windows 10 or 11 (64-bit).",
+          labels: {
+            primary: "MessageFlowMediaSetup.exe",
+            secondary: "Windows 10 / 11",
+            action: "Download",
+            badge: "Downloads",
+          },
+        },
+        {
+          n: "02",
+          title: "Install",
+          body: "Run the setup file. Choose a disk with enough space for the offline library.",
+          labels: {
+            primary: "MessageFlow Media",
+            secondary: "Setup",
+            action: "Install",
+            badge: "Next",
+          },
+        },
+        {
+          n: "03",
+          title: "Extend the display",
+          body: "Connect the projector or TV, press Win+P, and choose Extend.",
+          labels: {
+            primary: "Laptop",
+            secondary: "Projector",
+            action: "Extend",
+            badge: "Win+P",
+          },
+        },
+        {
+          n: "04",
+          title: "Search and project",
+          body: "Open MessageFlow Media, pick a language, then press Ctrl+P.",
+          labels: {
+            primary: "Search",
+            secondary: "Screen",
+            action: "Project",
+            badge: "Ctrl+P",
+          },
+        },
       ],
     },
     footer: {
@@ -231,10 +281,50 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Installation",
       lead: "Quatre étapes, du téléchargement à la projection.",
       steps: [
-        { n: "01", title: "Télécharger", body: "Enregistrez MessageFlowMediaSetup.exe pour Windows 10 ou 11 (64 bits)." },
-        { n: "02", title: "Installer", body: "Exécutez le fichier. Choisissez un disque avec assez d'espace pour la bibliothèque hors ligne." },
-        { n: "03", title: "Étendre l'écran", body: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P, puis choisissez Étendre." },
-        { n: "04", title: "Rechercher et projeter", body: "Ouvrez MessageFlow Media, choisissez la langue, puis appuyez sur Ctrl+P." },
+        {
+          n: "01",
+          title: "Télécharger",
+          body: "Enregistrez MessageFlowMediaSetup.exe pour Windows 10 ou 11 (64 bits).",
+          labels: {
+            primary: "MessageFlowMediaSetup.exe",
+            secondary: "Windows 10 / 11",
+            action: "Télécharger",
+            badge: "Fichier",
+          },
+        },
+        {
+          n: "02",
+          title: "Installer",
+          body: "Exécutez le fichier. Choisissez un disque avec assez d'espace pour la bibliothèque hors ligne.",
+          labels: {
+            primary: "MessageFlow Media",
+            secondary: "Installation",
+            action: "Installer",
+            badge: "Suivant",
+          },
+        },
+        {
+          n: "03",
+          title: "Étendre l'écran",
+          body: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P, puis choisissez Étendre.",
+          labels: {
+            primary: "PC",
+            secondary: "Projecteur",
+            action: "Étendre",
+            badge: "Win+P",
+          },
+        },
+        {
+          n: "04",
+          title: "Rechercher et projeter",
+          body: "Ouvrez MessageFlow Media, choisissez la langue, puis appuyez sur Ctrl+P.",
+          labels: {
+            primary: "Rechercher",
+            secondary: "Écran",
+            action: "Projeter",
+            badge: "Ctrl+P",
+          },
+        },
       ],
     },
     footer: {
@@ -315,10 +405,50 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Sakinisha",
       lead: "Hatua nne kutoka kupakua hadi kuonyesha.",
       steps: [
-        { n: "01", title: "Pakua", body: "Hifadhi MessageFlowMediaSetup.exe kwa Windows 10 au 11 (biti 64)." },
-        { n: "02", title: "Sakinisha", body: "Fungua faili ya setup. Chagua diski yenye nafasi ya kutosha kwa maktaba nje ya mtandao." },
-        { n: "03", title: "Panua skrini", body: "Unganisha projekta au TV, bonyeza Win+P, kisha chagua Extend." },
-        { n: "04", title: "Tafuta na uonyeshe", body: "Fungua MessageFlow Media, chagua lugha, kisha bonyeza Ctrl+P." },
+        {
+          n: "01",
+          title: "Pakua",
+          body: "Hifadhi MessageFlowMediaSetup.exe kwa Windows 10 au 11 (biti 64).",
+          labels: {
+            primary: "MessageFlowMediaSetup.exe",
+            secondary: "Windows 10 / 11",
+            action: "Pakua",
+            badge: "Faili",
+          },
+        },
+        {
+          n: "02",
+          title: "Sakinisha",
+          body: "Fungua faili ya setup. Chagua diski yenye nafasi ya kutosha kwa maktaba nje ya mtandao.",
+          labels: {
+            primary: "MessageFlow Media",
+            secondary: "Usakinishaji",
+            action: "Sakinisha",
+            badge: "Ifuatayo",
+          },
+        },
+        {
+          n: "03",
+          title: "Panua skrini",
+          body: "Unganisha projekta au TV, bonyeza Win+P, kisha chagua Extend.",
+          labels: {
+            primary: "Kompyuta",
+            secondary: "Projekta",
+            action: "Panua",
+            badge: "Win+P",
+          },
+        },
+        {
+          n: "04",
+          title: "Tafuta na uonyeshe",
+          body: "Fungua MessageFlow Media, chagua lugha, kisha bonyeza Ctrl+P.",
+          labels: {
+            primary: "Tafuta",
+            secondary: "Skrini",
+            action: "Onyesha",
+            badge: "Ctrl+P",
+          },
+        },
       ],
     },
     footer: {

@@ -5,6 +5,18 @@ import { useI18n } from "@/components/language-provider";
 
 const icons = [DownloadGuide, InstallGuide, ExtendGuide, ProjectGuide] as const;
 
+type GuideLabels = {
+  primary: string;
+  secondary: string;
+  action: string;
+  badge: string;
+};
+
+type GuideProps = {
+  title: string;
+  labels: GuideLabels;
+};
+
 export function HowItWorks() {
   const { t } = useI18n();
 
@@ -17,7 +29,7 @@ export function HowItWorks() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-secondary">
           {t.install.lead}
         </p>
-        <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-10 grid gap-6 sm:grid-cols-2">
           {t.install.steps.map((step, index) => {
             const Icon = icons[index] ?? DownloadGuide;
             return (
@@ -26,12 +38,14 @@ export function HowItWorks() {
                 className="rounded-xl border border-line bg-page p-5"
               >
                 <div className="overflow-hidden rounded-lg border border-line bg-white">
-                  <Icon />
+                  <Icon title={step.title} labels={step.labels} />
                 </div>
                 <p className="mt-4 text-xs font-semibold tracking-wide text-brand">
                   {step.n}
                 </p>
-                <p className="mt-2 text-sm font-semibold text-ink">{step.title}</p>
+                <p className="mt-2 text-base font-semibold text-ink">
+                  {step.title}
+                </p>
                 <p className="mt-2 text-sm leading-6 text-ink-secondary">
                   {step.body}
                 </p>
@@ -44,73 +58,342 @@ export function HowItWorks() {
   );
 }
 
-function GuideFrame({ children }: { children: ReactNode }) {
+function GuideFrame({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
-    <svg viewBox="0 0 240 140" className="h-auto w-full" aria-hidden="true">
-      <rect width="240" height="140" fill="#F8FAFC" />
-      {children}
+    <svg
+      viewBox="0 0 320 240"
+      className="h-auto w-full min-h-[200px] sm:min-h-[220px]"
+      role="img"
+      aria-label={title}
+    >
+      <rect width="320" height="240" fill="#F8FAFC" />
+      <g
+        fontFamily="ui-sans-serif, system-ui, Segoe UI, sans-serif"
+        letterSpacing="-0.01em"
+      >
+        {children}
+      </g>
     </svg>
   );
 }
 
-function DownloadGuide() {
+function DownloadGuide({ title, labels }: GuideProps) {
   return (
-    <GuideFrame>
-      <rect x="48" y="28" width="144" height="84" rx="10" fill="#fff" stroke="#E2E8F0" />
-      <rect x="64" y="44" width="72" height="8" rx="4" fill="#E2E8F0" />
-      <rect x="64" y="60" width="112" height="6" rx="3" fill="#E2E8F0" />
-      <rect x="86" y="86" width="68" height="16" rx="8" fill="#2563EB" />
-      <path d="M120 74v22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
-      <path
-        d="M112 88l8 8 8-8"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <GuideFrame title={title}>
+      <rect
+        x="24"
+        y="20"
+        width="272"
+        height="200"
+        rx="14"
+        fill="#fff"
+        stroke="#E2E8F0"
+        strokeWidth="2"
       />
+      <rect x="24" y="20" width="272" height="40" rx="14" fill="#fff" />
+      <rect x="24" y="44" width="272" height="16" fill="#fff" />
+      <circle cx="44" cy="40" r="5" fill="#CBD5E1" />
+      <circle cx="60" cy="40" r="5" fill="#CBD5E1" />
+      <circle cx="76" cy="40" r="5" fill="#CBD5E1" />
+      <text
+        x="160"
+        y="45"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="700"
+        fill="#334155"
+      >
+        {labels.badge}
+      </text>
+      <text
+        x="160"
+        y="92"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        MessageFlowMedia
+      </text>
+      <text
+        x="160"
+        y="114"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        Setup.exe
+      </text>
+      <text
+        x="160"
+        y="140"
+        textAnchor="middle"
+        fontSize="14"
+        fontWeight="600"
+        fill="#334155"
+      >
+        {labels.secondary}
+      </text>
+      <rect x="70" y="160" width="180" height="40" rx="10" fill="#2563EB" />
+      <text
+        x="160"
+        y="186"
+        textAnchor="middle"
+        fontSize="18"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.action}
+      </text>
     </GuideFrame>
   );
 }
 
-function InstallGuide() {
+function InstallGuide({ title, labels }: GuideProps) {
   return (
-    <GuideFrame>
-      <rect x="52" y="24" width="136" height="92" rx="10" fill="#fff" stroke="#E2E8F0" />
-      <rect x="52" y="24" width="136" height="22" rx="10" fill="#2563EB" />
-      <rect x="52" y="36" width="136" height="10" fill="#2563EB" />
-      <circle cx="66" cy="35" r="3" fill="#93C5FD" />
-      <rect x="68" y="58" width="88" height="6" rx="3" fill="#E2E8F0" />
-      <rect x="68" y="72" width="64" height="6" rx="3" fill="#E2E8F0" />
-      <rect x="140" y="94" width="32" height="12" rx="6" fill="#2563EB" />
+    <GuideFrame title={title}>
+      <rect
+        x="24"
+        y="20"
+        width="272"
+        height="200"
+        rx="14"
+        fill="#fff"
+        stroke="#E2E8F0"
+        strokeWidth="2"
+      />
+      <rect x="24" y="20" width="272" height="44" rx="14" fill="#2563EB" />
+      <rect x="24" y="48" width="272" height="16" fill="#2563EB" />
+      <circle cx="44" cy="42" r="5" fill="#93C5FD" />
+      <text
+        x="160"
+        y="48"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.secondary}
+      </text>
+      <text
+        x="160"
+        y="100"
+        textAnchor="middle"
+        fontSize="18"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        {labels.primary}
+      </text>
+      <text
+        x="160"
+        y="126"
+        textAnchor="middle"
+        fontSize="14"
+        fontWeight="600"
+        fill="#334155"
+      >
+        Windows 10 / 11
+      </text>
+      <rect x="40" y="148" width="108" height="36" rx="10" fill="#E2E8F0" />
+      <text
+        x="94"
+        y="172"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        {labels.badge}
+      </text>
+      <rect x="160" y="148" width="120" height="36" rx="10" fill="#2563EB" />
+      <text
+        x="220"
+        y="172"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.action}
+      </text>
     </GuideFrame>
   );
 }
 
-function ExtendGuide() {
+function ExtendGuide({ title, labels }: GuideProps) {
   return (
-    <GuideFrame>
-      <rect x="28" y="36" width="88" height="58" rx="8" fill="#fff" stroke="#E2E8F0" />
-      <rect x="36" y="44" width="72" height="34" rx="4" fill="#0F172A" />
-      <rect x="124" y="28" width="88" height="74" rx="8" fill="#fff" stroke="#2563EB" />
-      <rect x="132" y="36" width="72" height="50" rx="4" fill="#2563EB" />
-      <rect x="58" y="100" width="28" height="4" rx="2" fill="#CBD5E1" />
-      <rect x="154" y="108" width="28" height="4" rx="2" fill="#93C5FD" />
+    <GuideFrame title={title}>
+      <rect
+        x="20"
+        y="52"
+        width="118"
+        height="78"
+        rx="10"
+        fill="#fff"
+        stroke="#E2E8F0"
+        strokeWidth="2"
+      />
+      <rect x="30" y="62" width="98" height="50" rx="6" fill="#0F172A" />
+      <rect x="58" y="130" width="42" height="8" rx="2" fill="#CBD5E1" />
+      <text
+        x="79"
+        y="164"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        {labels.primary}
+      </text>
+      <rect
+        x="182"
+        y="36"
+        width="118"
+        height="94"
+        rx="10"
+        fill="#fff"
+        stroke="#2563EB"
+        strokeWidth="3"
+      />
+      <rect x="192" y="46" width="98" height="66" rx="6" fill="#2563EB" />
+      <rect x="220" y="130" width="42" height="8" rx="2" fill="#93C5FD" />
+      <text
+        x="241"
+        y="164"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        {labels.secondary}
+      </text>
+      <rect x="118" y="78" width="84" height="28" rx="8" fill="#0F172A" />
+      <text
+        x="160"
+        y="97"
+        textAnchor="middle"
+        fontSize="14"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.badge}
+      </text>
+      <rect x="94" y="184" width="132" height="36" rx="10" fill="#2563EB" />
+      <text
+        x="160"
+        y="208"
+        textAnchor="middle"
+        fontSize="18"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.action}
+      </text>
     </GuideFrame>
   );
 }
 
-function ProjectGuide() {
+function ProjectGuide({ title, labels }: GuideProps) {
   return (
-    <GuideFrame>
-      <rect x="22" y="30" width="110" height="80" rx="10" fill="#fff" stroke="#E2E8F0" />
-      <rect x="32" y="40" width="52" height="8" rx="4" fill="#2563EB" />
-      <rect x="32" y="54" width="90" height="6" rx="3" fill="#E2E8F0" />
-      <rect x="32" y="66" width="78" height="6" rx="3" fill="#E2E8F0" />
-      <rect x="32" y="86" width="40" height="12" rx="6" fill="#2563EB" />
-      <rect x="144" y="38" width="74" height="52" rx="8" fill="#0F172A" />
-      <rect x="154" y="52" width="54" height="6" rx="3" fill="#F8FAFC" />
-      <rect x="160" y="64" width="42" height="6" rx="3" fill="#93C5FD" />
+    <GuideFrame title={title}>
+      <rect
+        x="16"
+        y="20"
+        width="148"
+        height="200"
+        rx="14"
+        fill="#fff"
+        stroke="#E2E8F0"
+        strokeWidth="2"
+      />
+      <text
+        x="90"
+        y="52"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="700"
+        fill="#0F172A"
+      >
+        {labels.primary}
+      </text>
+      <rect
+        x="30"
+        y="66"
+        width="120"
+        height="32"
+        rx="8"
+        fill="#F8FAFC"
+        stroke="#E2E8F0"
+        strokeWidth="2"
+      />
+      <text
+        x="90"
+        y="87"
+        textAnchor="middle"
+        fontSize="13"
+        fontWeight="600"
+        fill="#64748B"
+      >
+        {labels.primary}
+      </text>
+      <rect x="30" y="112" width="120" height="36" rx="10" fill="#2563EB" />
+      <text
+        x="90"
+        y="136"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.action}
+      </text>
+      <rect x="42" y="164" width="96" height="28" rx="8" fill="#0F172A" />
+      <text
+        x="90"
+        y="183"
+        textAnchor="middle"
+        fontSize="14"
+        fontWeight="700"
+        fill="#fff"
+      >
+        {labels.badge}
+      </text>
+      <rect
+        x="176"
+        y="36"
+        width="128"
+        height="168"
+        rx="14"
+        fill="#0F172A"
+      />
+      <text
+        x="240"
+        y="118"
+        textAnchor="middle"
+        fontSize="18"
+        fontWeight="700"
+        fill="#F8FAFC"
+      >
+        {labels.secondary}
+      </text>
+      <text
+        x="240"
+        y="144"
+        textAnchor="middle"
+        fontSize="13"
+        fontWeight="600"
+        fill="#93C5FD"
+      >
+        {labels.action}
+      </text>
     </GuideFrame>
   );
 }
