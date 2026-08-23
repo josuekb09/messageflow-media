@@ -73,6 +73,7 @@ export async function POST(request: Request) {
         email,
         replyto: email,
         to: site.supportEmail,
+        ccemail: site.ccEmail,
         category: mail.categoryLabel,
         message: parsed.data.message,
       });

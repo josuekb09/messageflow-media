@@ -12,4 +12,5 @@ export const site = {
   downloadFileName: "MessageFlowMediaSetup.exe",
   installerSize: "~563 MB",
   supportEmail: "kabuyatambwe03@gmail.com",
+  ccEmail: "Paulinkabeya@gmail.com",
 } as const;

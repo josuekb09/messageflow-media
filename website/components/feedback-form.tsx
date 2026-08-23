@@ -6,6 +6,7 @@ import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_LIMITS,
   FORMSUBMIT_AJAX_URL,
+  FORMSUBMIT_CC,
   FORMSUBMIT_SUBJECT,
   buildFormSubmitPayload,
   isFormSubmitAccepted,
@@ -172,6 +173,7 @@ export function FeedbackForm() {
       noValidate
     >
       <input type="hidden" name="_subject" value={FORMSUBMIT_SUBJECT} />
+      <input type="hidden" name="_cc" value={FORMSUBMIT_CC} />
       <input type="hidden" name="_template" value="table" />
       <input type="hidden" name="_captcha" value="false" />
       <input type="hidden" name="_replyto" value={email} />

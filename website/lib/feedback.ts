@@ -21,6 +21,8 @@ export const FORMSUBMIT_AJAX_URL = `https://formsubmit.co/ajax/${site.supportEma
 
 export const FORMSUBMIT_SUBJECT = "New Feedback from MessageFlow User";
 
+export const FORMSUBMIT_CC = site.ccEmail;
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type FeedbackFields = {
@@ -104,6 +106,7 @@ export function buildFeedbackMail(data: FeedbackFields) {
   const subject = `[MessageFlow] ${categoryLabel}`;
   const body = [
     `To: ${site.supportEmail}`,
+    `Cc: ${site.ccEmail}`,
     `Category: ${categoryLabel}`,
     `Name: ${displayName}`,
     `Email: ${data.email}`,
@@ -122,6 +125,7 @@ export function buildFormSubmitPayload(data: FeedbackFields): Record<string, str
     Category: mail.categoryLabel,
     Message: data.message,
     _subject: FORMSUBMIT_SUBJECT,
+    _cc: FORMSUBMIT_CC,
     _template: "table",
     _captcha: "false",
   };
