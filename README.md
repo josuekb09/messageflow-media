@@ -13,9 +13,9 @@ Download: [GitHub Releases v1.0.2](https://github.com/josuekb09/messageflow-medi
 |---|---|---|---|
 | Sermons (William Marrion Branham) | 1,208 | 384 | 622 |
 | Bibles | KJV | Louis Segond 1910 (LSG) | SWHULB (Biblia Takatifu) |
-| Songs | 357 | 499 (Recueil de cantiques français, Tabernacle Dinanga) | 281 (Nyimbo za Kiswahili) |
+| Songs | 357 | 499 French hymns | 281 Swahili hymns |
 
-French hymns that have a refrain use **verse → chorus → verse → chorus**. Chants des aigles is not included.
+French hymns that have a refrain use **verse → chorus → verse → chorus**.
 
 ## Features
 

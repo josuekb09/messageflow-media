@@ -17,7 +17,7 @@ MessageFlow Media v1.0.2
 - 1,208 English, 384 French, and 622 Swahili sermons
 - Bibles: KJV, Louis Segond (LSG), SWHULB
 - 357 English songs
-- 499 French hymns (Dinanga) with verse → chorus interleaving
+- 499 French hymns with verse → chorus interleaving
 - 281 Swahili hymns from the official PowerPoint collection
 - Optional light theme; dark remains the default
 - Dual-screen projection, favorites, history, offline use

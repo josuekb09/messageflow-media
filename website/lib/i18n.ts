@@ -64,7 +64,8 @@ export type Dictionary = {
   };
   install: {
     title: string;
-    steps: { n: string; title: string }[];
+    lead: string;
+    steps: { n: string; title: string; body: string }[];
   };
   footer: {
     blurb: string;
@@ -134,21 +135,22 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Français",
-          body: "384 sermons, 499 hymns (Recueil de cantiques français, Tabernacle Dinanga), and Louis Segond.",
+          body: "384 sermons, 499 hymns, and Louis Segond.",
         },
         {
           title: "Kiswahili",
-          body: "622 sermons, 281 hymns from PowerPoint (Nyimbo za Kiswahili), and the SWHULB Bible.",
+          body: "622 sermons, 281 hymns, and the SWHULB Bible.",
         },
       ],
     },
     install: {
       title: "Install",
+      lead: "Four steps from download to live projection.",
       steps: [
-        { n: "01", title: "Open Download and save MessageFlowMediaSetup.exe from the v1.0.2 GitHub release." },
-        { n: "02", title: "Run the installer on Windows 10 or 11 (64-bit). Prefer drive D: for the church media disk." },
-        { n: "03", title: "Connect the projector or TV, press Win+P, and choose Extend." },
-        { n: "04", title: "Launch MessageFlow Media, pick a language, search, then press Ctrl+P to project." },
+        { n: "01", title: "Download", body: "Save MessageFlowMediaSetup.exe for Windows 10 or 11 (64-bit)." },
+        { n: "02", title: "Install", body: "Run the setup file. Choose a disk with enough space for the offline library." },
+        { n: "03", title: "Extend the display", body: "Connect the projector or TV, press Win+P, and choose Extend." },
+        { n: "04", title: "Search and project", body: "Open MessageFlow Media, pick a language, then press Ctrl+P." },
       ],
     },
     footer: {
@@ -156,7 +158,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Free Windows desktop software for church projection — sermons, Bibles, and hymns, fully offline.",
       product: "Product",
       release: "Release",
-      copyright: "Copyright © 2026 MessageFlow Media.",
+      copyright: "MessageFlow 2026, All rights reserved",
     },
   },
   fr: {
@@ -217,21 +219,22 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Français",
-          body: "384 prédications, 499 cantiques (Recueil de cantiques français, Tabernacle Dinanga) et Louis Segond.",
+          body: "384 prédications, 499 cantiques et Louis Segond.",
         },
         {
           title: "Kiswahili",
-          body: "622 prédications, 281 cantiques (Nyimbo za Kiswahili) et la Bible SWHULB.",
+          body: "622 prédications, 281 cantiques et la Bible SWHULB.",
         },
       ],
     },
     install: {
       title: "Installation",
+      lead: "Quatre étapes, du téléchargement à la projection.",
       steps: [
-        { n: "01", title: "Ouvrez Télécharger et enregistrez MessageFlowMediaSetup.exe depuis GitHub v1.0.2." },
-        { n: "02", title: "Exécutez l'installateur sous Windows 10 ou 11 (64 bits). Préférez le disque D: pour le pupitre." },
-        { n: "03", title: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P, puis choisissez Étendre." },
-        { n: "04", title: "Lancez MessageFlow Media, choisissez la langue, recherchez, puis Ctrl+P pour projeter." },
+        { n: "01", title: "Télécharger", body: "Enregistrez MessageFlowMediaSetup.exe pour Windows 10 ou 11 (64 bits)." },
+        { n: "02", title: "Installer", body: "Exécutez le fichier. Choisissez un disque avec assez d'espace pour la bibliothèque hors ligne." },
+        { n: "03", title: "Étendre l'écran", body: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P, puis choisissez Étendre." },
+        { n: "04", title: "Rechercher et projeter", body: "Ouvrez MessageFlow Media, choisissez la langue, puis appuyez sur Ctrl+P." },
       ],
     },
     footer: {
@@ -239,7 +242,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Logiciel Windows gratuit pour la projection à l'église — prédications, Bibles et cantiques, entièrement hors ligne.",
       product: "Produit",
       release: "Version",
-      copyright: "Copyright © 2026 MessageFlow Media.",
+      copyright: "MessageFlow 2026, All rights reserved",
     },
   },
   sw: {
@@ -300,21 +303,22 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
         {
           title: "Français",
-          body: "Mahubiri 384, nyimbo 499 (Recueil de cantiques français, Tabernacle Dinanga), na Louis Segond.",
+          body: "Mahubiri 384, nyimbo 499, na Louis Segond.",
         },
         {
           title: "Kiswahili",
-          body: "Mahubiri 622, nyimbo 281 (Nyimbo za Kiswahili), na Biblia ya SWHULB.",
+          body: "Mahubiri 622, nyimbo 281, na Biblia ya SWHULB.",
         },
       ],
     },
     install: {
       title: "Sakinisha",
+      lead: "Hatua nne kutoka kupakua hadi kuonyesha.",
       steps: [
-        { n: "01", title: "Fungua Pakua na uhifadhi MessageFlowMediaSetup.exe kutoka GitHub v1.0.2." },
-        { n: "02", title: "Sakinisha kwenye Windows 10 au 11 (biti 64). Pendekeza diski D: kwa kompyuta ya kanisa." },
-        { n: "03", title: "Unganisha projekta au TV, bonyeza Win+P, kisha chagua Extend." },
-        { n: "04", title: "Fungua MessageFlow Media, chagua lugha, tafuta, kisha Ctrl+P ili kuonyesha." },
+        { n: "01", title: "Pakua", body: "Hifadhi MessageFlowMediaSetup.exe kwa Windows 10 au 11 (biti 64)." },
+        { n: "02", title: "Sakinisha", body: "Fungua faili ya setup. Chagua diski yenye nafasi ya kutosha kwa maktaba nje ya mtandao." },
+        { n: "03", title: "Panua skrini", body: "Unganisha projekta au TV, bonyeza Win+P, kisha chagua Extend." },
+        { n: "04", title: "Tafuta na uonyeshe", body: "Fungua MessageFlow Media, chagua lugha, kisha bonyeza Ctrl+P." },
       ],
     },
     footer: {
@@ -322,7 +326,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Programu ya bure ya Windows kwa kuonyesha kanisani — mahubiri, Biblia, na nyimbo, nje ya mtandao.",
       product: "Bidhaa",
       release: "Toleo",
-      copyright: "Hakimiliki © 2026 MessageFlow Media.",
+      copyright: "MessageFlow 2026, All rights reserved",
     },
   },
 };
