@@ -19,6 +19,8 @@ export const CATEGORY_SUBJECT: Record<FeedbackCategory, string> = {
 
 export const FORMSUBMIT_AJAX_URL = `https://formsubmit.co/ajax/${site.supportEmail}`;
 
+export const FORMSUBMIT_SUBJECT = "New Feedback from MessageFlow User";
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type FeedbackFields = {
@@ -114,11 +116,12 @@ export function buildFeedbackMail(data: FeedbackFields) {
 export function buildFormSubmitPayload(data: FeedbackFields): Record<string, string> {
   const mail = buildFeedbackMail(data);
   return {
-    name: mail.displayName,
-    email: data.email,
-    message: mail.body,
-    category: mail.categoryLabel,
-    _subject: mail.subject,
+    Name: mail.displayName,
+    Email: data.email,
+    _replyto: data.email,
+    Category: mail.categoryLabel,
+    Message: data.message,
+    _subject: FORMSUBMIT_SUBJECT,
     _template: "table",
     _captcha: "false",
   };

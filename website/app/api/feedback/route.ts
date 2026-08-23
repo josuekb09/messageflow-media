@@ -2,6 +2,7 @@ import {
   buildFeedbackMail,
   buildFormSubmitPayload,
   FORMSUBMIT_AJAX_URL,
+  FORMSUBMIT_SUBJECT,
   isFormSubmitAccepted,
   parseFeedbackPayload,
 } from "@/lib/feedback";
@@ -66,14 +67,14 @@ export async function POST(request: Request) {
     try {
       const sent = await postJson(WEB3FORMS_ENDPOINT, {
         access_key: accessKey,
-        subject: mail.subject,
+        subject: FORMSUBMIT_SUBJECT,
         from_name: mail.displayName,
         name: mail.displayName,
         email,
         replyto: email,
         to: site.supportEmail,
         category: mail.categoryLabel,
-        message: mail.body,
+        message: parsed.data.message,
       });
       if (sent) {
         return Response.json({ ok: true });

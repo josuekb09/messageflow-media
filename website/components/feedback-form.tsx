@@ -6,6 +6,7 @@ import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_LIMITS,
   FORMSUBMIT_AJAX_URL,
+  FORMSUBMIT_SUBJECT,
   buildFormSubmitPayload,
   isFormSubmitAccepted,
   parseFeedbackPayload,
@@ -141,6 +142,7 @@ export function FeedbackForm() {
         aria-live="polite"
       >
         <p className="text-base font-semibold text-ink">{t.feedback.success}</p>
+        <p className="mt-2 text-sm leading-6 text-ink-secondary">{t.feedback.successDetail}</p>
         <button
           type="button"
           onClick={resetForm}
@@ -158,6 +160,11 @@ export function FeedbackForm() {
       className="rounded-xl border border-line bg-white p-6 sm:p-7"
       noValidate
     >
+      <input type="hidden" name="_subject" value={FORMSUBMIT_SUBJECT} />
+      <input type="hidden" name="_template" value="table" />
+      <input type="hidden" name="_captcha" value="false" />
+      <input type="hidden" name="_replyto" value={email} />
+
       <div className="hidden" aria-hidden="true">
         <label>
           botcheck
@@ -172,7 +179,7 @@ export function FeedbackForm() {
         </label>
         <input
           id="feedback-name"
-          name="name"
+          name="Name"
           type="text"
           maxLength={FEEDBACK_LIMITS.name}
           autoComplete="name"
@@ -189,7 +196,7 @@ export function FeedbackForm() {
         </label>
         <input
           id="feedback-email"
-          name="email"
+          name="Email"
           type="email"
           required
           maxLength={FEEDBACK_LIMITS.email}
@@ -221,7 +228,7 @@ export function FeedbackForm() {
               >
                 <input
                   type="radio"
-                  name="category"
+                  name="Category"
                   value={value}
                   checked={selected}
                   onChange={() => setCategory(value)}
@@ -240,7 +247,7 @@ export function FeedbackForm() {
         </label>
         <textarea
           id="feedback-message"
-          name="message"
+          name="Message"
           required
           rows={6}
           minLength={FEEDBACK_LIMITS.messageMin}

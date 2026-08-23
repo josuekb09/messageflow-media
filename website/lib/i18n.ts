@@ -108,6 +108,7 @@ export type Dictionary = {
     submitting: string;
     again: string;
     success: string;
+    successDetail: string;
     error: string;
     errorConfig: string;
     errorValidation: string;
@@ -267,7 +268,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       submit: "Send message",
       submitting: "Sending…",
       again: "Send another message",
-      success: "Thank you. Your message was sent.",
+      success: "Your message was successfully sent.",
+      successDetail: "Thank you for your feedback. We will get back to you if a reply is needed.",
       error: "Something went wrong. Please try again in a moment.",
       errorConfig: "Feedback is not configured yet. Please try again later.",
       errorValidation: "Please check the highlighted fields.",
@@ -424,7 +426,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       submit: "Envoyer",
       submitting: "Envoi…",
       again: "Envoyer un autre message",
-      success: "Merci. Votre message a été envoyé.",
+      success: "Votre message a été envoyé avec succès.",
+      successDetail:
+        "Merci pour votre avis. Nous vous répondrons si une réponse est nécessaire.",
       error: "Une erreur s'est produite. Veuillez réessayer dans un instant.",
       errorConfig: "L'envoi d'avis n'est pas encore configuré. Veuillez réessayer plus tard.",
       errorValidation: "Veuillez vérifier les champs indiqués.",
@@ -581,7 +585,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       submit: "Tuma ujumbe",
       submitting: "Inatuma…",
       again: "Tuma ujumbe mwingine",
-      success: "Asante. Ujumbe wako umetumwa.",
+      success: "Ujumbe wako umetumwa kikamilifu.",
+      successDetail:
+        "Asante kwa maoni yako. Tutawasiliana nawe ikiwa jibu litahitajika.",
       error: "Kumetokea hitilafu. Tafadhali jaribu tena baadaye kidogo.",
       errorConfig: "Maoni bado hayajawekwa. Tafadhali jaribu tena baadaye.",
       errorValidation: "Tafadhali kagua sehemu zilizoonyeshwa.",
