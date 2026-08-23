@@ -2,7 +2,6 @@
 
 import { DownloadButton } from "@/components/download-button";
 import { useI18n } from "@/components/language-provider";
-import { Container } from "@/components/ui";
 import { interpolate } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
@@ -10,22 +9,23 @@ export function DownloadCenter() {
   const { t } = useI18n();
 
   return (
-    <section id="download" className="relative overflow-hidden bg-slate-950 py-20 sm:py-24">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.28),transparent_60%)]" />
-      <Container className="relative">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur sm:flex sm:items-center sm:justify-between sm:p-10">
+    <section id="download" className="border-t border-line bg-page">
+      <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
+        <div className="rounded-xl border border-line bg-white p-8 sm:flex sm:items-center sm:justify-between sm:p-10">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-ink">
               {t.download.heading}
             </h2>
-            <p className="mt-3 text-sm text-slate-300">
+            <p className="mt-2 text-sm text-ink-secondary">
               {site.downloadFileName}
-              <span className="mx-2 text-white/20">·</span>
+              <span className="mx-2 text-line">·</span>
               v{site.version}
-              <span className="mx-2 text-white/20">·</span>
-              {site.installerSize}
+              <span className="mx-2 text-line">·</span>
+              {site.releaseDate}
+              <span className="mx-2 text-line">·</span>
+              {site.platform}
             </p>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-slate-400">
+            <p className="mt-3 max-w-lg text-sm leading-6 text-ink-muted">
               {t.download.note}
             </p>
           </div>
@@ -33,7 +33,7 @@ export function DownloadCenter() {
             <DownloadButton size="lg" />
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }
@@ -42,18 +42,16 @@ export function DownloadHero() {
   const { t } = useI18n();
 
   return (
-    <div className="mesh-hero border-b border-slate-200/80">
-      <Container className="pt-16 pb-6 sm:pt-20">
-        <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
-          {t.download.pageTitle}
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-          {interpolate(t.download.pageSubtitle, {
-            version: site.version,
-            date: site.releaseDate,
-          })}
-        </p>
-      </Container>
+    <div className="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
+      <h1 className="text-3xl font-semibold tracking-tight text-ink">
+        {t.download.pageTitle}
+      </h1>
+      <p className="mt-3 max-w-xl text-ink-secondary">
+        {interpolate(t.download.pageSubtitle, {
+          version: site.version,
+          date: site.releaseDate,
+        })}
+      </p>
     </div>
   );
 }

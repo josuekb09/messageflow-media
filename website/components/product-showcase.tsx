@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useI18n } from "@/components/language-provider";
-import { Container, SectionLead, SectionTitle } from "@/components/ui";
-import { cn } from "@/lib/cn";
 import { type Locale } from "@/lib/i18n";
 import { interfaceScreenshots } from "@/lib/media";
 
@@ -20,17 +18,15 @@ export function ProductShowcase() {
   const shots: Locale[] = ["en", "fr", "sw"];
 
   return (
-    <section id="product" className="relative scroll-mt-20 overflow-hidden bg-slate-950 py-20 text-white sm:py-24">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.22),transparent_58%)]" />
-      <Container className="relative">
-        <SectionTitle className="text-white">{t.product.title}</SectionTitle>
-        <SectionLead className="text-slate-300">{t.product.lead}</SectionLead>
+    <section id="product" className="bg-white">
+      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+        <h2 className="text-3xl font-semibold tracking-tight text-ink">
+          {t.product.title}
+        </h2>
 
-        <div className="mt-12">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-indigo-200">
-            {t.product.videoTitle}
-          </h3>
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]">
+        <div className="mt-10">
+          <h3 className="text-lg font-semibold text-ink">{t.product.videoTitle}</h3>
+          <div className="mt-4 overflow-hidden rounded-xl border border-line bg-ink shadow-[0_24px_48px_rgba(15,23,42,0.08)]">
             <video
               className="aspect-video h-auto w-full"
               controls
@@ -44,13 +40,13 @@ export function ProductShowcase() {
         </div>
 
         <div className="mt-16">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-indigo-200">
+          <h3 className="text-lg font-semibold text-ink">
             {t.product.screenshotsTitle}
           </h3>
           <div
             role="tablist"
             aria-label={t.product.screenshotsTitle}
-            className="mt-4 inline-flex rounded-full border border-white/10 bg-white/5 p-1 text-[13px]"
+            className="mt-4 inline-flex rounded-lg border border-line bg-page p-0.5 text-[13px]"
           >
             {shots.map((id) => {
               const selected = id === activeId;
@@ -67,19 +63,18 @@ export function ProductShowcase() {
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveId(id)}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 font-medium transition-all duration-200",
+                  className={`rounded-md px-3 py-1.5 font-medium ${
                     selected
-                      ? "bg-white text-slate-950 shadow-sm"
-                      : "text-slate-300 hover:text-white",
-                  )}
+                      ? "bg-white text-ink shadow-sm"
+                      : "text-ink-muted hover:text-ink"
+                  }`}
                 >
                   {label}
                 </button>
               );
             })}
           </div>
-          <figure className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.8)]">
+          <figure className="mt-5 overflow-hidden rounded-xl border border-line bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
             <Image
               src={active.src}
               alt={
@@ -108,12 +103,11 @@ export function ProductShowcase() {
                   key={id}
                   type="button"
                   onClick={() => setActiveId(id)}
-                  className={cn(
-                    "overflow-hidden rounded-xl border transition-all duration-200",
+                  className={`overflow-hidden rounded-lg border ${
                     id === activeId
-                      ? "border-indigo-400 ring-2 ring-indigo-400/40"
-                      : "border-white/10 hover:border-white/30",
-                  )}
+                      ? "border-brand ring-1 ring-brand"
+                      : "border-line hover:border-ink-muted"
+                  }`}
                 >
                   <Image
                     src={shot.src}
@@ -127,7 +121,7 @@ export function ProductShowcase() {
             })}
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

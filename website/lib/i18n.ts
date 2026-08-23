@@ -26,19 +26,16 @@ export function isLocale(value: string | null | undefined): value is Locale {
 export type Dictionary = {
   nav: {
     features: string;
-    library: string;
     product: string;
     install: string;
-    support: string;
     download: string;
+    feedback: string;
   };
   header: {
     languageLabel: string;
-    menu: string;
-    close: string;
   };
   hero: {
-    badge: string;
+    eyebrow: string;
     title: string;
     subtitle: string;
     secondaryCta: string;
@@ -52,7 +49,6 @@ export type Dictionary = {
   };
   product: {
     title: string;
-    lead: string;
     videoTitle: string;
     screenshotsTitle: string;
     englishUi: string;
@@ -61,19 +57,11 @@ export type Dictionary = {
   };
   features: {
     title: string;
-    lead: string;
     items: { title: string; body: string }[];
   };
   library: {
     title: string;
-    lead: string;
-    items: {
-      title: string;
-      sermons: string;
-      sermonsLabel: string;
-      songs: string;
-      bible: string;
-    }[];
+    items: { title: string; body: string }[];
   };
   install: {
     title: string;
@@ -133,19 +121,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
   en: {
     nav: {
       features: "Features",
-      library: "Library",
       product: "Interface",
       install: "Install",
-      support: "Support",
       download: "Download for Windows",
+      feedback: "Support",
     },
     header: {
       languageLabel: "Language",
-      menu: "Open menu",
-      close: "Close menu",
     },
     hero: {
-      badge: "v{version} Live · Built for Windows 10 / 11",
+      eyebrow: "v{version} Live · Built for Windows 10 / 11",
       title: "The modern standard for church media projection",
       subtitle:
         "Lightning-fast offline Windows software to search and project sermons, Bibles, and multilingual songbooks in English, French, and Kiswahili — no internet required.",
@@ -160,7 +145,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     product: {
       title: "The operator desk, in every language",
-      lead: "A quiet dark interface for live service — English, French, and Kiswahili, without leaving the desk.",
       videoTitle: "Product demo",
       screenshotsTitle: "Interface gallery",
       englishUi: "English",
@@ -169,7 +153,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     features: {
       title: "Built for the live service, not the cloud",
-      lead: "Everything the operator needs stays on the PC in the booth — private, fast, and free of accounts.",
       items: [
         {
           title: "100% offline and secure",
@@ -187,28 +170,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     library: {
       title: "What's in the box",
-      lead: "One installer. Three languages. The full operator library, ready offline.",
       items: [
         {
           title: "English",
-          sermons: "1,208",
-          sermonsLabel: "sermons",
-          songs: "English songbook",
-          bible: "KJV Bible",
+          body: "1,208 sermons, English songbook, and the KJV Bible.",
         },
         {
           title: "Français",
-          sermons: "384",
-          sermonsLabel: "prédications",
-          songs: "499 Dinanga hymns",
-          bible: "Louis Segond",
+          body: "384 sermons, 499 Dinanga hymns, and Louis Segond.",
         },
         {
           title: "Kiswahili",
-          sermons: "622",
-          sermonsLabel: "mahubiri",
-          songs: "281 official hymns",
-          bible: "SWHULB Bible",
+          body: "622 sermons, 281 official hymns, and the SWHULB Bible.",
         },
       ],
     },
@@ -307,19 +280,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
   fr: {
     nav: {
       features: "Fonctionnalités",
-      library: "Bibliothèque",
       product: "Interface",
       install: "Installation",
-      support: "Assistance",
       download: "Télécharger pour Windows",
+      feedback: "Assistance",
     },
     header: {
       languageLabel: "Langue",
-      menu: "Ouvrir le menu",
-      close: "Fermer le menu",
     },
     hero: {
-      badge: "v{version} disponible · Windows 10 / 11",
+      eyebrow: "v{version} disponible · Windows 10 / 11",
       title: "Le standard moderne de la projection média à l'église",
       subtitle:
         "Logiciel Windows hors ligne, rapide, pour rechercher et projeter prédications, Bibles et recueils de cantiques en anglais, français et kiswahili — sans connexion Internet.",
@@ -334,7 +304,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     product: {
       title: "Le pupitre, dans chaque langue",
-      lead: "Une interface sombre et calme pour le direct — anglais, français et kiswahili, sans quitter le pupitre.",
       videoTitle: "Démonstration",
       screenshotsTitle: "Galerie d'interface",
       englishUi: "English",
@@ -343,7 +312,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     features: {
       title: "Conçu pour le direct, pas pour le cloud",
-      lead: "Tout ce dont l'opérateur a besoin reste sur le PC de la régie — privé, rapide, sans compte.",
       items: [
         {
           title: "100 % hors ligne et sûr",
@@ -361,28 +329,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     library: {
       title: "Ce qui est inclus",
-      lead: "Un installateur. Trois langues. Toute la bibliothèque opérateur, hors ligne.",
       items: [
         {
           title: "English",
-          sermons: "1 208",
-          sermonsLabel: "prédications",
-          songs: "Recueil anglais",
-          bible: "Bible KJV",
+          body: "1 208 prédications, recueil anglais et Bible KJV.",
         },
         {
           title: "Français",
-          sermons: "384",
-          sermonsLabel: "prédications",
-          songs: "499 cantiques Dinanga",
-          bible: "Louis Segond",
+          body: "384 prédications, 499 cantiques Dinanga et Louis Segond.",
         },
         {
           title: "Kiswahili",
-          sermons: "622",
-          sermonsLabel: "prédications",
-          songs: "281 cantiques officiels",
-          bible: "Bible SWHULB",
+          body: "622 prédications, 281 cantiques officiels et Bible SWHULB.",
         },
       ],
     },
@@ -481,19 +439,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
   sw: {
     nav: {
       features: "Vipengele",
-      library: "Maktaba",
       product: "Kiolesura",
       install: "Sakinisha",
-      support: "Msaada",
       download: "Pakua kwa Windows",
+      feedback: "Msaada",
     },
     header: {
       languageLabel: "Lugha",
-      menu: "Fungua menyu",
-      close: "Funga menyu",
     },
     hero: {
-      badge: "v{version} Iko hai · Windows 10 / 11",
+      eyebrow: "v{version} Iko hai · Windows 10 / 11",
       title: "Kiwango cha kisasa cha kuonyesha media kanisani",
       subtitle:
         "Programu ya Windows nje ya mtandao, yenye kasi, kutafuta na kuonyesha mahubiri, Biblia, na vitabu vya nyimbo kwa Kiingereza, Kifaransa na Kiswahili — bila intaneti.",
@@ -508,7 +463,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     product: {
       title: "Dawati la operator, katika kila lugha",
-      lead: "Kiolesura cheusi, tulivu, kwa ibada moja kwa moja — Kiingereza, Kifaransa na Kiswahili, bila kuondoka dawati.",
       videoTitle: "Onyesho la bidhaa",
       screenshotsTitle: "Matunzio ya kiolesura",
       englishUi: "English",
@@ -517,7 +471,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     features: {
       title: "Imetengenezwa kwa ibada, si wingu",
-      lead: "Kila kitu operator anahitaji kiko kwenye kompyuta ya dawati — faragha, kasi, bila akaunti.",
       items: [
         {
           title: "100% nje ya mtandao na salama",
@@ -535,28 +488,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     library: {
       title: "Kilichomo ndani",
-      lead: "Setup moja. Lugha tatu. Maktaba kamili ya operator, nje ya mtandao.",
       items: [
         {
           title: "English",
-          sermons: "1,208",
-          sermonsLabel: "mahubiri",
-          songs: "Kitabu cha nyimbo za Kiingereza",
-          bible: "Biblia KJV",
+          body: "Mahubiri 1,208, kitabu cha nyimbo za Kiingereza, na Biblia KJV.",
         },
         {
           title: "Français",
-          sermons: "384",
-          sermonsLabel: "mahubiri",
-          songs: "Nyimbo 499 za Dinanga",
-          bible: "Louis Segond",
+          body: "Mahubiri 384, nyimbo 499 za Dinanga, na Louis Segond.",
         },
         {
           title: "Kiswahili",
-          sermons: "622",
-          sermonsLabel: "mahubiri",
-          songs: "Nyimbo 281 rasmi",
-          bible: "Biblia SWHULB",
+          body: "Mahubiri 622, nyimbo 281 rasmi, na Biblia SWHULB.",
         },
       ],
     },

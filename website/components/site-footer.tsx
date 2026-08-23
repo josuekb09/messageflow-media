@@ -1,66 +1,68 @@
 "use client";
 
 import Link from "next/link";
-import { BrandLockup } from "@/components/brand-logo";
+import { BrandLogo } from "@/components/brand-logo";
 import { useI18n } from "@/components/language-provider";
-import { Container } from "@/components/ui";
 import { site } from "@/lib/site";
 
 export function SiteFooter() {
   const { t } = useI18n();
 
   return (
-    <footer className="bg-slate-950 text-slate-300">
-      <Container className="flex flex-col gap-10 py-14 md:flex-row md:justify-between">
+    <footer className="border-t border-line bg-white">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-12 sm:px-8 md:flex-row md:justify-between">
         <div>
-          <BrandLockup tone="dark" />
-          <p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">
+          <div className="flex items-center gap-2.5">
+            <BrandLogo className="h-7 w-7" />
+            <span className="text-sm font-semibold text-ink">{site.name}</span>
+          </div>
+          <p className="mt-3 max-w-xs text-sm leading-6 text-ink-muted">
             {t.footer.blurb}
           </p>
         </div>
         <div className="flex gap-16 text-sm">
           <div>
-            <p className="font-semibold text-white">{t.footer.product}</p>
-            <ul className="mt-3 space-y-2">
+            <p className="font-medium text-ink">{t.footer.product}</p>
+            <ul className="mt-3 space-y-2 text-ink-muted">
               <li>
-                <Link href="/#features" className="hover:text-white">
+                <Link href="/#features" className="hover:text-ink">
                   {t.nav.features}
                 </Link>
               </li>
               <li>
-                <Link href="/#library" className="hover:text-white">
-                  {t.nav.library}
+                <Link href="/#product" className="hover:text-ink">
+                  {t.nav.product}
                 </Link>
               </li>
               <li>
-                <Link href="/#install" className="hover:text-white">
+                <Link href="/#install" className="hover:text-ink">
                   {t.nav.install}
                 </Link>
               </li>
               <li>
-                <Link href="/download" className="hover:text-white">
+                <Link href="/download" className="hover:text-ink">
                   {t.nav.download}
                 </Link>
               </li>
               <li>
-                <Link href="/feedback" className="hover:text-white">
-                  {t.nav.support}
+                <Link href="/feedback" className="hover:text-ink">
+                  {t.nav.feedback}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <p className="font-semibold text-white">{t.footer.release}</p>
-            <ul className="mt-3 space-y-2 text-slate-400">
+            <p className="font-medium text-ink">{t.footer.release}</p>
+            <ul className="mt-3 space-y-2 text-ink-muted">
               <li>v{site.version}</li>
               <li>{site.releaseDate}</li>
               <li>{site.platform}</li>
             </ul>
           </div>
         </div>
-      </Container>
-      <div className="border-t border-white/10">
-        <p className="mx-auto max-w-6xl px-5 py-5 text-sm text-slate-500 sm:px-8">
+      </div>
+      <div className="border-t border-line">
+        <p className="mx-auto max-w-6xl px-5 py-5 text-sm text-ink-muted sm:px-8">
           {t.footer.copyright}
         </p>
       </div>

@@ -26,50 +26,50 @@ export function HowItWorks() {
   const { t } = useI18n();
 
   return (
-    <section id="install" className="scroll-mt-20 bg-white py-20 sm:py-24">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-[2.5rem] sm:leading-tight">
+    <section id="install" className="bg-white">
+      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+        <h2 className="text-3xl font-semibold tracking-tight text-ink">
           {t.install.title}
         </h2>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-secondary">
           {t.install.lead}
         </p>
-        <ol className="mt-12 grid gap-5 sm:grid-cols-2">
+        <ol className="mt-10 grid gap-8 sm:grid-cols-2">
           {t.install.steps.map((step, index) => {
             const Icon = icons[index] ?? DownloadGuide;
             return (
               <li
                 key={step.n}
-                className="rounded-3xl border border-slate-200/80 bg-slate-50 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 sm:p-6"
+                className="rounded-xl border border-line bg-page p-5 sm:p-6"
               >
-                <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+                <div className="rounded-lg border border-line bg-white">
                   <Icon title={step.title} labels={step.labels} />
                 </div>
-                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600">
+                <p className="mt-4 text-xs font-semibold tracking-wide text-brand">
                   {step.n}
                 </p>
-                <p className="mt-2 text-lg font-semibold tracking-tight text-ink">
+                <p className="mt-2 text-lg font-semibold text-ink">
                   {step.title}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <p className="mt-2 text-sm leading-6 text-ink-secondary">
                   {step.body}
                 </p>
               </li>
             );
           })}
         </ol>
-        <aside className="mt-10 rounded-3xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-blue-50 p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
+        <aside className="mt-10 rounded-xl border border-line bg-page p-5 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-6">
           <div>
-            <p className="text-base font-semibold tracking-tight text-ink">
+            <p className="text-base font-semibold text-ink">
               {t.feedback.calloutTitle}
             </p>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-secondary">
               {t.feedback.calloutBody}
             </p>
           </div>
           <Link
             href="/feedback"
-            className="mt-4 inline-flex h-11 shrink-0 items-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-[15px] font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:-translate-y-0.5 sm:mt-0"
+            className="mt-4 inline-flex h-11 shrink-0 items-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white hover:bg-brand-hover sm:mt-0"
           >
             {t.feedback.calloutCta}
           </Link>
