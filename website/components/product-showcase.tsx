@@ -20,13 +20,13 @@ export function ProductShowcase() {
   return (
     <section id="product" className="bg-white">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <h2 className="text-3xl font-semibold tracking-tight text-ink">
+        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {t.product.title}
         </h2>
 
         <div className="mt-10">
-          <h3 className="text-lg font-semibold text-ink">{t.product.videoTitle}</h3>
-          <div className="mt-4 overflow-hidden rounded-xl border border-line bg-ink shadow-[0_24px_48px_rgba(15,23,42,0.08)]">
+          <h3 className="text-lg font-semibold tracking-tight text-ink">{t.product.videoTitle}</h3>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-ink shadow-[0_24px_64px_rgba(10,10,10,0.08)]">
             <video
               className="aspect-video h-auto w-full"
               controls
@@ -74,7 +74,7 @@ export function ProductShowcase() {
               );
             })}
           </div>
-          <figure className="mt-5 overflow-hidden rounded-xl border border-line bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+          <figure className="mt-5 overflow-hidden rounded-2xl border border-line bg-white shadow-[0_16px_40px_rgba(10,10,10,0.08)]">
             <Image
               src={active.src}
               alt={

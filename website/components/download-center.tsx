@@ -11,9 +11,9 @@ export function DownloadCenter() {
   return (
     <section id="download" className="border-t border-line bg-page">
       <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
-        <div className="rounded-xl border border-line bg-white p-8 sm:flex sm:items-center sm:justify-between sm:p-10">
+        <div className="rounded-2xl border border-line bg-white p-8 sm:flex sm:items-center sm:justify-between sm:p-10">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-ink">
+            <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {t.download.heading}
             </h2>
             <p className="mt-2 text-sm text-ink-secondary">

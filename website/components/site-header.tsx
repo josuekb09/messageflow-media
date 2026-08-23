@@ -18,17 +18,21 @@ export function SiteHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <BrandLogo className="h-8 w-8" />
-          <span className="text-[15px] font-semibold tracking-tight text-ink whitespace-nowrap">
+          <span className="whitespace-nowrap text-[15px] font-semibold tracking-tight text-ink">
             {site.name}
           </span>
         </Link>
-        <nav className="hidden items-center gap-6 text-[14px] text-ink-secondary lg:flex">
+        <nav className="hidden items-center gap-7 text-[14px] text-ink-secondary lg:flex">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="hover:text-ink">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="transition-colors hover:text-ink"
+            >
               {link.label}
             </Link>
           ))}

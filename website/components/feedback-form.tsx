@@ -138,7 +138,7 @@ export function FeedbackForm() {
   if (status === "success") {
     return (
       <div
-        className="rounded-xl border border-line bg-white p-6 sm:p-7"
+        className="rounded-2xl border border-line bg-white p-6 sm:p-8"
         role="status"
         aria-live="polite"
       >
@@ -158,7 +158,7 @@ export function FeedbackForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-xl border border-line bg-white p-6 sm:p-7"
+      className="rounded-2xl border border-line bg-white p-6 sm:p-8"
       noValidate
     >
       <input type="hidden" name="_subject" value={FORMSUBMIT_SUBJECT} />

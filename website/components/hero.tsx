@@ -13,33 +13,33 @@ export function Hero() {
 
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-6xl px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
+      <div className="mx-auto max-w-6xl px-5 pb-16 pt-16 sm:px-8 sm:pb-24 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-medium text-brand">
+          <p className="inline-flex rounded-full border border-line bg-page px-3 py-1 text-[13px] font-medium text-ink-secondary">
             {interpolate(t.hero.eyebrow, {
               version: site.version,
               date: site.releaseDate,
               platform: site.platform,
             })}
           </p>
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink sm:text-5xl sm:leading-[1.15]">
+          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-ink sm:text-[3.25rem] sm:leading-[1.12]">
             {t.hero.title}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-7 text-ink-secondary">
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-ink-secondary">
             {t.hero.subtitle}
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <DownloadButton size="lg" />
             <a
               href="#product"
-              className="inline-flex h-11 items-center rounded-lg border border-line px-5 text-[15px] font-medium text-ink-secondary hover:bg-page hover:text-ink"
+              className="inline-flex h-11 items-center rounded-lg border border-line px-5 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-page hover:text-ink"
             >
               {t.hero.secondaryCta}
             </a>
           </div>
         </div>
-        <div className="mx-auto mt-14 max-w-5xl">
-          <figure className="overflow-hidden rounded-xl border border-line bg-white shadow-[0_24px_48px_rgba(15,23,42,0.08)]">
+        <div className="mx-auto mt-16 max-w-5xl">
+          <figure className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_64px_rgba(10,10,10,0.08)]">
             <Image
               src={shot.src}
               alt={t.hero.title}

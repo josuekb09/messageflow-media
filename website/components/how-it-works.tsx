@@ -28,27 +28,27 @@ export function HowItWorks() {
   return (
     <section id="install" className="bg-white">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <h2 className="text-3xl font-semibold tracking-tight text-ink">
+        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {t.install.title}
         </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-secondary">
+        <p className="mt-3 max-w-2xl text-[15px] leading-7 text-ink-secondary">
           {t.install.lead}
         </p>
-        <ol className="mt-10 grid gap-8 sm:grid-cols-2">
+        <ol className="mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {t.install.steps.map((step, index) => {
             const Icon = icons[index] ?? DownloadGuide;
             return (
               <li
                 key={step.n}
-                className="rounded-xl border border-line bg-page p-5 sm:p-6"
+                className="flex flex-col rounded-2xl border border-line bg-page p-4 sm:p-5"
               >
-                <div className="rounded-lg border border-line bg-white">
+                <div className="overflow-hidden rounded-xl border border-line bg-white">
                   <Icon title={step.title} labels={step.labels} />
                 </div>
-                <p className="mt-4 text-xs font-semibold tracking-wide text-brand">
+                <p className="mt-5 text-[13px] font-semibold tabular-nums tracking-widest text-brand">
                   {step.n}
                 </p>
-                <p className="mt-2 text-lg font-semibold text-ink">
+                <p className="mt-1.5 text-lg font-semibold tracking-tight text-ink">
                   {step.title}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-ink-secondary">
@@ -58,7 +58,7 @@ export function HowItWorks() {
             );
           })}
         </ol>
-        <aside className="mt-10 rounded-xl border border-line bg-page p-5 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-6">
+        <aside className="mt-12 rounded-2xl border border-line bg-page p-5 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-7">
           <div>
             <p className="text-base font-semibold text-ink">
               {t.feedback.calloutTitle}
@@ -69,7 +69,7 @@ export function HowItWorks() {
           </div>
           <Link
             href="/feedback"
-            className="mt-4 inline-flex h-11 shrink-0 items-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white hover:bg-brand-hover sm:mt-0"
+            className="mt-4 inline-flex h-11 shrink-0 items-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white transition-colors hover:bg-brand-hover sm:mt-0"
           >
             {t.feedback.calloutCta}
           </Link>
@@ -90,8 +90,8 @@ function GuideFrame({
     <svg
       viewBox="0 0 480 300"
       width="100%"
-      height="300"
-      className="h-[300px] w-full"
+      height="180"
+      className="h-[180px] w-full xl:h-[160px]"
       role="img"
       aria-label={title}
       data-guide="labeled-v3"
