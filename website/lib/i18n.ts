@@ -99,7 +99,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Download for Windows",
       pageSubtitle:
         "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Opens the v1.0.2 GitHub release. Download MessageFlowMediaSetup.exe, run it on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project. English, French, and Swahili libraries are included.",
+      note: "Downloads MessageFlowMediaSetup.exe. Run it on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project. English, French, and Swahili libraries are included.",
     },
     product: {
       title: "Product",
@@ -183,7 +183,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Télécharger pour Windows",
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
-      note: "Ouvre la version v1.0.2 sur GitHub. Téléchargez MessageFlowMediaSetup.exe, installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre avant de projeter. Les bibliothèques anglaise, française et swahili sont incluses.",
+      note: "Télécharge MessageFlowMediaSetup.exe. Installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre avant de projeter. Les bibliothèques anglaise, française et swahili sont incluses.",
     },
     product: {
       title: "Produit",
@@ -267,7 +267,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Pakua kwa ajili ya Windows",
       pageTitle: "Pakua kwa ajili ya Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
-      note: "Inafungua toleo la v1.0.2 kwenye GitHub. Pakua MessageFlowMediaSetup.exe, isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend kabla ya kuonyesha. Maktaba za Kiingereza, Kifaransa na Kiswahili zimo.",
+      note: "Inapakua MessageFlowMediaSetup.exe. Isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend kabla ya kuonyesha. Maktaba za Kiingereza, Kifaransa na Kiswahili zimo.",
     },
     product: {
       title: "Bidhaa",

@@ -1,0 +1,11 @@
+database
+dist
+*.db
+*.exe
+*.zip
+src
+tools
+Inno Setup 6
+website/public/MessageFlowMediaSetup.exe
+website/node_modules
+website/.next

@@ -72,6 +72,8 @@ npm run build
 npm run dev
 ```
 
+Vercel: set the project **Root Directory** to `website`, or leave it at the repository root and use the root `vercel.json`, which builds `website/`.
+
 ## Project structure
 
 ```text
