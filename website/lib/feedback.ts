@@ -1,3 +1,5 @@
+import { site } from "@/lib/site";
+
 export const FEEDBACK_CATEGORIES = ["comment", "feature", "bug"] as const;
 
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
@@ -14,6 +16,8 @@ export const CATEGORY_SUBJECT: Record<FeedbackCategory, string> = {
   feature: "Feature request",
   bug: "Bug report",
 };
+
+export const FORMSUBMIT_AJAX_URL = `https://formsubmit.co/ajax/${site.supportEmail}`;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -90,4 +94,58 @@ export function parseFeedbackPayload(body: unknown): FeedbackParseResult {
       message,
     },
   };
+}
+
+export function buildFeedbackMail(data: FeedbackFields) {
+  const categoryLabel = CATEGORY_SUBJECT[data.category];
+  const displayName = data.name || "Anonymous";
+  const subject = `[MessageFlow] ${categoryLabel}`;
+  const body = [
+    `To: ${site.supportEmail}`,
+    `Category: ${categoryLabel}`,
+    `Name: ${displayName}`,
+    `Email: ${data.email}`,
+    "",
+    data.message,
+  ].join("\n");
+  return { categoryLabel, displayName, subject, body };
+}
+
+export function buildFormSubmitPayload(data: FeedbackFields): Record<string, string> {
+  const mail = buildFeedbackMail(data);
+  return {
+    name: mail.displayName,
+    email: data.email,
+    message: mail.body,
+    category: mail.categoryLabel,
+    _subject: mail.subject,
+    _template: "table",
+    _captcha: "false",
+  };
+}
+
+function isSuccessFlag(value: unknown): boolean {
+  return value === true || value === "true";
+}
+
+function isFailureFlag(value: unknown): boolean {
+  return value === false || value === "false";
+}
+
+function looksLikeActivation(message: unknown): boolean {
+  if (typeof message !== "string") return false;
+  const text = message.toLowerCase();
+  return (
+    text.includes("activat") ||
+    text.includes("confirm") ||
+    text.includes("check your email")
+  );
+}
+
+export function isFormSubmitAccepted(httpOk: boolean, result: unknown): boolean {
+  if (!result || typeof result !== "object") return httpOk;
+  const record = result as { success?: unknown; message?: unknown };
+  if (isSuccessFlag(record.success)) return true;
+  if (isFailureFlag(record.success)) return looksLikeActivation(record.message);
+  return httpOk;
 }

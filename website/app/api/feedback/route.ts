@@ -1,11 +1,13 @@
 import {
-  CATEGORY_SUBJECT,
+  buildFeedbackMail,
+  buildFormSubmitPayload,
+  FORMSUBMIT_AJAX_URL,
+  isFormSubmitAccepted,
   parseFeedbackPayload,
 } from "@/lib/feedback";
 import { site } from "@/lib/site";
 
 const WEB3FORMS_ENDPOINT = "https://api.web3forms.com/submit";
-const FORMSUBMIT_ENDPOINT = `https://formsubmit.co/ajax/${site.supportEmail}`;
 
 type ErrorCode = "validation" | "upstream" | "invalid_json";
 
@@ -13,38 +15,17 @@ function jsonError(code: ErrorCode, status: number, fields?: Record<string, true
   return Response.json({ ok: false, code, fields }, { status });
 }
 
-function isSuccessFlag(value: unknown): boolean {
-  return value === true || value === "true";
-}
-
-function isFailureFlag(value: unknown): boolean {
-  return value === false || value === "false";
-}
-
-function looksLikeActivation(message: unknown): boolean {
-  if (typeof message !== "string") return false;
-  const text = message.toLowerCase();
-  return (
-    text.includes("activat") ||
-    text.includes("confirm") ||
-    text.includes("check your email")
-  );
-}
-
-function isUpstreamSuccess(httpOk: boolean, result: unknown): boolean {
-  if (!result || typeof result !== "object") return httpOk;
-  const record = result as { success?: unknown; message?: unknown };
-  if (isSuccessFlag(record.success)) return true;
-  if (isFailureFlag(record.success)) return looksLikeActivation(record.message);
-  return httpOk;
-}
-
-async function postJson(url: string, payload: Record<string, unknown>): Promise<boolean> {
+async function postJson(
+  url: string,
+  payload: Record<string, unknown>,
+  headers?: Record<string, string>,
+): Promise<boolean> {
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...headers,
     },
     body: JSON.stringify(payload),
     cache: "no-store",
@@ -57,62 +38,7 @@ async function postJson(url: string, payload: Record<string, unknown>): Promise<
     return response.ok;
   }
 
-  return isUpstreamSuccess(response.ok, result);
-}
-
-function messageBody(
-  displayName: string,
-  email: string,
-  categoryLabel: string,
-  message: string,
-) {
-  return [
-    `To: ${site.supportEmail}`,
-    `Category: ${categoryLabel}`,
-    `Name: ${displayName}`,
-    `Email: ${email}`,
-    "",
-    message,
-  ].join("\n");
-}
-
-async function sendViaWeb3Forms(
-  accessKey: string,
-  displayName: string,
-  email: string,
-  categoryLabel: string,
-  subject: string,
-  body: string,
-): Promise<boolean> {
-  return postJson(WEB3FORMS_ENDPOINT, {
-    access_key: accessKey,
-    subject,
-    from_name: displayName,
-    name: displayName,
-    email,
-    replyto: email,
-    to: site.supportEmail,
-    category: categoryLabel,
-    message: body,
-  });
-}
-
-async function sendViaFormSubmit(
-  displayName: string,
-  email: string,
-  categoryLabel: string,
-  subject: string,
-  body: string,
-): Promise<boolean> {
-  return postJson(FORMSUBMIT_ENDPOINT, {
-    name: displayName,
-    email,
-    message: body,
-    category: categoryLabel,
-    _subject: subject,
-    _template: "table",
-    _captcha: "false",
-  });
+  return isFormSubmitAccepted(response.ok, result);
 }
 
 export async function POST(request: Request) {
@@ -132,16 +58,24 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
-  const { name, email, category, message } = parsed.data;
-  const categoryLabel = CATEGORY_SUBJECT[category];
-  const displayName = name || "Anonymous";
-  const subject = `[MessageFlow] ${categoryLabel}`;
-  const bodyText = messageBody(displayName, email, categoryLabel, message);
+  const mail = buildFeedbackMail(parsed.data);
+  const { email } = parsed.data;
 
   const accessKey = process.env.WEB3FORMS_ACCESS_KEY?.trim();
   if (accessKey) {
     try {
-      if (await sendViaWeb3Forms(accessKey, displayName, email, categoryLabel, subject, bodyText)) {
+      const sent = await postJson(WEB3FORMS_ENDPOINT, {
+        access_key: accessKey,
+        subject: mail.subject,
+        from_name: mail.displayName,
+        name: mail.displayName,
+        email,
+        replyto: email,
+        to: site.supportEmail,
+        category: mail.categoryLabel,
+        message: mail.body,
+      });
+      if (sent) {
         return Response.json({ ok: true });
       }
     } catch {
@@ -150,7 +84,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (await sendViaFormSubmit(displayName, email, categoryLabel, subject, bodyText)) {
+    const sent = await postJson(
+      FORMSUBMIT_AJAX_URL,
+      buildFormSubmitPayload(parsed.data),
+      {
+        Origin: site.url,
+        Referer: `${site.url}/feedback`,
+      },
+    );
+    if (sent) {
       return Response.json({ ok: true });
     }
   } catch {

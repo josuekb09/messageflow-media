@@ -47,7 +47,9 @@ The Windows installer is too large for Git or Vercel. Keep `MessageFlowMediaSetu
 
 The `/feedback` form posts to `app/api/feedback/route.ts`. Submissions go to **kabuyatambwe03@gmail.com**.
 
-Default delivery is [FormSubmit](https://formsubmit.co) AJAX (`https://formsubmit.co/ajax/kabuyatambwe03@gmail.com`). No access key or Vercel env var is required.
+Default delivery is [FormSubmit](https://formsubmit.co) AJAX (`https://formsubmit.co/ajax/kabuyatambwe03@gmail.com`). The feedback page posts that from the browser (FormSubmit expects a real website origin). `app/api/feedback/route.ts` still validates, tries FormSubmit, and uses Web3Forms when `WEB3FORMS_ACCESS_KEY` is set. No access key or Vercel env var is required for FormSubmit.
+
+The first live submit to a new FormSubmit inbox sends a confirmation email to that Gmail. Open it and click the confirmation link so later messages are forwarded. Check spam if it does not appear.
 
 The first live submit to a new FormSubmit inbox sends a confirmation email to that Gmail. Open it and click the confirmation link so later messages are forwarded. Check spam if it does not appear.
 

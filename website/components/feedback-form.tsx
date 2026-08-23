@@ -5,9 +5,13 @@ import { useI18n } from "@/components/language-provider";
 import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_LIMITS,
+  FORMSUBMIT_AJAX_URL,
+  buildFormSubmitPayload,
+  isFormSubmitAccepted,
   parseFeedbackPayload,
   type FeedbackCategory,
   type FeedbackFieldKey,
+  type FeedbackFields,
 } from "@/lib/feedback";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -51,6 +55,16 @@ export function FeedbackForm() {
     return t.feedback.error;
   }
 
+  async function sendViaFormSubmit(data: FeedbackFields): Promise<boolean> {
+    const response = await fetch(FORMSUBMIT_AJAX_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(buildFormSubmitPayload(data)),
+    });
+    const result = await response.json().catch(() => null);
+    return isFormSubmitAccepted(response.ok, result);
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorCode(null);
@@ -74,7 +88,17 @@ export function FeedbackForm() {
     setFieldErrors({});
     setStatus("submitting");
 
+    if (parsed.honeypot) {
+      setStatus("success");
+      return;
+    }
+
     try {
+      if (await sendViaFormSubmit(parsed.data)) {
+        setStatus("success");
+        return;
+      }
+
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
