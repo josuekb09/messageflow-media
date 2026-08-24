@@ -8,7 +8,7 @@
 ;   ISCC.exe messageflow.iss
 
 #define MyAppName "MessageFlow Media"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.3"
 #define MyAppPublisher "MessageFlow Media"
 #define MyAppExeName "MessageFlow.App.exe"
 

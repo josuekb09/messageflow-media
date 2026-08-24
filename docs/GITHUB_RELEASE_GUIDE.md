@@ -6,7 +6,7 @@ This guide prepares a free public GitHub release. Do not upload or publish anyth
 
 1. Create the GitHub repository.
 2. Push the source code.
-3. Create a release tag, for example `v1.0.2`.
+3. Create a release tag, for example `v1.0.3`.
 4. Create a GitHub Release from that tag.
 5. Attach this installer (do not commit it to git):
 
@@ -19,7 +19,7 @@ A local copy for the Next.js site lives at `website/public/MessageFlowMediaSetup
 ## Release Title
 
 ```text
-MessageFlow Media v1.0.2
+MessageFlow Media v1.0.3
 ```
 
 ## Release Notes

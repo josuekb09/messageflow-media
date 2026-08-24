@@ -2,10 +2,10 @@
 
 Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-Current public release: **v1.0.2** (August 2026).
+Current public release: **v1.0.3** (August 2026).
 
 Website: [messageflow.app](https://messageflow.app)  
-Download: [GitHub Releases v1.0.2](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.2)
+Download: [GitHub Releases v1.0.3](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.3)
 
 ## Library in this build
 
@@ -39,7 +39,7 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 
 ## Install on Windows 10 / 11 (64-bit)
 
-1. Open the [v1.0.2 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.2) and download `MessageFlowMediaSetup.exe` (or use the Download button on [messageflow.app/download](https://messageflow.app/download)).
+1. Open the [v1.0.3 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.3) and download `MessageFlowMediaSetup.exe` (or use the Download button on [messageflow.app/download](https://messageflow.app/download)).
 2. Run the installer. Prefer installing on drive **D:** if that is the church media disk.
 3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
@@ -72,7 +72,7 @@ npm run build
 npm run dev
 ```
 
-Vercel: set the project **Root Directory** to `website`, or leave it at the repository root and use the root `vercel.json`, which builds `website/`.
+Vercel: `vercel.json` cannot set `rootDirectory` (not in the official schema). On the Vercel project, set **Root Directory** to `website` (Settings → General, or the project API). The **messageflow-media** project is already set this way. A root-level `vercel.json` fallback cannot deploy this Next.js app, because Vercel looks for `next` in the repository-root `package.json`. Production: https://messageflow-media.vercel.app
 
 ## Project structure
 

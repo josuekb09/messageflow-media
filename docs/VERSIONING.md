@@ -3,16 +3,16 @@
 ## Current Version
 
 ```text
-v1.0.2
+v1.0.3
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.2
+MessageFlow Media v1.0.3
 ```
 
-## Included In v1.0.2
+## Included In v1.0.3
 
 - 1,208 English, 384 French, and 622 Swahili sermons
 - Bibles: KJV, Louis Segond (LSG), SWHULB

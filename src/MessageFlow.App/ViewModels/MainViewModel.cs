@@ -2009,18 +2009,46 @@ public sealed partial class MainViewModel : ObservableObject
         if (enabled)
         {
             IsBibleMode = false;
-            StatusText = SelectedSongSection is null
-                ? "Search songs by title or lyrics."
-                : $"Selected {SelectedSongSection.SectionLabel}.";
-
+            RestoreLibraryStatusText();
             QueueSongSearch();
             return;
         }
+
+        songSearchDebounce?.Cancel();
+        Interlocked.Increment(ref songSearchRequestVersion);
+        IsSearching = false;
 
         if (!IsBibleMode && SelectedParagraph is null && ParagraphResults.Count > 0)
         {
             SelectedParagraph = ParagraphResults.FirstOrDefault();
         }
+
+        RestoreLibraryStatusText();
+    }
+
+    private void RestoreLibraryStatusText()
+    {
+        if (IsSongsMode)
+        {
+            StatusText = SelectedSongSection is null
+                ? HasSongContentForCurrentLanguage
+                    ? Loc.T("Song_SearchHint")
+                    : Loc.F("Song_NoContentForLanguage", SelectedUiLanguage.NativeName)
+                : $"Selected {SelectedSongSection.SectionLabel}.";
+            return;
+        }
+
+        if (IsBibleMode)
+        {
+            StatusText = SelectedBibleVerse is null
+                ? Loc.T("Bible_SearchHint")
+                : $"Selected {SelectedBibleVerse.ReferenceDisplay}.";
+            return;
+        }
+
+        StatusText = SelectedParagraph is null
+            ? Loc.T("Sermon_SearchHintShort")
+            : Loc.F("Status_SelectedParagraph", SelectedParagraph.ParagraphNumber);
     }
 
     public async Task BackupDatabaseAsync()
@@ -3554,7 +3582,7 @@ public sealed partial class MainViewModel : ObservableObject
         CancellationToken cancellationToken,
         int version)
     {
-        if (!IsCurrentSongSearch(version))
+        if (!IsCurrentSongSearch(version) || !IsSongsMode)
         {
             return;
         }
@@ -3574,7 +3602,7 @@ public sealed partial class MainViewModel : ObservableObject
                 cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsCurrentSongSearch(version))
+            if (!IsCurrentSongSearch(version) || !IsSongsMode)
             {
                 return;
             }
@@ -3602,7 +3630,10 @@ public sealed partial class MainViewModel : ObservableObject
                 SongResults.Clear();
                 SongSections.Clear();
                 SelectedSong = null;
-                StatusText = $"Song search failed: {ex.Message}";
+                if (IsSongsMode)
+                {
+                    StatusText = $"Song search failed: {ex.Message}";
+                }
             }
         }
         finally
@@ -3649,22 +3680,28 @@ public sealed partial class MainViewModel : ObservableObject
                 : SongSections.FirstOrDefault(section => section.SectionId == song.MatchedSectionId.Value) ??
                   SongSections.FirstOrDefault();
 
-            StatusText = SelectedSongSection is null
-                ? $"No lyric sections found for {song.Title}."
-                : $"Selected {SelectedSongSection.SectionLabel}.";
+            if (IsSongsMode)
+            {
+                StatusText = SelectedSongSection is null
+                    ? $"No lyric sections found for {song.Title}."
+                    : $"Selected {SelectedSongSection.SectionLabel}.";
+            }
         }
         catch (Exception ex)
         {
             App.LogStartupError("Song section load failed.", ex);
             SongSections.Clear();
             SelectedSongSection = null;
-            StatusText = $"Could not load song sections: {ex.Message}";
+            if (IsSongsMode)
+            {
+                StatusText = $"Could not load song sections: {ex.Message}";
+            }
         }
     }
 
     private void QueueSearch()
     {
-        if (isSermonReadingMode)
+        if (isSermonReadingMode || IsSongsMode || IsBibleMode)
         {
             return;
         }
