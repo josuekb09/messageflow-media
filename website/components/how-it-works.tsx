@@ -28,7 +28,7 @@ export function HowItWorks() {
   return (
     <section id="install" className="bg-white">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h2 className="text-pretty text-2xl font-semibold tracking-tight text-ink sm:text-3xl md:text-4xl">
           {t.install.title}
         </h2>
         <p className="mt-3 max-w-2xl text-[15px] leading-7 text-ink-secondary">
@@ -69,7 +69,7 @@ export function HowItWorks() {
           </div>
           <Link
             href="/feedback"
-            className="mt-4 inline-flex h-11 shrink-0 items-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white transition-colors hover:bg-brand-hover sm:mt-0"
+            className="mt-4 inline-flex h-11 w-full shrink-0 items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white transition-colors hover:bg-brand-hover sm:mt-0 sm:w-auto"
           >
             {t.feedback.calloutCta}
           </Link>
@@ -91,7 +91,7 @@ function GuideFrame({
       viewBox="0 0 480 300"
       width="100%"
       height="180"
-      className="h-[180px] w-full xl:h-[160px]"
+      className="h-[140px] w-full sm:h-[180px] xl:h-[160px]"
       role="img"
       aria-label={title}
       data-guide="labeled-v3"

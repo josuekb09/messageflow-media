@@ -11,26 +11,26 @@ export function DownloadCenter() {
   return (
     <section id="download" className="border-t border-line bg-page">
       <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
-        <div className="rounded-2xl border border-line bg-white p-8 sm:flex sm:items-center sm:justify-between sm:p-10">
+        <div className="rounded-2xl border border-line bg-white p-5 sm:flex sm:items-center sm:justify-between sm:p-10">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {t.download.heading}
             </h2>
-            <p className="mt-2 text-sm text-ink-secondary">
-              {site.downloadFileName}
-              <span className="mx-2 text-line">·</span>
-              v{site.version}
-              <span className="mx-2 text-line">·</span>
-              {site.releaseDate}
-              <span className="mx-2 text-line">·</span>
-              {site.platform}
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-secondary">
+              <span className="break-all">{site.downloadFileName}</span>
+              <span className="text-line">·</span>
+              <span>v{site.version}</span>
+              <span className="text-line">·</span>
+              <span>{site.releaseDate}</span>
+              <span className="text-line">·</span>
+              <span>{site.platform}</span>
             </p>
             <p className="mt-3 max-w-lg text-sm leading-6 text-ink-muted">
               {t.download.note}
             </p>
           </div>
-          <div className="mt-6 sm:mt-0">
-            <DownloadButton size="lg" />
+          <div className="mt-6 sm:mt-0 sm:shrink-0">
+            <DownloadButton size="lg" className="w-full sm:w-auto" />
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@ export function DownloadHero() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
-      <h1 className="text-3xl font-semibold tracking-tight text-ink">
+      <h1 className="text-pretty text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
         {t.download.pageTitle}
       </h1>
       <p className="mt-3 max-w-xl text-ink-secondary">

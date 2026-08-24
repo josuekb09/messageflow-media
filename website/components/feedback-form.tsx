@@ -274,7 +274,7 @@ export function FeedbackForm() {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
       >
         {status === "submitting" ? t.feedback.submitting : t.feedback.submit}
       </button>

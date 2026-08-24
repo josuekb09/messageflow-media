@@ -15,24 +15,24 @@ export function Hero() {
     <section className="bg-white">
       <div className="mx-auto max-w-6xl px-5 pb-16 pt-16 sm:px-8 sm:pb-24 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="inline-flex rounded-full border border-line bg-page px-3 py-1 text-[13px] font-medium text-ink-secondary">
+          <p className="inline-flex max-w-full text-pretty rounded-full border border-line bg-page px-3 py-1 text-left text-[13px] font-medium text-ink-secondary">
             {interpolate(t.hero.eyebrow, {
               version: site.version,
               date: site.releaseDate,
               platform: site.platform,
             })}
           </p>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-ink sm:text-[3.25rem] sm:leading-[1.12]">
+          <h1 className="mt-6 text-pretty text-[1.75rem] font-semibold leading-tight tracking-tight text-ink sm:text-4xl sm:leading-[1.12] md:text-[3.25rem]">
             {t.hero.title}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-ink-secondary">
+          <p className="mx-auto mt-5 max-w-2xl text-pretty text-base leading-7 text-ink-secondary sm:text-lg sm:leading-8">
             {t.hero.subtitle}
           </p>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-            <DownloadButton size="lg" />
+          <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+            <DownloadButton size="lg" className="w-full sm:w-auto" />
             <a
               href="#product"
-              className="inline-flex h-11 items-center rounded-lg border border-line px-5 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-page hover:text-ink"
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-line px-5 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-page hover:text-ink sm:w-auto"
             >
               {t.hero.secondaryCta}
             </a>

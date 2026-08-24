@@ -33,6 +33,8 @@ export type Dictionary = {
   };
   header: {
     languageLabel: string;
+    menuOpen: string;
+    menuClose: string;
   };
   hero: {
     eyebrow: string;
@@ -128,6 +130,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     header: {
       languageLabel: "Language",
+      menuOpen: "Open menu",
+      menuClose: "Close menu",
     },
     hero: {
       eyebrow: "v{version} Live · Built for Windows 10 / 11",
@@ -287,6 +291,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     header: {
       languageLabel: "Langue",
+      menuOpen: "Ouvrir le menu",
+      menuClose: "Fermer le menu",
     },
     hero: {
       eyebrow: "v{version} disponible · Windows 10 / 11",
@@ -446,6 +452,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     header: {
       languageLabel: "Lugha",
+      menuOpen: "Fungua menyu",
+      menuClose: "Funga menyu",
     },
     hero: {
       eyebrow: "v{version} Iko hai · Windows 10 / 11",

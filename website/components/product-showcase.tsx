@@ -20,7 +20,7 @@ export function ProductShowcase() {
   return (
     <section id="product" className="bg-white">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h2 className="text-pretty text-2xl font-semibold tracking-tight text-ink sm:text-3xl md:text-4xl">
           {t.product.title}
         </h2>
 
@@ -46,7 +46,7 @@ export function ProductShowcase() {
           <div
             role="tablist"
             aria-label={t.product.screenshotsTitle}
-            className="mt-4 inline-flex rounded-lg border border-line bg-page p-0.5 text-[13px]"
+            className="mt-4 flex w-full flex-wrap rounded-lg border border-line bg-page p-0.5 text-[13px] sm:inline-flex sm:w-auto"
           >
             {shots.map((id) => {
               const selected = id === activeId;
@@ -63,7 +63,7 @@ export function ProductShowcase() {
                   role="tab"
                   aria-selected={selected}
                   onClick={() => setActiveId(id)}
-                  className={`rounded-md px-3 py-1.5 font-medium ${
+                  className={`min-h-9 flex-1 rounded-md px-3 py-1.5 font-medium sm:flex-none ${
                     selected
                       ? "bg-white text-ink shadow-sm"
                       : "text-ink-muted hover:text-ink"

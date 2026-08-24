@@ -8,7 +8,7 @@ export function FeatureMatrix() {
   return (
     <section id="features" className="border-y border-line bg-page">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h2 className="text-pretty text-2xl font-semibold tracking-tight text-ink sm:text-3xl md:text-4xl">
           {t.features.title}
         </h2>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-2">

@@ -44,6 +44,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -54,11 +57,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={localeHtmlLang[initialLocale]}
-      className={`${geist.variable} h-full antialiased`}
+      className={`${geist.variable} h-full overflow-x-clip antialiased`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col bg-page font-sans text-ink">
+      <body className="flex min-h-full flex-col overflow-x-clip bg-page font-sans text-ink">
         <LanguageProvider initialLocale={initialLocale}>
           <SiteHeader />
           <div className="flex-1">{children}</div>

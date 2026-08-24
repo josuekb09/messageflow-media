@@ -5,9 +5,10 @@ import { site } from "@/lib/site";
 
 type DownloadButtonProps = {
   size?: "md" | "lg";
+  className?: string;
 };
 
-export function DownloadButton({ size = "md" }: DownloadButtonProps) {
+export function DownloadButton({ size = "md", className = "" }: DownloadButtonProps) {
   const { t } = useI18n();
   const large = size === "lg";
 
@@ -16,7 +17,7 @@ export function DownloadButton({ size = "md" }: DownloadButtonProps) {
       href={site.downloadHref}
       className={`inline-flex items-center justify-center rounded-lg bg-brand font-medium text-white transition-colors hover:bg-brand-hover ${
         large ? "h-11 px-5 text-[15px]" : "h-9 px-3.5 text-sm"
-      }`}
+      } ${className}`}
     >
       {t.download.button}
     </a>

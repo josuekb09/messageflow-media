@@ -22,7 +22,7 @@ export function SiteFooter() {
             {t.footer.blurb}
           </p>
         </div>
-        <div className="flex gap-16 text-sm">
+        <div className="flex flex-col gap-10 text-sm sm:flex-row sm:gap-16">
           <div>
             <p className="text-[13px] font-medium tracking-wide text-ink">
               {t.footer.product}
@@ -68,7 +68,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-5 py-5 text-sm text-ink-muted sm:px-8">
+        <p className="mx-auto max-w-6xl px-5 py-5 text-sm leading-6 text-ink-muted sm:px-8">
           {t.footer.copyright}
         </p>
       </div>
