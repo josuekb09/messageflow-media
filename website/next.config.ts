@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const installerUrl =
+  process.env.INSTALLER_BLOB_URL ??
+  "https://pgtfkrl3a4dute3q.public.blob.vercel-storage.com/MessageFlowMediaSetup.exe";
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
@@ -8,7 +12,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/MessageFlowMediaSetup.exe",
-        destination: "/api/installer",
+        destination: installerUrl,
       },
     ];
   },

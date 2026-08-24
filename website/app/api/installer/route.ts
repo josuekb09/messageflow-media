@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 const SOURCE =
   process.env.INSTALLER_BLOB_URL ??
-  "https://github.com/josuekb09/messageflow-media/releases/download/v1.0.2/MessageFlowMediaSetup.exe";
+  "https://pgtfkrl3a4dute3q.public.blob.vercel-storage.com/MessageFlowMediaSetup.exe";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
