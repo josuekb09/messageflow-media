@@ -24,7 +24,7 @@ npm run dev
 
 Open http://localhost:3000
 
-Place `MessageFlowMediaSetup.exe` in `public/` before publishing downloads.
+The live Download button uses the GitHub Release asset (too large for Vercel).
 
 Product screenshots and the compressed demo video live in `public/media/`.
 
@@ -41,7 +41,7 @@ The root `vercel.json` is only a fallback if Root Directory is reset to `.`. Tha
 
 Production: https://messageflow-media.vercel.app
 
-The Windows installer is too large for Git or Vercel. Keep `MessageFlowMediaSetup.exe` in `public/` for local downloads only. Production still uses the same `/MessageFlowMediaSetup.exe` path when the file is served from that host.
+The Windows installer is too large for Git or Vercel. Production downloads go to the GitHub Release asset `MessageFlowMediaSetup.exe`. Keep a local copy in `public/` only if you need offline `npm run dev` downloads.
 
 ## Feedback & Support
 
