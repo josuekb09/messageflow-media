@@ -145,7 +145,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       heading: "Ready for Sunday morning",
       pageTitle: "Download for Windows",
       pageSubtitle: "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Downloads MessageFlowMediaSetup.exe (~563 MB) from GitHub. Install on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project.",
+      note: "Downloads MessageFlowMediaSetup.exe (~563 MB). Install on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project.",
     },
     product: {
       title: "The operator desk, in every language",

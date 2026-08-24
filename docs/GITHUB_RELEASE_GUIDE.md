@@ -14,7 +14,7 @@ This guide prepares a free public GitHub release. Do not upload or publish anyth
 D:\My Projects\MessageFlow\dist\MessageFlowMediaSetup.exe
 ```
 
-A local copy for the Next.js site lives at `website/public/MessageFlowMediaSetup.exe` (gitignored). Vercel cannot host this ~563 MB file; the public download button should open the GitHub Release.
+A local copy for the Next.js site lives at `website/public/MessageFlowMediaSetup.exe` (gitignored). The website Download button serves that file from `/MessageFlowMediaSetup.exe` so visitors never leave the site.
 
 ## Release Title
 

@@ -9,8 +9,7 @@ export const site = {
   platform: "Windows 10 / 11",
   exeName: "MessageFlow.App.exe",
   githubReleaseTag: "v1.0.2",
-  downloadHref:
-    "https://github.com/josuekb09/messageflow-media/releases/download/v1.0.2/MessageFlowMediaSetup.exe",
+  downloadHref: "/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
   installerSize: "~563 MB",
   supportEmail: "kabuyatambwe03@gmail.com",
