@@ -1,5 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "ignoreCommand": "exit 1"
+  "ignoreCommand": "exit 1",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "messageflow.tech" }],
+      "destination": "https://www.messageflow.tech/",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "messageflow.tech" }],
+      "destination": "https://www.messageflow.tech/:path*",
+      "permanent": true
+    }
+  ]
 }

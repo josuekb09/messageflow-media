@@ -41,6 +41,26 @@ The root `vercel.json` is only a fallback if Root Directory is reset to `.`. Tha
 
 Production: https://www.messageflow.tech
 
+### Custom domain DNS (required for HTTPS)
+
+Chrome `NET::ERR_CERT_AUTHORITY_INVALID` means DNS is not pointing only at Vercel. The registrar nameservers are currently `ns1.anycast-ns.com` / `ns2.anycast-ns.net` / `ns3.anycast-ns.com` / `ns4.anycast-ns.net` (domains.co.za), not Vercel or Cloudflare.
+
+In the **domains.co.za** (or registrar) DNS panel, replace the records so there is **no leftover parking IP**:
+
+| Type | Name | Value | Notes |
+|---|---|---|---|
+| A | `@` (apex) | `76.76.21.21` | Vercel. Delete every other A record, especially `169.239.219.58` (domains.co.za forwarding) and `216.198.79.1`. |
+| CNAME | `www` | `cname.vercel-dns.com` | Do **not** CNAME `www` to the apex. |
+
+Then in Vercel: **Project → Settings → Domains**
+
+1. Confirm both `messageflow.tech` and `www.messageflow.tech` are on **messageflow-media**.
+2. Set **www.messageflow.tech** as the primary domain.
+3. Edit `messageflow.tech` → **Redirect to** `www.messageflow.tech`.
+4. Wait until the domain cards show **Valid Configuration**. Vercel then issues Let's Encrypt automatically. Do not click through Chrome's warning; the parking host serves an expired self-signed cert for `domainforwarding.domains.co.za`.
+
+The app itself is already live with a valid cert at https://messageflow-media.vercel.app. SSL on `.tech` cannot be issued until those DNS records match.
+
 The Windows installer is too large for Git. Production still downloads from this website at `/MessageFlowMediaSetup.exe`. Keep a local copy in `public/` for `npm run dev`.
 
 ## Feedback & Support
