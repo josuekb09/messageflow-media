@@ -27,10 +27,13 @@ export const metadata: Metadata = {
   description: site.description,
   applicationName: site.name,
   icons: { icon: "/brand/app-icon.svg" },
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "/",
+    url: site.url,
     siteName: site.name,
     title: `${site.name} — ${site.tagline}`,
     description: site.description,

@@ -3,7 +3,7 @@ export const site = {
   tagline: "The modern standard for church media projection",
   description:
     "Lightning-fast offline Windows software to search and project sermons, Bibles, and multilingual songbooks in English, French, and Kiswahili — no internet required.",
-  url: "https://messageflow.app",
+  url: "https://www.messageflow.tech",
   version: "1.0.3",
   releaseDate: "August 2026",
   platform: "Windows 10 / 11",

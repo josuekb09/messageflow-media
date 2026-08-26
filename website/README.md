@@ -39,7 +39,7 @@ This site lives in `website/`. `vercel.json` cannot set `rootDirectory` (it is n
 
 The root `vercel.json` is only a fallback if Root Directory is reset to `.`. That path cannot deploy this Next.js app: Vercel looks for `next` in the repository-root `package.json` and fails. Keep Root Directory = `website`.
 
-Production: https://messageflow-media.vercel.app
+Production: https://www.messageflow.tech
 
 The Windows installer is too large for Git. Production still downloads from this website at `/MessageFlowMediaSetup.exe`. Keep a local copy in `public/` for `npm run dev`.
 

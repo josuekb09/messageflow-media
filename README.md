@@ -4,7 +4,7 @@ Free Windows software for the church operator desk. Search and project sermons, 
 
 Current public release: **v1.0.3** (August 2026).
 
-Website: [messageflow.app](https://messageflow.app)  
+Website: [www.messageflow.tech](https://www.messageflow.tech)  
 Download: [GitHub Releases v1.0.3](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.3)
 
 ## Library in this build
@@ -39,7 +39,7 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 
 ## Install on Windows 10 / 11 (64-bit)
 
-1. Open the [v1.0.3 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.3) and download `MessageFlowMediaSetup.exe` (or use the Download button on [messageflow.app/download](https://messageflow.app/download)).
+1. Open the [v1.0.3 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.3) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
 2. Run the installer. Prefer installing on drive **D:** if that is the church media disk.
 3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
@@ -72,7 +72,7 @@ npm run build
 npm run dev
 ```
 
-Vercel: `vercel.json` cannot set `rootDirectory` (not in the official schema). On the Vercel project, set **Root Directory** to `website` (Settings → General, or the project API). The **messageflow-media** project is already set this way. A root-level `vercel.json` fallback cannot deploy this Next.js app, because Vercel looks for `next` in the repository-root `package.json`. Production: https://messageflow-media.vercel.app
+Vercel: `vercel.json` cannot set `rootDirectory` (not in the official schema). On the Vercel project, set **Root Directory** to `website` (Settings → General, or the project API). The **messageflow-media** project is already set this way. A root-level `vercel.json` fallback cannot deploy this Next.js app, because Vercel looks for `next` in the repository-root `package.json`. Production: https://www.messageflow.tech
 
 ## Project structure
 

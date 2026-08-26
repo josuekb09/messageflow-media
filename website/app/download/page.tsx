@@ -6,6 +6,12 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Download",
   description: `Download MessageFlow Media ${site.version} for Windows. English, French, and Kiswahili sermons, Bibles, and songbooks.`,
+  alternates: {
+    canonical: "/download",
+  },
+  openGraph: {
+    url: "/download",
+  },
 };
 
 export default function DownloadPage() {
