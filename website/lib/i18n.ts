@@ -48,6 +48,14 @@ export type Dictionary = {
     pageTitle: string;
     pageSubtitle: string;
     note: string;
+    safetyTitle: string;
+    safetyLead: string;
+    chromeTitle: string;
+    chromeBody: string;
+    windowsTitle: string;
+    windowsBody: string;
+    hashLabel: string;
+    notMalware: string;
   };
   product: {
     title: string;
@@ -146,6 +154,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Download for Windows",
       pageSubtitle: "Version {version}, released {date}. Windows 10 / 11.",
       note: "Downloads MessageFlowMediaSetup.exe (~563 MB). Install on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project.",
+      safetyTitle: "If Chrome or Windows blocks the file",
+      safetyLead:
+        "MessageFlow Media is free church software. The installer is not signed with a paid Microsoft certificate yet, so some PCs warn on a first download. That is a Windows/Chrome reputation check, not a virus.",
+      chromeTitle: "Chrome says “Virus detected”",
+      chromeBody:
+        "Open the download menu (arrow icon). Select the file → Keep → Keep anyway. Or download again with Microsoft Edge. Then open the .exe from your Downloads folder.",
+      windowsTitle: "Windows says “Windows protected your PC”",
+      windowsBody:
+        "Click More info, then Run anyway. Allow the app if User Account Control asks. Publisher will show as MessageFlow Media.",
+      hashLabel: "SHA-256 (optional check)",
+      notMalware:
+        "The file is the official installer from www.messageflow.tech. It contains sermons, Bibles, and songs for offline church use.",
     },
     product: {
       title: "The operator desk, in every language",
@@ -207,7 +227,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Install",
-          body: "Run the wizard. Choose a disk with room for the offline library.",
+          body: "Run the wizard. If Windows shows “protected your PC”, click More info → Run anyway. Choose a disk with room for the offline library.",
           labels: {
             primary: "MessageFlow Media",
             secondary: "Setup wizard",
@@ -307,6 +327,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
       note: "Télécharge MessageFlowMediaSetup.exe (~563 Mo). Installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre.",
+      safetyTitle: "Si Chrome ou Windows bloque le fichier",
+      safetyLead:
+        "MessageFlow Media est un logiciel d'église gratuit. L'installateur n'est pas encore signé avec un certificat Microsoft payant, donc certains PC affichent un avertissement au premier téléchargement. Ce n'est pas un virus : c'est un contrôle de réputation Windows/Chrome.",
+      chromeTitle: "Chrome affiche « Virus detected »",
+      chromeBody:
+        "Ouvrez le menu Téléchargements (flèche). Choisissez le fichier → Conserver → Conserver quand même. Ou retéléchargez avec Microsoft Edge. Puis ouvrez le .exe depuis le dossier Téléchargements.",
+      windowsTitle: "Windows affiche « Windows a protégé votre PC »",
+      windowsBody:
+        "Cliquez sur Plus d'infos, puis Exécuter quand même. Autorisez l'app si le Contrôle de compte d'utilisateur le demande. L'éditeur s'affiche comme MessageFlow Media.",
+      hashLabel: "SHA-256 (vérification facultative)",
+      notMalware:
+        "Ce fichier est l'installateur officiel de www.messageflow.tech. Il contient prédications, Bibles et cantiques pour un usage hors ligne à l'église.",
     },
     product: {
       title: "Le pupitre, dans chaque langue",
@@ -368,7 +400,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Installer",
-          body: "Lancez l'assistant. Choisissez un disque avec assez d'espace pour la bibliothèque hors ligne.",
+          body: "Lancez l'assistant. Si Windows affiche « a protégé votre PC », cliquez sur Plus d'infos → Exécuter quand même. Choisissez un disque avec assez d'espace pour la bibliothèque hors ligne.",
           labels: {
             primary: "MessageFlow Media",
             secondary: "Assistant",
@@ -468,6 +500,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Pakua kwa Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
       note: "Inapakua MessageFlowMediaSetup.exe (~563 MB). Isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend.",
+      safetyTitle: "Ikiwa Chrome au Windows inazuia faili",
+      safetyLead:
+        "MessageFlow Media ni programu ya kanisa bila malipo. Setup bado haijatiwa saini kwa cheti cha Microsoft kinacholipiwa, kwa hiyo kompyuta nyingine huonyesha onyo wakati wa kupakua mara ya kwanza. Si virusi: ni ukaguzi wa sifa wa Windows/Chrome.",
+      chromeTitle: "Chrome inasema “Virus detected”",
+      chromeBody:
+        "Fungua menyu ya Vipakuliwa (mshale). Chagua faili → Keep → Keep anyway. Au pakua tena kwa Microsoft Edge. Kisha fungua .exe kutoka kwenye folda ya Downloads.",
+      windowsTitle: "Windows inasema “Windows protected your PC”",
+      windowsBody:
+        "Bonyeza More info, kisha Run anyway. Ruhusu programu ikiwa User Account Control inauliza. Mchapishaji ataonekana kama MessageFlow Media.",
+      hashLabel: "SHA-256 (hiari)",
+      notMalware:
+        "Faili hii ni setup rasmi kutoka www.messageflow.tech. Ina mahubiri, Biblia, na nyimbo kwa matumizi ya kanisa nje ya mtandao.",
     },
     product: {
       title: "Dawati la operator, katika kila lugha",
@@ -529,7 +573,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Sakinisha",
-          body: "Fungua setup. Chagua diski yenye nafasi ya kutosha kwa maktaba nje ya mtandao.",
+          body: "Fungua setup. Ikiwa Windows inaonyesha “protected your PC”, bonyeza More info → Run anyway. Chagua diski yenye nafasi ya kutosha kwa maktaba nje ya mtandao.",
           labels: {
             primary: "MessageFlow Media",
             secondary: "Usakinishaji",

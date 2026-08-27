@@ -33,8 +33,48 @@ export function DownloadCenter() {
             <DownloadButton size="lg" className="w-full sm:w-auto" />
           </div>
         </div>
+        <DownloadSafety />
       </div>
     </section>
+  );
+}
+
+function DownloadSafety() {
+  const { t } = useI18n();
+
+  return (
+    <div
+      id="windows-warning"
+      className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-8"
+    >
+      <h3 className="text-lg font-semibold tracking-tight text-ink">
+        {t.download.safetyTitle}
+      </h3>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-secondary">
+        {t.download.safetyLead}
+      </p>
+      <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-muted">
+        {t.download.notMalware}
+      </p>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-line bg-page p-4 sm:p-5">
+          <p className="font-semibold text-ink">{t.download.chromeTitle}</p>
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
+            {t.download.chromeBody}
+          </p>
+        </div>
+        <div className="rounded-xl border border-line bg-page p-4 sm:p-5">
+          <p className="font-semibold text-ink">{t.download.windowsTitle}</p>
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
+            {t.download.windowsBody}
+          </p>
+        </div>
+      </div>
+      <p className="mt-6 text-[13px] font-medium text-ink">{t.download.hashLabel}</p>
+      <code className="mt-2 block break-all rounded-lg border border-line bg-page px-3 py-2 font-mono text-[12px] leading-5 text-ink-secondary">
+        {site.installerSha256}
+      </code>
+    </div>
   );
 }
 

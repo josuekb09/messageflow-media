@@ -12,6 +12,8 @@ export const site = {
   downloadHref: "/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
   installerSize: "~563 MB",
+  installerSha256:
+    "71816BF2D8E4696E3F7C3208982F6287479BBBBB5B7700428FBEE64A877EC351",
   supportEmail: "kabuyatambwe03@gmail.com",
   ccEmail: "Paulinkabeya@gmail.com",
 } as const;
