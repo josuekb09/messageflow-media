@@ -3,22 +3,23 @@
 ## Current Version
 
 ```text
-v1.0.3
+v1.0.4
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.3
+MessageFlow Media v1.0.4
 ```
 
-## Included In v1.0.3
+## Included In v1.0.4
 
 - 1,208 English, 384 French, and 622 Swahili sermons
 - Bibles: KJV, Louis Segond (LSG), SWHULB
 - 357 English songs
 - 499 French hymns with verse → chorus interleaving
-- 281 Swahili hymns from the official PowerPoint collection
+- 281 Swahili hymns
+- Bible search bar keeps French/Kiswahili book names after chapter selection
 - Optional light theme; dark remains the default
 - Dual-screen projection, favorites, history, offline use
 

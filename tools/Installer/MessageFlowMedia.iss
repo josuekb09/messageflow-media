@@ -5,7 +5,7 @@
 ; and InstallerOutputDir to ISCC.
 
 #define MyAppName "MessageFlow Media"
-#define MyAppVersion "1.0.3"
+#define MyAppVersion "1.0.4"
 #define MyAppPublisher "MessageFlow Media"
 #define MyAppExeName "MessageFlow.App.exe"
 

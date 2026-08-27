@@ -3312,7 +3312,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         suppressBibleSearchQueue = true;
-        BibleSearchText = $"{item.BookName} ";
+        // Keep the search box in the active UI language (Genèse / Mwanzo), not canonical English.
+        BibleSearchText = $"{Localizer.Instance.BookName(item.BookName)} ";
         suppressBibleSearchQueue = false;
 
         var chapters = await LoadBibleChapterItemsAsync(item.BookName, CancellationToken.None);
@@ -3325,7 +3326,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         SelectedBibleNavigationItem = null;
         SelectedBibleVerse = null;
-        StatusText = $"{FormatCount(chapters.Count, "chapter", "chapters")} found for {item.BookName}.";
+        StatusText = Loc.F(
+            "Status_ChaptersFound",
+            Loc.Count(chapters.Count, "Count_Chapter_One", "Count_Chapter_Many"),
+            Localizer.Instance.BookName(item.BookName));
     }
 
     private async Task ShowBibleChapterVersesAsync(BibleNavigationItemViewModel item)
@@ -3336,7 +3340,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         suppressBibleSearchQueue = true;
-        BibleSearchText = $"{item.BookName} {item.Chapter}";
+        // Keep the search box in the active UI language (Genèse 1 / Mwanzo 1), not canonical English.
+        BibleSearchText = Localizer.Instance.BookReference(item.BookName, item.Chapter.Value);
         suppressBibleSearchQueue = false;
 
         var reference = new BibleReference(item.BookName, item.Chapter.Value, null, true, string.Empty);
@@ -3345,7 +3350,10 @@ public sealed partial class MainViewModel : ObservableObject
             new BibleNavigationResult(
                 verses.Select(BibleNavigationItemViewModel.ForVerse).ToList(),
                 verses,
-                $"{FormatCount(verses.Count, "verse", "verses")} found in {item.BookName} {item.Chapter}.",
+                Loc.F(
+                    "Status_VersesFoundIn",
+                    Loc.Count(verses.Count, "Count_Verse_One", "Count_Verse_Many"),
+                    Localizer.Instance.BookReference(item.BookName, item.Chapter.Value)),
                 AutoPreviewFirstVerse: false),
             selectExactOrKeywordVerse: false);
     }

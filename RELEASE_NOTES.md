@@ -1,4 +1,4 @@
-# MessageFlow Media 1.0.3
+# MessageFlow Media 1.0.4
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
 
@@ -12,6 +12,7 @@ Every interface language has its matching sermons, Bible, and songbook.
 
 ## Fixes
 
+- Bible search bar keeps localized book names after selecting a chapter or verse (Genèse stays Genèse in French; Mwanzo stays Mwanzo in Kiswahili instead of reverting to Genesis)
 - Kiswahili hymns are included in the installed library
 - The “songs not available” status no longer stays on the Sermons tab after switching languages
 
@@ -24,6 +25,6 @@ Every interface language has its matching sermons, Bible, and songbook.
 
 ## Download
 
-Installer: [GitHub release v1.0.3](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.3)
+Installer: [GitHub release v1.0.4](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.4)
 
-The installer is too large for the git tree. The website Download button serves this release asset.
+The installer is too large for the git tree. The website Download button serves the hosted installer asset.
