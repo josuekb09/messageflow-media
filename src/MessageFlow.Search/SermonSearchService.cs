@@ -20,13 +20,38 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
     private string? queryLanguage;
 
+    /// <summary>
+    /// Content sources the running query may return results from, or null for no restriction.
+    /// Scoped the same way as <see cref="queryLanguage"/>: set on entry to a public method and
+    /// restored in its <c>finally</c>, because the SQL builders need it while composing a query.
+    /// </summary>
+    private IReadOnlyList<int>? queryContentSourceIds;
+
+    /// <summary>
+    /// Full-text column filter matching the sources in <see cref="queryContentSourceIds"/>, or
+    /// null when the scope covers everything and no narrowing is needed.
+    /// <para>
+    /// This is a performance accelerator, never the authority: correctness still rests on the
+    /// <c>ContentSourceId IN (...)</c> predicate. Without it, scoping a common word to a small
+    /// library makes SQLite walk almost the entire ranked candidate list before finding enough
+    /// rows in that library - measured at roughly four seconds for "Jesus" against the Brother
+    /// Frank library, versus under a tenth of a second with this filter applied.
+    /// </para>
+    /// </summary>
+    private string? queryContentSourceFtsFilter;
+
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         string searchText,
         int maxResults = 50,
         CancellationToken cancellationToken = default,
-        string? language = null)
+        string? language = null,
+        IReadOnlyList<int>? contentSourceIds = null)
     {
         queryLanguage = language;
+        var previousContentSourceIds = queryContentSourceIds;
+        var previousContentSourceFtsFilter = queryContentSourceFtsFilter;
+        queryContentSourceIds = NormalizeContentSourceIds(contentSourceIds);
+        await ResolveContentSourceFtsFilterAsync(cancellationToken);
         try
         {
         var diagnostics = new SermonSearchDiagnostics(searchText);
@@ -41,20 +66,26 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         }
 
         var limit = ClampLimit(maxResults);
-        if (TryParseParagraphLookup(normalized, out var paragraphLookup))
+
+        // Tested against what the operator actually typed, not the normalized form. Normalizing
+        // turns every punctuation mark into a space, so the publication code "47-0412" became
+        // "47 0412" and was read as "the word 47, paragraph 412" - which finds nothing whenever
+        // the document has fewer than 412 paragraphs. A paragraph lookup requires a real space.
+        if (TryParseParagraphLookup(rawSearchText, out var paragraphLookup))
         {
             return await SearchAsync(
                 new SermonSearchQuery(
                     SearchText: paragraphLookup.SearchText,
                     ParagraphNumber: paragraphLookup.ParagraphNumber,
                     MaxResults: limit,
-                    Language: language),
+                    Language: language,
+                    ContentSourceIds: contentSourceIds),
                 cancellationToken);
         }
 
         var like = BuildContainsLike(normalized);
         var searchLike = BuildContainsLike(normalized.ToUpperInvariant());
-        var ftsQuery = BuildFtsPrefixQuery(rawSearchText);
+        var ftsQuery = ApplyContentSourceFtsFilter(BuildFtsPrefixQuery(rawSearchText));
         var dateIntent = SearchDateIntent.TryCreate(normalized);
         var parameters = new List<SearchParameter>
         {
@@ -83,7 +114,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 var pattern = SermonTextSearchPattern.Create(rawSearchText);
                 if (!pattern.IsExactPhrase && pattern.Terms.Count > 1)
                 {
-                    parameters.Add(new("$ftsPhrase", BuildFtsPhraseQuery(rawSearchText)!));
+                    parameters.Add(new(
+                        "$ftsPhrase",
+                        ApplyContentSourceFtsFilter(BuildFtsPhraseQuery(rawSearchText))!));
                     var phraseResults = await ExecuteQueryAsync(
                         BuildSimplePhraseFtsSearchSql(),
                         parameters,
@@ -155,6 +188,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         finally
         {
             queryLanguage = null;
+            queryContentSourceIds = previousContentSourceIds;
+            queryContentSourceFtsFilter = previousContentSourceFtsFilter;
         }
     }
 
@@ -163,7 +198,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         CancellationToken cancellationToken = default)
     {
         var previousLanguage = queryLanguage;
+        var previousContentSourceIds = queryContentSourceIds;
+        var previousContentSourceFtsFilter = queryContentSourceFtsFilter;
         queryLanguage = query.Language ?? queryLanguage;
+        queryContentSourceIds = NormalizeContentSourceIds(CombineContentSourceScope(query))
+                                ?? queryContentSourceIds;
+        await ResolveContentSourceFtsFilterAsync(cancellationToken);
         try
         {
         var limit = ClampLimit(query.MaxResults);
@@ -180,11 +220,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             parameters.Add(new("$authorId", query.AuthorId.Value));
         }
 
-        if (query.ContentSourceId is not null)
-        {
-            clauses.Add("s.ContentSourceId = $contentSourceId");
-            parameters.Add(new("$contentSourceId", query.ContentSourceId.Value));
-        }
+        // Source scope is not added here. It is applied by the shared scope filter, which also
+        // pushes it inside the ranked full-text candidate subquery - filtering only at the outer
+        // WHERE runs after LIMIT, so a large library starves a small one out of the first page.
 
         var rawGeneralText = query.SearchText?.Trim();
         var generalText = SermonTextSearchPattern.NormalizeForSearch(rawGeneralText);
@@ -193,12 +231,14 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         var hasTitle = false;
         var hasSermonCode = false;
 
-        if (!string.IsNullOrWhiteSpace(generalText) &&
+        // Matched against the operator's own text, so a hyphen inside a publication code is not
+        // mistaken for the space that separates a search term from a paragraph number.
+        if (!string.IsNullOrWhiteSpace(rawGeneralText) &&
             paragraphNumber is null &&
-            TryParseParagraphLookup(generalText, out var paragraphLookup))
+            TryParseParagraphLookup(rawGeneralText, out var paragraphLookup))
         {
-            generalText = paragraphLookup.SearchText;
             rawGeneralText = paragraphLookup.SearchText;
+            generalText = SermonTextSearchPattern.NormalizeForSearch(rawGeneralText);
             paragraphNumber = paragraphLookup.ParagraphNumber;
         }
 
@@ -258,7 +298,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         var rawKeyword = query.Keyword?.Trim();
         var keyword = SermonTextSearchPattern.NormalizeForSearch(rawKeyword);
         var hasKeyword = !string.IsNullOrWhiteSpace(keyword);
-        var ftsQuery = BuildCombinedFtsQuery(rawGeneralText, rawKeyword);
+        var ftsQuery = ApplyContentSourceFtsFilter(BuildCombinedFtsQuery(rawGeneralText, rawKeyword));
 
         if (hasKeyword)
         {
@@ -337,7 +377,13 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
 
         if (clauses.Count == 0)
         {
-            return [];
+            if (queryContentSourceIds is null)
+            {
+                return [];
+            }
+
+            // A library on its own is a valid restriction; the scope filter supplies the predicate.
+            clauses.Add("1 = 1");
         }
 
         return await ExecuteQueryAsync(
@@ -356,6 +402,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         finally
         {
             queryLanguage = previousLanguage;
+            queryContentSourceIds = previousContentSourceIds;
+            queryContentSourceFtsFilter = previousContentSourceFtsFilter;
         }
     }
 
@@ -365,10 +413,20 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         int? year = null,
         int maxResults = 2000,
         CancellationToken cancellationToken = default,
-        string? language = null)
+        string? language = null,
+        IReadOnlyList<int>? contentSourceIds = null)
     {
         var previousLanguage = queryLanguage;
+        var previousContentSourceIds = queryContentSourceIds;
+        var previousContentSourceFtsFilter = queryContentSourceFtsFilter;
         queryLanguage = language ?? queryLanguage;
+        queryContentSourceIds =
+            NormalizeContentSourceIds(CombineContentSourceScope(contentSourceId, contentSourceIds))
+            ?? queryContentSourceIds;
+
+        // Browsing never goes through the full-text index, so no source filter is resolved here.
+        // Clearing it keeps a filter from an earlier query on this instance out of reach.
+        queryContentSourceFtsFilter = null;
         try
         {
         var parameters = new List<SearchParameter>
@@ -394,11 +452,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             parameters.Add(new("$authorId", authorId.Value));
         }
 
-        if (contentSourceId is not null)
-        {
-            clauses.Add("s.ContentSourceId = $contentSourceId");
-            parameters.Add(new("$contentSourceId", contentSourceId.Value));
-        }
+        // Source scope is supplied by the shared scope filter, not as a clause here.
 
         if (year is not null)
         {
@@ -417,6 +471,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         finally
         {
             queryLanguage = previousLanguage;
+            queryContentSourceIds = previousContentSourceIds;
+            queryContentSourceFtsFilter = previousContentSourceFtsFilter;
         }
     }
 
@@ -472,29 +528,43 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         // and adding Sermon columns to that ordering forces SQLite to rank every
         // hit first (millions for common terms).  Materialize only the ranked
         // rowids needed for this page, then perform ordinary indexed joins.
-        // Language must be applied inside this subquery.  Filtering after LIMIT
-        // dropped French/Swahili hits whenever English filled the first page.
+        // Language and source must be applied inside this subquery.  Filtering after
+        // LIMIT dropped French/Swahili hits whenever English filled the first page,
+        // and would likewise starve a small library: a common word such as "Jesus"
+        // fills the ranked page from the largest collection before the outer WHERE
+        // ever narrows it to the library the operator selected.
         var rankColumns = rankCandidates ? $", {FtsTableName}.rank AS FtsRank" : string.Empty;
         var rankOrder = rankCandidates ? $"ORDER BY {FtsTableName}.rank" : string.Empty;
-        var languageJoin = string.Empty;
-        var languagePredicate = string.Empty;
-        if (!string.IsNullOrWhiteSpace(queryLanguage))
+        var scopeJoin = string.Empty;
+        var scopePredicate = string.Empty;
+        var hasLanguageScope = !string.IsNullOrWhiteSpace(queryLanguage);
+        var hasSourceScope = queryContentSourceIds is not null;
+        if (hasLanguageScope || hasSourceScope)
         {
-            languageJoin =
+            scopeJoin =
                 $"""
 
-                        JOIN SermonParagraphs languageParagraphs ON languageParagraphs.Id = {FtsTableName}.rowid
-                        JOIN Sermons languageSermons ON languageSermons.Id = languageParagraphs.SermonId
+                        JOIN SermonParagraphs scopeParagraphs ON scopeParagraphs.Id = {FtsTableName}.rowid
+                        JOIN Sermons scopeSermons ON scopeSermons.Id = scopeParagraphs.SermonId
                 """;
-            languagePredicate = " AND languageSermons.Language = $language";
+
+            if (hasLanguageScope)
+            {
+                scopePredicate += " AND scopeSermons.Language = $language";
+            }
+
+            if (hasSourceScope)
+            {
+                scopePredicate += $" AND {BuildContentSourceScopePredicate("scopeSermons")}";
+            }
         }
 
         return
             $"""
             (
                 SELECT {FtsTableName}.rowid{rankColumns}
-                FROM {FtsTableName}{languageJoin}
-                WHERE {FtsTableName} MATCH {ftsParameter}{languagePredicate}
+                FROM {FtsTableName}{scopeJoin}
+                WHERE {FtsTableName} MATCH {ftsParameter}{scopePredicate}
                 {rankOrder}
                 LIMIT $limit
             ) ftsMatches
@@ -529,6 +599,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
                 COALESCE(cs.DisplayName, '') AS SourceDisplayName,
                 COALESCE(cs.SourceType, '') AS SourceType,
+                COALESCE(s.ContentType, cs.SourceType, '') AS ContentType,
+                COALESCE(s.Language, '') AS Language,
                 p.ParagraphNumber,
                 CASE
                     WHEN length(p.Text) <= 240 THEN p.Text
@@ -549,7 +621,7 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             LEFT JOIN ContentSources cs ON cs.Id = s.ContentSourceId
             WHERE
                 {{string.Join($"{Environment.NewLine}                OR ", metadataClauses)}}
-            ORDER BY {{SimpleRankingOrder}}, s.Year, s.Date, p.ParagraphNumber
+            ORDER BY {{SimpleRankingOrder}}, CASE WHEN s.Year > 0 THEN 0 ELSE 1 END, s.Year, s.Date, s.Title, p.ParagraphNumber
             LIMIT $limit;
             """;
     }
@@ -601,8 +673,10 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             orderParts.Add(ftsRankExpression ?? $"{FtsTableName}.rank");
         }
 
+        orderParts.Add("CASE WHEN s.Year > 0 THEN 0 ELSE 1 END");
         orderParts.Add("s.Year");
         orderParts.Add("s.Date");
+        orderParts.Add("s.Title");
         orderParts.Add("p.ParagraphNumber");
         var orderBy = string.Join(", ", orderParts);
 
@@ -616,6 +690,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                 COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
                 COALESCE(cs.DisplayName, '') AS SourceDisplayName,
                 COALESCE(cs.SourceType, '') AS SourceType,
+                COALESCE(s.ContentType, cs.SourceType, '') AS ContentType,
+                COALESCE(s.Language, '') AS Language,
                 p.ParagraphNumber,
                 CASE
                     WHEN length(p.Text) <= 240 THEN p.Text
@@ -643,12 +719,18 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     {
         var sqlToRun = sql;
         var parametersToUse = parameters;
-        if (!string.IsNullOrWhiteSpace(queryLanguage))
+        if (!string.IsNullOrWhiteSpace(queryLanguage) || queryContentSourceIds is not null)
         {
-            sqlToRun = InsertLanguageFilter(sql);
-            parametersToUse = parameters
-                .Append(new SearchParameter("$language", queryLanguage))
-                .ToList();
+            sqlToRun = InsertScopeFilters(sql);
+
+            var scopedParameters = parameters.ToList();
+            if (!string.IsNullOrWhiteSpace(queryLanguage))
+            {
+                scopedParameters.Add(new SearchParameter("$language", queryLanguage));
+            }
+
+            scopedParameters.AddRange(BuildContentSourceParameters());
+            parametersToUse = scopedParameters;
         }
 
         var connection = dbContext.Database.GetDbConnection();
@@ -699,7 +781,9 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
                         : reader.GetInt32(reader.GetOrdinal("PageNumber")),
                     reader.GetString(reader.GetOrdinal("AuthorDisplayName")),
                     reader.GetString(reader.GetOrdinal("SourceDisplayName")),
-                    reader.GetString(reader.GetOrdinal("SourceType"))));
+                    reader.GetString(reader.GetOrdinal("SourceType")),
+                    reader.GetString(reader.GetOrdinal("ContentType")),
+                    reader.GetString(reader.GetOrdinal("Language"))));
             }
             materializationTimer.Stop();
             diagnostics?.RecordMaterialization(diagnosticPhase, materializationTimer.Elapsed);
@@ -825,6 +909,78 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     private static string QuoteFtsToken(string token)
     {
         return $"\"{token.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+    }
+
+    /// <summary>
+    /// Builds a full-text column filter restricting the match to the sources currently in scope,
+    /// and caches it for the running query. Returns null when no narrowing is possible or useful.
+    /// </summary>
+    private async Task ResolveContentSourceFtsFilterAsync(CancellationToken cancellationToken)
+    {
+        queryContentSourceFtsFilter = null;
+
+        if (queryContentSourceIds is null || queryContentSourceIds.Count == 0)
+        {
+            return;
+        }
+
+        var sources = await dbContext.ContentSources
+            .AsNoTracking()
+            .Select(source => new { source.Id, source.Name })
+            .ToListAsync(cancellationToken);
+
+        // Narrowing only pays off when some sources are excluded. When every source is in scope
+        // the filter would match all rows while still costing index work.
+        if (sources.Count == 0 || sources.Count == queryContentSourceIds.Count)
+        {
+            return;
+        }
+
+        var scopedNames = sources
+            .Where(source => queryContentSourceIds.Contains(source.Id))
+            .Select(source => source.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(BuildSourceNamePhrase)
+            .Where(phrase => phrase is not null)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (scopedNames.Count == 0)
+        {
+            return;
+        }
+
+        var filter = string.Join(" OR ", scopedNames.Select(phrase => $"SourceName:{phrase}"));
+        queryContentSourceFtsFilter = scopedNames.Count == 1 ? filter : $"({filter})";
+    }
+
+    /// <summary>
+    /// Renders a source name as a quoted full-text phrase. The tokenizer splits on punctuation,
+    /// so <c>brother_frank</c> has to be matched as the phrase "brother frank".
+    /// </summary>
+    private static string? BuildSourceNamePhrase(string name)
+    {
+        var tokens = SermonTextSearchPattern
+            .TokenizeNormalized(SermonTextSearchPattern.NormalizeForSearch(name))
+            .ToList();
+
+        return tokens.Count == 0
+            ? null
+            : $"\"{string.Join(' ', tokens).Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+    }
+
+    /// <summary>
+    /// Prefixes a full-text expression with the active source filter, so the restriction is
+    /// applied by the index itself rather than by a join after the ranked page is chosen.
+    /// </summary>
+    private string? ApplyContentSourceFtsFilter(string? ftsQuery)
+    {
+        if (string.IsNullOrWhiteSpace(ftsQuery) || string.IsNullOrWhiteSpace(queryContentSourceFtsFilter))
+        {
+            return ftsQuery;
+        }
+
+        return $"{queryContentSourceFtsFilter} AND ({ftsQuery})";
     }
 
     private static string? BuildFtsPhraseQuery(string value)
@@ -991,8 +1147,27 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
     [GeneratedRegex(@"\b(?<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+(?<year>\d{2,4})\b", RegexOptions.IgnoreCase)]
     private static partial Regex MonthYearPrefixRegex();
 
-    private static string InsertLanguageFilter(string sql)
+    /// <summary>
+    /// Adds the language and content-source restrictions to the outermost WHERE of a query.
+    /// </summary>
+    private string InsertScopeFilters(string sql)
     {
+        var scopePredicates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(queryLanguage))
+        {
+            scopePredicates.Add("s.Language = $language");
+        }
+
+        if (queryContentSourceIds is not null)
+        {
+            scopePredicates.Add(BuildContentSourceScopePredicate("s"));
+        }
+
+        if (scopePredicates.Count == 0)
+        {
+            return sql;
+        }
+
         // Wrap only the outermost WHERE. Nested subquery WHERE/ORDER BY must
         // stay untouched or SQLite reports: near "ORDER": syntax error.
         var whereIndex = IndexOfKeywordAtDepthZero(sql, "WHERE");
@@ -1001,14 +1176,92 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             : IndexOfKeywordAtDepthZero(sql, "ORDER BY", whereIndex + "WHERE".Length);
         if (whereIndex < 0 || orderIndex < 0)
         {
-            throw new InvalidOperationException("Sermon search SQL could not receive a language filter.");
+            throw new InvalidOperationException("Sermon search SQL could not receive a scope filter.");
         }
 
         var bodyStart = whereIndex + "WHERE".Length;
         var whereBody = sql[bodyStart..orderIndex];
         return sql[..bodyStart] +
-               $" s.Language = $language AND ({whereBody.Trim()}) " +
+               $" {string.Join(" AND ", scopePredicates)} AND ({whereBody.Trim()}) " +
                sql[orderIndex..];
+    }
+
+    /// <summary>
+    /// Removes duplicates so the generated <c>IN</c> list is stable.
+    /// <para>
+    /// Null means "no source restriction". An empty list means "match nothing" and is preserved
+    /// as such - it is what an operator selection outside the visible set reduces to, and
+    /// silently widening that back to every source would leak hidden content.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<int>? NormalizeContentSourceIds(IReadOnlyList<int>? contentSourceIds)
+    {
+        if (contentSourceIds is null)
+        {
+            return null;
+        }
+
+        return contentSourceIds.Distinct().OrderBy(id => id).ToList();
+    }
+
+    /// <summary>
+    /// Narrows a visibility allowlist by the single source the operator asked for, so a library
+    /// selection and the set of sources visible in the church UI combine rather than override one
+    /// another. A requested source outside the allowlist reduces to an empty scope, which yields
+    /// no results rather than falling back to every source.
+    /// </summary>
+    private static IReadOnlyList<int>? CombineContentSourceScope(
+        int? contentSourceId,
+        IReadOnlyList<int>? contentSourceIds)
+    {
+        if (contentSourceId is null)
+        {
+            return contentSourceIds;
+        }
+
+        if (contentSourceIds is null)
+        {
+            return [contentSourceId.Value];
+        }
+
+        return contentSourceIds.Contains(contentSourceId.Value)
+            ? [contentSourceId.Value]
+            : [];
+    }
+
+    private static IReadOnlyList<int>? CombineContentSourceScope(SermonSearchQuery query)
+    {
+        return CombineContentSourceScope(query.ContentSourceId, query.ContentSourceIds);
+    }
+
+    /// <summary>
+    /// Builds the source restriction for a table alias exposing <c>ContentSourceId</c>.
+    /// An empty scope becomes an always-false predicate, because SQL has no empty <c>IN</c> list.
+    /// </summary>
+    private string BuildContentSourceScopePredicate(string sermonAlias)
+    {
+        if (queryContentSourceIds!.Count == 0)
+        {
+            return "1 = 0";
+        }
+
+        var parameterNames = string.Join(
+            ", ",
+            Enumerable.Range(0, queryContentSourceIds.Count).Select(index => $"$contentSource{index}"));
+        return $"{sermonAlias}.ContentSourceId IN ({parameterNames})";
+    }
+
+    private IEnumerable<SearchParameter> BuildContentSourceParameters()
+    {
+        if (queryContentSourceIds is null)
+        {
+            yield break;
+        }
+
+        for (var index = 0; index < queryContentSourceIds.Count; index++)
+        {
+            yield return new SearchParameter($"$contentSource{index}", queryContentSourceIds[index]);
+        }
     }
 
     private static int IndexOfKeywordAtDepthZero(string sql, string keyword, int start = 0)

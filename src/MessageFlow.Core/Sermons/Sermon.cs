@@ -22,6 +22,14 @@ public sealed class Sermon
 
     public string Language { get; set; } = "en";
 
+    /// <summary>
+    /// Document type for this specific record (Sermon, CircularLetter, Meeting, Book, ...).
+    /// A single content source may hold several types, so the type belongs to the document
+    /// rather than to <see cref="ContentSource.SourceType"/>. Null means "not yet classified";
+    /// callers fall back to the owning source's <see cref="ContentSource.SourceType"/>.
+    /// </summary>
+    public string? ContentType { get; set; }
+
     public string SourceFilePath { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

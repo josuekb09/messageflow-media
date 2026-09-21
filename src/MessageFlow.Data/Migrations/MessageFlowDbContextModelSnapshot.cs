@@ -206,6 +206,10 @@ namespace MessageFlow.Data.Migrations
                     b.Property<int?>("ContentSourceId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
@@ -248,6 +252,8 @@ namespace MessageFlow.Data.Migrations
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("ContentSourceId");
+
+                    b.HasIndex("ContentType");
 
                     b.HasIndex("SermonCode");
 

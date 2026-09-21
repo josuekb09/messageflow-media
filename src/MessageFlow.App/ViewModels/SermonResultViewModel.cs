@@ -1,3 +1,5 @@
+using MessageFlow.App.Localization;
+
 namespace MessageFlow.App.ViewModels;
 
 public sealed record SermonResultViewModel(
@@ -9,7 +11,8 @@ public sealed record SermonResultViewModel(
     string AuthorDisplayName = "",
     string SourceDisplayName = "",
     string SourceType = "",
-    string BestMatchPreview = "")
+    string BestMatchPreview = "",
+    string ContentType = "")
 {
     public string MatchCountDisplay => $"{ParagraphCount:N0} {(ParagraphCount == 1 ? "match" : "matches")}";
 
@@ -17,10 +20,28 @@ public sealed record SermonResultViewModel(
         ? MatchCountDisplay
         : $"{MatchCountDisplay} - {BestMatchPreview}";
 
-    public string ContentTypeDisplay => ContentSourceTypeOption.GetLabel(SourceType);
+    /// <summary>
+    /// The document's own type when it has one. A library holds several kinds of document, so
+    /// the source's type is only a fallback for records imported before types were recorded.
+    /// </summary>
+    public string EffectiveContentType =>
+        string.IsNullOrWhiteSpace(ContentType) ? SourceType : ContentType;
+
+    public string ContentTypeDisplay => ContentSourceTypeOption.GetLabel(EffectiveContentType);
+
+    /// <summary>
+    /// "Open Sermon" for preached material, "Open Document" for circular letters and books,
+    /// so the button describes what the operator is actually about to open.
+    /// </summary>
+    public string OpenButtonText =>
+        string.Equals(EffectiveContentType, "CircularLetter", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(EffectiveContentType, "Book", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(EffectiveContentType, "Brochure", StringComparison.OrdinalIgnoreCase)
+            ? Loc.T("Document_Open")
+            : Loc.T("Sermon_Open");
 
     public bool IsCircularLetter =>
-        string.Equals(SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(EffectiveContentType, "CircularLetter", StringComparison.OrdinalIgnoreCase) ||
         Title.StartsWith("Circular Letter", StringComparison.OrdinalIgnoreCase) ||
         SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase);
 

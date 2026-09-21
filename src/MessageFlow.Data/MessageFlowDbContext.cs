@@ -129,6 +129,9 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 .HasDefaultValue("en")
                 .IsRequired();
 
+            entity.Property(sermon => sermon.ContentType)
+                .HasMaxLength(80);
+
             entity.Property(sermon => sermon.SourceFilePath)
                 .HasMaxLength(1024)
                 .IsRequired();
@@ -141,6 +144,7 @@ public sealed class MessageFlowDbContext(DbContextOptions<MessageFlowDbContext> 
                 .IsUnique();
 
             entity.HasIndex(sermon => sermon.ContentSourceId);
+            entity.HasIndex(sermon => sermon.ContentType);
             entity.HasIndex(sermon => sermon.Title);
             entity.HasIndex(sermon => sermon.SermonCode);
             entity.HasIndex(sermon => new { sermon.SermonCode, sermon.Year });

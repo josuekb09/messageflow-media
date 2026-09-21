@@ -21,7 +21,9 @@ public sealed class ParagraphResultViewModel : ObservableObject
             result.PageNumber,
             result.AuthorDisplayName,
             result.SourceDisplayName,
-            result.SourceType)
+            result.SourceType,
+            result.ContentType,
+            result.Language)
     {
     }
 
@@ -38,7 +40,9 @@ public sealed class ParagraphResultViewModel : ObservableObject
         int? pageNumber,
         string authorDisplayName = "",
         string sourceDisplayName = "",
-        string sourceType = "")
+        string sourceType = "",
+        string contentType = "",
+        string language = "")
     {
         SermonId = sermonId;
         ParagraphId = paragraphId;
@@ -54,6 +58,8 @@ public sealed class ParagraphResultViewModel : ObservableObject
         AuthorDisplayName = authorDisplayName;
         SourceDisplayName = sourceDisplayName;
         SourceType = sourceType;
+        ContentType = contentType;
+        Language = language;
     }
 
     public int SermonId { get; }
@@ -82,13 +88,26 @@ public sealed class ParagraphResultViewModel : ObservableObject
 
     public string SourceType { get; }
 
+    /// <summary>Type of this document: Sermon, CircularLetter, Meeting or Book.</summary>
+    public string ContentType { get; }
+
+    /// <summary>Content language of the document, not the language of the UI.</summary>
+    public string Language { get; }
+
     public string ContentSourceDisplay =>
         string.IsNullOrWhiteSpace(SourceDisplayName) ? "Local library" : SourceDisplayName;
 
-    public string ContentTypeDisplay => ContentSourceTypeOption.GetLabel(SourceType);
+    /// <summary>
+    /// The document's own type when it has one, falling back to the library's declared type for
+    /// records imported before types were recorded per document.
+    /// </summary>
+    public string EffectiveContentType =>
+        string.IsNullOrWhiteSpace(ContentType) ? SourceType : ContentType;
+
+    public string ContentTypeDisplay => ContentSourceTypeOption.GetLabel(EffectiveContentType);
 
     public bool IsCircularLetter =>
-        string.Equals(SourceType, "CircularLetter", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(EffectiveContentType, "CircularLetter", StringComparison.OrdinalIgnoreCase) ||
         SermonTitle.StartsWith("Circular Letter", StringComparison.OrdinalIgnoreCase) ||
         SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase);
 

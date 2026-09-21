@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -24,17 +24,30 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private const int SearchDebounceMilliseconds = 250;
     /// <summary>
-    /// Brother Frank sermons stay hidden from the church UI until official PDFs are imported.
-    /// Records remain in the database; admin import and cleanup tools stay available.
-    /// Flip this flag after the official Frank library is loaded.
+    /// Brother Frank library is enabled and displayed alongside Brother Branham.
     /// </summary>
-    private static readonly bool ShowBrotherFrankLibrary = false;
+    private static readonly bool ShowBrotherFrankLibrary = true;
+
+    /// <summary>
+    /// Stable content source names for the two literature libraries. Matching on these rather
+    /// than on row ids or display labels keeps the filter working if a library is renamed.
+    /// </summary>
+    private const string BranhamSourceName = "brother_branham";
+
+    private const string FrankSourceName = "brother_frank";
+
     private const double ProjectionFontAdjustmentStep = 2;
     private const double MinimumProjectionFontAdjustment = -24;
     private const double MaximumProjectionFontAdjustment = 24;
     private const double MinimumSermonProjectionFontAdjustment = -12;
     private const double MaximumSermonProjectionFontAdjustment = 10;
     private readonly IServiceScopeFactory scopeFactory;
+
+    /// <summary>Content source ids of the two libraries in the current content language.</summary>
+    private int? branhamSourceId;
+
+    private int? frankSourceId;
+
     private CancellationTokenSource? searchDebounce;
     private CancellationTokenSource? bibleSearchDebounce;
     private CancellationTokenSource? songSearchDebounce;
@@ -210,6 +223,15 @@ public sealed partial class MainViewModel : ObservableObject
         BackToSermonSearchResultsCommand = new RelayCommand(
             BackToSermonSearchResults,
             () => IsSermonReadingMode);
+        // The library pills drive the source filter. Source and author expressed the same axis -
+        // every source belongs to exactly one author - so the operator now picks a library once.
+        SelectAllSourcesCommand = new RelayCommand(() =>
+        {
+            SelectedSourceFilter = SourceFilters.FirstOrDefault(option => option.Value is null)
+                                   ?? SourceFilters.FirstOrDefault();
+        });
+        SelectBranhamSourceCommand = new RelayCommand(() => SelectLibraryByName(BranhamSourceName));
+        SelectFrankSourceCommand = new RelayCommand(() => SelectLibraryByName(FrankSourceName));
 
         InitializeUiLanguage();
         InitializeUiTheme();
@@ -381,6 +403,69 @@ public sealed partial class MainViewModel : ObservableObject
 
     public RelayCommand BackToSermonSearchResultsCommand { get; }
 
+    public RelayCommand SelectAllSourcesCommand { get; }
+
+    public RelayCommand SelectBranhamSourceCommand { get; }
+
+    public RelayCommand SelectFrankSourceCommand { get; }
+
+    public bool IsAllSourcesSelected => SelectedSourceFilter?.Value is null;
+
+    public bool IsBranhamSourceSelected => IsLibrarySelected(BranhamSourceName);
+
+    public bool IsFrankSourceSelected => IsLibrarySelected(FrankSourceName);
+
+    /// <summary>
+    /// True when the Brother Frank library holds content in the current content language.
+    /// The pill is hidden otherwise, so a language with no Brother Frank material never offers
+    /// a library that would always come back empty.
+    /// </summary>
+    public bool HasFrankLibraryForCurrentLanguage => FindLibraryOption(FrankSourceName) is not null;
+
+    public bool HasBranhamLibraryForCurrentLanguage => FindLibraryOption(BranhamSourceName) is not null;
+
+    /// <summary>
+    /// Libraries are matched by the content source's stable <c>Name</c> rather than by row id or
+    /// by searching the display label for "Frank", so renaming a library cannot break the filter.
+    /// Resolved while the source filters load, and null when the library holds nothing in the
+    /// current content language.
+    /// </summary>
+    private FilterOption? FindLibraryOption(string sourceName)
+    {
+        var sourceId = string.Equals(sourceName, BranhamSourceName, StringComparison.OrdinalIgnoreCase)
+            ? branhamSourceId
+            : frankSourceId;
+
+        return sourceId is null
+            ? null
+            : SourceFilters.FirstOrDefault(option => option.Value == sourceId);
+    }
+
+    private bool IsLibrarySelected(string sourceName)
+    {
+        var selectedId = SelectedSourceFilter?.Value;
+        return selectedId is not null && FindLibraryOption(sourceName)?.Value == selectedId;
+    }
+
+    private void SelectLibraryByName(string sourceName)
+    {
+        var option = FindLibraryOption(sourceName);
+        if (option is not null)
+        {
+            SelectedSourceFilter = option;
+        }
+    }
+
+    private void RaiseLibrarySelectionChanged()
+    {
+        OnPropertyChanged(nameof(IsAllSourcesSelected));
+        OnPropertyChanged(nameof(IsBranhamSourceSelected));
+        OnPropertyChanged(nameof(IsFrankSourceSelected));
+        OnPropertyChanged(nameof(HasFrankLibraryForCurrentLanguage));
+        OnPropertyChanged(nameof(HasBranhamLibraryForCurrentLanguage));
+        OnPropertyChanged(nameof(OpenDocumentButtonText));
+    }
+
     public string SearchText
     {
         get => searchText;
@@ -404,6 +489,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (SetProperty(ref selectedAuthor, value))
             {
                 ExitSermonReadingModeForGlobalSearch();
+                _ = RefreshYearFiltersForAuthorAsync(selectedAuthor?.Value);
                 QueueSearch();
             }
         }
@@ -417,8 +503,10 @@ public sealed partial class MainViewModel : ObservableObject
             if (SetProperty(ref selectedSourceFilter, value))
             {
                 OnPropertyChanged(nameof(CenterPanelTitle));
+                RaiseLibrarySelectionChanged();
                 ExitSermonReadingModeForGlobalSearch();
                 QueueSearch();
+                _ = RefreshYearFiltersForSelectedSourceAsync(selectedSourceFilter?.Value);
             }
         }
     }
@@ -443,6 +531,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (SetProperty(ref selectedSermon, value))
             {
+                OnPropertyChanged(nameof(OpenDocumentButtonText));
                 if (!isSermonReadingMode)
                 {
                     ClearSermonWithinSearch(resetText: true);
@@ -968,6 +1057,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(IsSermonGlobalSearchMode));
                 OnPropertyChanged(nameof(SermonReadingHeader));
+                OnPropertyChanged(nameof(SermonReadingMeta));
                 OnPropertyChanged(nameof(CenterPanelTitle));
                 OnPropertyChanged(nameof(SermonHighlightQuery));
                 OnPropertyChanged(nameof(PreviewHighlightQuery));
@@ -997,6 +1087,54 @@ public sealed partial class MainViewModel : ObservableObject
     public string SermonReadingHeader => focusedSermon is null
         ? Loc.T("Panel_ReadingSermon")
         : Loc.F("Panel_SermonsBreadcrumb", focusedSermon.Title);
+
+    /// <summary>
+    /// Author, library and document type of the document being read, so the operator can see at
+    /// a glance which library the open document came from.
+    /// </summary>
+    public string SermonReadingMeta
+    {
+        get
+        {
+            if (focusedSermon is null)
+            {
+                return string.Empty;
+            }
+
+            var parts = new[]
+            {
+                focusedSermon.AuthorDisplayName,
+                focusedSermon.SourceDisplayName,
+                DescribeContentType(focusedSermon.ContentType)
+            };
+
+            return string.Join(" | ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+        }
+    }
+
+    /// <summary>
+    /// "Open Sermon" for preached material, "Open Document" for circular letters and books.
+    /// Calling a circular letter a sermon misdescribes what the operator is about to open.
+    /// </summary>
+    public string OpenDocumentButtonText =>
+        SelectedSermon?.OpenButtonText ?? Loc.T("Sermon_Open");
+
+    private static string DescribeContentType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            return string.Empty;
+        }
+
+        return contentType switch
+        {
+            "Sermon" or "SermonPdfCollection" => Loc.T("ContentType_Sermon"),
+            "CircularLetter" => Loc.T("ContentType_CircularLetter"),
+            "Meeting" => Loc.T("ContentType_Meeting"),
+            "Book" => Loc.T("ContentType_Book"),
+            _ => contentType
+        };
+    }
 
     public string CenterPanelTitle =>
         IsBibleMode
@@ -3781,6 +3919,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(FocusedSermonId));
         OnPropertyChanged(nameof(FocusedSermonParagraphCount));
         OnPropertyChanged(nameof(SermonReadingHeader));
+        OnPropertyChanged(nameof(SermonReadingMeta));
         OnPropertyChanged(nameof(CenterPanelTitle));
         OnPropertyChanged(nameof(SermonHighlightQuery));
         OnPropertyChanged(nameof(PreviewHighlightQuery));
@@ -3799,7 +3938,26 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedYear?.Value,
             Interlocked.Increment(ref searchRequestVersion),
             projectBestResult,
-            ContentLanguageCode);
+            ContentLanguageCode,
+            VisibleContentSourceIds);
+    }
+
+    /// <summary>
+    /// Content sources the church UI may show, captured from the loaded source filters so the
+    /// search query can exclude everything else instead of the results being trimmed afterwards.
+    /// Null while the filters have not loaded yet, which means "do not restrict".
+    /// </summary>
+    private IReadOnlyList<int>? VisibleContentSourceIds
+    {
+        get
+        {
+            var ids = SourceFilters
+                .Where(option => option.Value is not null)
+                .Select(option => option.Value!.Value)
+                .ToList();
+
+            return ids.Count == 0 ? null : ids;
+        }
     }
 
     private bool IsCurrentSearch(SearchSnapshot snapshot)
@@ -3889,6 +4047,11 @@ public sealed partial class MainViewModel : ObservableObject
             var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
             var language = snapshot.Language;
 
+            // The sources visible in the church UI are part of the query, not a filter applied to
+            // the results afterwards. Removing rows after the query has already applied its LIMIT
+            // silently shrinks the page and can empty it entirely.
+            var visibleSourceIds = snapshot.VisibleContentSourceIds;
+
             IReadOnlyList<SearchResult> results;
             if (snapshot.IsFilterOnlyBrowse)
             {
@@ -3898,7 +4061,8 @@ public sealed partial class MainViewModel : ObservableObject
                     snapshot.Year,
                     maxResults: 2000,
                     cancellationToken: cancellationToken,
-                    language: language);
+                    language: language,
+                    contentSourceIds: visibleSourceIds);
             }
             else if (snapshot.HasFilter)
             {
@@ -3909,7 +4073,8 @@ public sealed partial class MainViewModel : ObservableObject
                         SearchText: string.IsNullOrWhiteSpace(snapshot.QueryText) ? null : snapshot.QueryText,
                         Year: snapshot.Year,
                         MaxResults: 200,
-                        Language: language),
+                        Language: language,
+                        ContentSourceIds: visibleSourceIds),
                     cancellationToken);
             }
             else
@@ -3918,15 +4083,12 @@ public sealed partial class MainViewModel : ObservableObject
                     snapshot.QueryText,
                     200,
                     cancellationToken,
-                    language);
+                    language,
+                    visibleSourceIds);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
             var viewModels = results
-                .Where(result => !IsHiddenFromChurchUi(
-                    result.SourceDisplayName,
-                    result.AuthorDisplayName,
-                    result.SourceFilePath))
                 .Select(result => new ParagraphResultViewModel(result))
                 .ToList();
             await ApplyFavoriteStateAsync(dbContext, viewModels, cancellationToken);
@@ -3974,7 +4136,8 @@ public sealed partial class MainViewModel : ObservableObject
                               group.First().Result.AuthorDisplayName,
                               group.First().Result.SourceDisplayName,
                               group.First().Result.SourceType,
-                              group.First().Result.ParagraphTextPreview)
+                              group.First().Result.ParagraphTextPreview,
+                              group.First().Result.ContentType)
                       })
                      .OrderBy(item => item.Rank))
         {
@@ -4014,6 +4177,21 @@ public sealed partial class MainViewModel : ObservableObject
             if (!HasSermonContentForCurrentLanguage)
             {
                 return Loc.F("Sermon_NoContentForLanguage", SelectedUiLanguage.NativeName);
+            }
+
+            // Naming the library makes it obvious the search was scoped, rather than leaving the
+            // operator wondering whether the phrase is missing everywhere. Results are never
+            // widened to another library as a fallback.
+            if (snapshot.ContentSourceId is not null)
+            {
+                var libraryName = SourceFilters
+                    .FirstOrDefault(option => option.Value == snapshot.ContentSourceId)
+                    ?.Label;
+
+                if (!string.IsNullOrWhiteSpace(libraryName))
+                {
+                    return Loc.F("Status_NoResultsInLibrary", libraryName);
+                }
             }
 
             var noMatchKind = SermonTextSearchPattern.Create(snapshot.QueryText).IsExactPhrase
@@ -4400,6 +4578,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(FocusedSermonId));
         OnPropertyChanged(nameof(FocusedSermonParagraphCount));
         OnPropertyChanged(nameof(SermonReadingHeader));
+        OnPropertyChanged(nameof(SermonReadingMeta));
         IsSermonReadingMode = true;
         ClearSermonWithinSearch(resetText: true);
 
@@ -4431,6 +4610,7 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(FocusedSermonId));
             OnPropertyChanged(nameof(FocusedSermonParagraphCount));
             OnPropertyChanged(nameof(SermonReadingHeader));
+            OnPropertyChanged(nameof(SermonReadingMeta));
             StatusText = $"Could not open Sermon: {ex.Message}";
         }
     }
@@ -4452,6 +4632,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(FocusedSermonId));
         OnPropertyChanged(nameof(FocusedSermonParagraphCount));
         OnPropertyChanged(nameof(SermonReadingHeader));
+        OnPropertyChanged(nameof(SermonReadingMeta));
 
         var preferredMatchId = selectedParagraphId is not null &&
                                allParagraphResults.Any(paragraph => paragraph.ParagraphId == selectedParagraphId.Value)
@@ -5240,6 +5421,8 @@ public sealed partial class MainViewModel : ObservableObject
                 SourceType = paragraph.Sermon.ContentSource == null
                     ? string.Empty
                     : paragraph.Sermon.ContentSource.SourceType,
+                ContentType = paragraph.Sermon.ContentType ?? string.Empty,
+                paragraph.Sermon.Language,
                 IsFavorite = paragraph.Favorites.Any()
             })
             .FirstOrDefaultAsync();
@@ -5262,7 +5445,9 @@ public sealed partial class MainViewModel : ObservableObject
             row.PageNumber,
             row.AuthorDisplayName,
             row.SourceDisplayName,
-            row.SourceType)
+            row.SourceType,
+            row.ContentType,
+            row.Language)
         {
             IsFavorite = row.IsFavorite
         };
@@ -5327,6 +5512,8 @@ public sealed partial class MainViewModel : ObservableObject
                 SourceType = paragraph.Sermon.ContentSource == null
                     ? string.Empty
                     : paragraph.Sermon.ContentSource.SourceType,
+                ContentType = paragraph.Sermon.ContentType ?? string.Empty,
+                paragraph.Sermon.Language,
                 IsFavorite = paragraph.Favorites.Any()
             })
             .ToListAsync(cancellationToken);
@@ -5345,7 +5532,9 @@ public sealed partial class MainViewModel : ObservableObject
                 row.PageNumber,
                 row.AuthorDisplayName,
                 row.SourceDisplayName,
-                row.SourceType)
+                row.SourceType,
+                row.ContentType,
+                row.Language)
             {
                 IsFavorite = row.IsFavorite
             })
@@ -5539,10 +5728,22 @@ public sealed partial class MainViewModel : ObservableObject
             .Distinct()
             .ToListAsync();
 
-        var linkedSources = linkedSourceRows
+        var visibleSourceRows = linkedSourceRows
             .Where(source => !IsHiddenFromChurchUi(source.Name, source.DisplayName, source.LocalFolderPath))
             .OrderBy(source => source.DisplayName)
             .ThenBy(source => source.Name)
+            .ToList();
+
+        // Resolve the two library ids here, where the source names are already loaded, so the
+        // library pills do not depend on a second collection having loaded first.
+        branhamSourceId = visibleSourceRows
+            .FirstOrDefault(source => string.Equals(source.Name, BranhamSourceName, StringComparison.OrdinalIgnoreCase))
+            ?.Id;
+        frankSourceId = visibleSourceRows
+            .FirstOrDefault(source => string.Equals(source.Name, FrankSourceName, StringComparison.OrdinalIgnoreCase))
+            ?.Id;
+
+        var linkedSources = visibleSourceRows
             .Select(source => new FilterOption(source.Id, source.DisplayName))
             .ToList();
 
@@ -5586,13 +5787,29 @@ public sealed partial class MainViewModel : ObservableObject
             .OrderBy(author => author.Label)
             .ToList();
 
-        var years = await dbContext.Sermons
+        var yearsQuery = dbContext.Sermons
             .AsNoTracking()
             .Where(sermon =>
                 sermon.Year > 0 &&
                 sermon.Language == language &&
                 sermon.ContentSourceId != null &&
-                visibleSourceIds.Contains(sermon.ContentSourceId.Value))
+                visibleSourceIds.Contains(sermon.ContentSourceId.Value));
+
+        // Years belong to the library the operator is looking at. Listing every Branham year while
+        // Brother Frank is selected offers filters that can only ever return nothing. Guarded on
+        // the id still being visible, because line "selectedSourceFilter = ..." below falls back to
+        // All Sources when it is not, and the two must agree.
+        if (preferredSourceId is not null && visibleSourceIds.Contains(preferredSourceId.Value))
+        {
+            yearsQuery = yearsQuery.Where(sermon => sermon.ContentSourceId == preferredSourceId.Value);
+        }
+
+        if (preferredAuthorId is not null)
+        {
+            yearsQuery = yearsQuery.Where(sermon => sermon.AuthorId == preferredAuthorId.Value);
+        }
+
+        var years = await yearsQuery
             .Select(sermon => sermon.Year)
             .Distinct()
             .OrderByDescending(year => year)
@@ -5625,11 +5842,140 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedAuthor));
         OnPropertyChanged(nameof(SelectedSourceFilter));
         OnPropertyChanged(nameof(SelectedYear));
+        RaiseLibrarySelectionChanged();
 
         App.LogStartupMessage(
             $"Loaded filter data. Authors: {linkedAuthors.Count}. Sources: {linkedSources.Count}. Years: {years.Count}.");
 
         return new FilterLoadResult(linkedAuthors.Count, linkedSources.Count, years.Count);
+    }
+
+    private async Task RefreshYearFiltersForAuthorAsync(int? authorId)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var language = ContentLanguageCode;
+
+            var yearsQuery = dbContext.Sermons
+                .AsNoTracking()
+                .Where(sermon =>
+                    sermon.Year > 0 &&
+                    sermon.Language == language);
+
+            if (authorId is not null)
+            {
+                yearsQuery = yearsQuery.Where(sermon => sermon.AuthorId == authorId.Value);
+            }
+
+            var years = await yearsQuery
+                .Select(sermon => sermon.Year)
+                .Distinct()
+                .OrderByDescending(year => year)
+                .ToListAsync();
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var currentYear = SelectedYear?.Value;
+                YearFilters.Clear();
+                YearFilters.Add(new FilterOption(null, Loc.T("Filter_AllYears")));
+                foreach (var year in years)
+                {
+                    YearFilters.Add(new FilterOption(year, year.ToString()));
+                }
+
+                selectedYear = YearFilters.FirstOrDefault(year => year.Value == currentYear) ?? YearFilters[0];
+                OnPropertyChanged(nameof(SelectedYear));
+            });
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Failed to refresh year filters for author.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the Year list for the library the operator has selected, so the dropdown only
+    /// offers years that library actually holds. Scoped the same way as the search itself:
+    /// content language, then the sources visible in the church UI, then the selected library.
+    /// A null source means All Sources, which applies no library restriction.
+    /// </summary>
+    private async Task RefreshYearFiltersForSelectedSourceAsync(int? contentSourceId)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            var language = ContentLanguageCode;
+            var visibleSourceIds = VisibleContentSourceIds;
+
+            var yearsQuery = dbContext.Sermons
+                .AsNoTracking()
+                .Where(sermon =>
+                    sermon.Year > 0 &&
+                    sermon.Language == language &&
+                    sermon.ContentSourceId != null);
+
+            if (visibleSourceIds is not null)
+            {
+                yearsQuery = yearsQuery.Where(sermon => visibleSourceIds.Contains(sermon.ContentSourceId!.Value));
+            }
+
+            if (contentSourceId is not null)
+            {
+                yearsQuery = yearsQuery.Where(sermon => sermon.ContentSourceId == contentSourceId.Value);
+            }
+
+            var years = await yearsQuery
+                .Select(sermon => sermon.Year)
+                .Distinct()
+                .OrderByDescending(year => year)
+                .ToListAsync();
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                // The operator may have changed library again while this query was running.
+                if (SelectedSourceFilter?.Value != contentSourceId)
+                {
+                    return;
+                }
+
+                // Clearing the collection makes the bound ComboBox push a null selection back
+                // through SelectedYear, which would exit reading mode and queue a stray search.
+                // Two libraries often cover the same years, so skip the rebuild when nothing moved.
+                var existingYears = YearFilters
+                    .Where(option => option.Value is not null)
+                    .Select(option => option.Value!.Value);
+                if (existingYears.SequenceEqual(years))
+                {
+                    return;
+                }
+
+                var currentYear = SelectedYear?.Value;
+                YearFilters.Clear();
+                YearFilters.Add(new FilterOption(null, Loc.T("Filter_AllYears")));
+                foreach (var year in years)
+                {
+                    YearFilters.Add(new FilterOption(year, year.ToString()));
+                }
+
+                selectedYear = YearFilters.FirstOrDefault(year => year.Value == currentYear) ?? YearFilters[0];
+                OnPropertyChanged(nameof(SelectedYear));
+
+                // The previously selected year may not exist in this library. Leaving it in place
+                // would silently filter every result away, so it falls back to All Years and the
+                // search is re-run against the widened filter.
+                if (selectedYear.Value != currentYear)
+                {
+                    QueueSearch();
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Failed to refresh year filters for the selected library.", ex);
+        }
     }
 
     private static async Task<bool> HasBrotherFrankPublicationMetadataDriftAsync(MessageFlowDbContext dbContext)
@@ -6512,22 +6858,16 @@ public sealed partial class MainViewModel : ObservableObject
 
     private string GetSearchResultsPanelTitle()
     {
-        var selectedSourceType = SelectedSourceFilter?.Value is { } sourceId
-            ? ContentSources.FirstOrDefault(source => source.Id == sourceId)?.SourceType
-            : null;
-
-        if (!string.IsNullOrWhiteSpace(selectedSourceType))
-        {
-            return GetSearchResultsPanelTitleForSourceTypes([selectedSourceType]);
-        }
-
-        var resultSourceTypes = allParagraphResults
-            .Select(result => result.SourceType)
+        // Titled from the documents actually on screen, not from the selected library's declared
+        // type. One library holds circular letters, meetings and books, so the library's type
+        // would call a book "Circular Letter Results".
+        var resultContentTypes = allParagraphResults
+            .Select(result => result.EffectiveContentType)
             .Where(type => !string.IsNullOrWhiteSpace(type))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return GetSearchResultsPanelTitleForSourceTypes(resultSourceTypes);
+        return GetSearchResultsPanelTitleForSourceTypes(resultContentTypes);
     }
 
     private static string GetSearchResultsPanelTitleForSourceTypes(IReadOnlyCollection<string> sourceTypes)
@@ -6540,7 +6880,8 @@ public sealed partial class MainViewModel : ObservableObject
                 return Loc.T("Panel_CircularLetterResults");
             }
 
-            if (string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(sourceType, "SermonPdfCollection", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(sourceType, "Sermon", StringComparison.OrdinalIgnoreCase))
             {
                 return Loc.T("Panel_SermonResults");
             }
@@ -6811,7 +7152,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private static string CreateMissingAuthorLabel(int authorId)
     {
-        return authorId == 1 ? "Brother Branham" : $"Author {authorId}";
+        return authorId == 1 ? "Brother Branham" : (authorId == 2 ? "Brother Frank" : $"Author {authorId}");
     }
 
     private void ClearSearch()
@@ -7061,7 +7402,8 @@ public sealed partial class MainViewModel : ObservableObject
         int? Year,
         int Version,
         bool ProjectBestResult,
-        string Language)
+        string Language,
+        IReadOnlyList<int>? VisibleContentSourceIds = null)
     {
         public bool HasFilter => AuthorId is not null || ContentSourceId is not null || Year is not null;
 

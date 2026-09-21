@@ -24,6 +24,8 @@ public sealed record ImportOptions(
           --force       Re-import files that already exist in the database.
           --reset       Clear imported sermons and paragraphs, then import the local PDFs again.
           --language    Optional language code (en, fr, sw). Overrides filename detection.
+          --source      Content source id to import into. Use when the folder name does not
+                        identify the library, so documents are not filed under the wrong one.
           --help        Show this help text.
 
         MessageFlow imports local PDF files only. It does not scrape websites or download content.
@@ -35,6 +37,7 @@ public sealed record ImportOptions(
         var force = false;
         var reset = false;
         string? languageOverride = null;
+        int? contentSourceId = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -85,6 +88,26 @@ public sealed record ImportOptions(
                 continue;
             }
 
+            // Naming the library explicitly matters when the folder does not identify it.
+            // Without this the source is guessed from the folder path, and a Brother Frank
+            // document in a neutrally named folder would be filed under Brother Branham.
+            if (string.Equals(arg, "--source", StringComparison.OrdinalIgnoreCase))
+            {
+                if (i + 1 >= args.Length || !int.TryParse(args[i + 1], out var parsedSourceId))
+                {
+                    return new ImportOptions(
+                        sourceRoot,
+                        force,
+                        reset,
+                        IsValid: false,
+                        ErrorMessage: "Missing or invalid value for --source. Give a content source id.");
+                }
+
+                contentSourceId = parsedSourceId;
+                i++;
+                continue;
+            }
+
             if (arg.StartsWith("-", StringComparison.Ordinal))
             {
                 return new ImportOptions(
@@ -110,7 +133,12 @@ public sealed record ImportOptions(
                 ErrorMessage: $"Source folder does not exist: {sourceRoot}");
         }
 
-        return new ImportOptions(sourceRoot, force, reset, LanguageOverride: languageOverride);
+        return new ImportOptions(
+            sourceRoot,
+            force,
+            reset,
+            ContentSourceId: contentSourceId,
+            LanguageOverride: languageOverride);
     }
 
     private static string? NormalizeLanguageOverride(string value)

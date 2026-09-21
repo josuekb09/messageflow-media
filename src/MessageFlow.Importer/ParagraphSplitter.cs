@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 
 namespace MessageFlow.Importer;
@@ -40,8 +40,87 @@ public static partial class ParagraphSplitter
             }
         }
 
-        return BuildParagraphDrafts(candidates);
+        return BuildParagraphDrafts(JoinParagraphsSplitByPageBreaks(candidates));
     }
+
+    /// <summary>
+    /// Rejoins a paragraph that a page break cut in half.
+    /// <para>
+    /// Pages are extracted one at a time, so a sentence running from the foot of one page to the
+    /// head of the next arrives as two candidates. Left alone, the operator projects half a
+    /// sentence. A page break is not a paragraph break.
+    /// </para>
+    /// <para>
+    /// Deliberately conservative: it joins only when the earlier text stops without closing
+    /// punctuation and the later text opens mid-sentence, and it never merges paragraphs that
+    /// carry their own numbers, since those boundaries come from the document itself.
+    /// </para>
+    /// </summary>
+    private static List<ParagraphCandidate> JoinParagraphsSplitByPageBreaks(
+        List<ParagraphCandidate> candidates)
+    {
+        var joined = new List<ParagraphCandidate>(candidates.Count);
+
+        foreach (var candidate in candidates)
+        {
+            if (joined.Count == 0)
+            {
+                joined.Add(candidate);
+                continue;
+            }
+
+            var previous = joined[^1];
+            if (!ContinuesAcrossPageBreak(previous, candidate))
+            {
+                joined.Add(candidate);
+                continue;
+            }
+
+            // The rejoined paragraph keeps the page it started on, so reading order stays
+            // monotonic and the source page still points at where the text begins.
+            var separator = previous.Text.EndsWith('-') ? string.Empty : " ";
+            joined[^1] = previous with { Text = previous.Text + separator + candidate.Text };
+        }
+
+        return joined;
+    }
+
+    private static bool ContinuesAcrossPageBreak(ParagraphCandidate previous, ParagraphCandidate current)
+    {
+        if (previous.PageNumber == current.PageNumber ||
+            previous.DetectedParagraphNumber is not null ||
+            current.DetectedParagraphNumber is not null)
+        {
+            return false;
+        }
+
+        var before = previous.Text.TrimEnd();
+        var after = current.Text.TrimStart();
+        if (before.Length == 0 || after.Length == 0)
+        {
+            return false;
+        }
+
+        // A word broken by the page break, e.g. "compre-" + "hensive".
+        if (before.EndsWith('-'))
+        {
+            return true;
+        }
+
+        if (SentenceEndCharacters.Contains(before[^1]))
+        {
+            return false;
+        }
+
+        // Only a lower-case continuation is safe to assume. A capital could equally be a new
+        // heading or a new paragraph that happens to follow an unpunctuated line.
+        return char.IsLower(after[0]);
+    }
+
+    private static readonly System.Collections.Generic.HashSet<char> SentenceEndCharacters =
+    [
+        '.', '!', '?', ':', ';', '"', '”', '’', ')', ']'
+    ];
 
     private static IEnumerable<string> SplitPageText(string text)
     {

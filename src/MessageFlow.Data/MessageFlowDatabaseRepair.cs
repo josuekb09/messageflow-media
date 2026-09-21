@@ -28,6 +28,7 @@ public static class MessageFlowDatabaseRepair
     private const string AddBibleModuleMigrationId = "20260629090000_AddBibleModule";
     private const string AddBibleFavoriteVersesMigrationId = "20260630120500_AddBibleFavoriteVerses";
     private const string AddSongsModuleMigrationId = "20260706103000_AddSongsModule";
+    private const string AddSermonContentTypeMigrationId = "20260921100000_AddSermonContentType";
     private const string ProductVersion = "10.0.9";
     private static readonly string[] ExpectedFtsColumns =
     [
@@ -102,6 +103,12 @@ public static class MessageFlowDatabaseRepair
                                                     "Sermons",
                                                     "ContentSourceId",
                                                     cancellationToken);
+            var sermonsContentTypeExisted = sermonsTableExists &&
+                                            await ColumnExistsAsync(
+                                                connection,
+                                                "Sermons",
+                                                "ContentType",
+                                                cancellationToken);
             var bibleTranslationsExisted = await TableExistsAsync(
                 connection,
                 "BibleTranslations",
@@ -131,6 +138,7 @@ public static class MessageFlowDatabaseRepair
             log?.Invoke($"ProjectionHistories exists before repair: {projectionHistoriesExisted}");
             log?.Invoke($"ContentSources exists before repair: {contentSourcesExisted}");
             log?.Invoke($"Sermons.ContentSourceId exists before repair: {sermonsContentSourceIdExisted}");
+            log?.Invoke($"Sermons.ContentType exists before repair: {sermonsContentTypeExisted}");
             log?.Invoke($"Bible tables exist before repair: translations={bibleTranslationsExisted}, books={bibleBooksExisted}, verses={bibleVersesExisted}");
             log?.Invoke($"BibleFavoriteVerses exists before repair: {bibleFavoriteVersesExisted}");
             log?.Invoke($"Song tables exist before repair: songs={songsExisted}, sections={songSectionsExisted}");
@@ -227,6 +235,56 @@ public static class MessageFlowDatabaseRepair
                 """,
                 cancellationToken);
 
+            await ExecuteAsync(
+                connection,
+                """
+                INSERT INTO "ContentSources" (
+                    "Name",
+                    "DisplayName",
+                    "SourceType",
+                    "Description",
+                    "LocalFolderPath",
+                    "CreatedAt"
+                )
+                VALUES (
+                    'brother_frank',
+                    'Brother Frank',
+                    'CircularLetter',
+                    'Local Brother Ewald Frank circular letters and literature library.',
+                    NULL,
+                    CURRENT_TIMESTAMP
+                )
+                ON CONFLICT("Name") DO UPDATE SET
+                    "DisplayName" = excluded."DisplayName",
+                    "SourceType" = excluded."SourceType",
+                    "Description" = excluded."Description"
+                WHERE "ContentSources"."DisplayName" IS NOT excluded."DisplayName"
+                   OR "ContentSources"."SourceType" IS NOT excluded."SourceType"
+                   OR "ContentSources"."Description" IS NOT excluded."Description";
+                """,
+                cancellationToken);
+
+            await ExecuteAsync(
+                connection,
+                """
+                INSERT INTO "Authors" (
+                    "FullName",
+                    "DisplayName",
+                    "Description"
+                )
+                VALUES (
+                    'Ewald Frank',
+                    'Brother Frank',
+                    'Brother Ewald Frank circular letters and literature.'
+                )
+                ON CONFLICT("FullName") DO UPDATE SET
+                    "DisplayName" = excluded."DisplayName",
+                    "Description" = excluded."Description"
+                WHERE "Authors"."DisplayName" IS NOT excluded."DisplayName"
+                   OR "Authors"."Description" IS NOT excluded."Description";
+                """,
+                cancellationToken);
+
             if (sermonsTableExists && !sermonsContentSourceIdExisted)
             {
                 await ExecuteAsync(
@@ -263,9 +321,38 @@ public static class MessageFlowDatabaseRepair
                     cancellationToken);
             }
 
+            if (sermonsTableExists && !sermonsContentTypeExisted)
+            {
+                await ExecuteAsync(
+                    connection,
+                    """
+                    ALTER TABLE "Sermons"
+                    ADD COLUMN "ContentType" TEXT NULL;
+                    """,
+                    cancellationToken);
+            }
+
+            if (sermonsTableExists)
+            {
+                await BackfillSermonContentTypeAsync(connection, log, cancellationToken);
+
+                await ExecuteAsync(
+                    connection,
+                    """
+                    CREATE INDEX IF NOT EXISTS "IX_Sermons_ContentType"
+                    ON "Sermons" ("ContentType");
+                    """,
+                    cancellationToken);
+            }
+
             await MarkMigrationAppliedIfHistoryExistsAsync(
                 connection,
                 AddContentSourcesMigrationId,
+                cancellationToken);
+
+            await MarkMigrationAppliedIfHistoryExistsAsync(
+                connection,
+                AddSermonContentTypeMigrationId,
                 cancellationToken);
 
             await ExecuteAsync(
@@ -445,6 +532,57 @@ public static class MessageFlowDatabaseRepair
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Classifies every document that has no <c>ContentType</c> yet.
+    /// <para>
+    /// The type is derived only from metadata the database already holds - the owning source's
+    /// <c>SourceType</c> and the publication code assigned at import - so nothing is invented.
+    /// Branham collections are sermons; Brother Frank codes carry their own type prefix
+    /// (<c>CL-</c> circular letters, <c>EF-yyyy-MM-dd-LOCATION</c> meetings, other <c>EF-</c>
+    /// publications are books). Anything unrecognised inherits the source's declared type.
+    /// </para>
+    /// <para>
+    /// Guarded by <c>ContentType IS NULL</c>, so this touches roughly two thousand rows the first
+    /// time and becomes a no-op on every later start. Operator corrections are never overwritten.
+    /// </para>
+    /// </summary>
+    private static async Task BackfillSermonContentTypeAsync(
+        SqliteConnection connection,
+        Action<string>? log,
+        CancellationToken cancellationToken)
+    {
+        var updated = await ExecuteAsync(
+            connection,
+            """
+            UPDATE "Sermons"
+            SET "ContentType" = CASE
+                WHEN (
+                    SELECT "SourceType"
+                    FROM "ContentSources"
+                    WHERE "ContentSources"."Id" = "Sermons"."ContentSourceId"
+                ) = 'SermonPdfCollection' THEN 'Sermon'
+                WHEN "SermonCode" LIKE 'CL-%' THEN 'CircularLetter'
+                -- GLOB, not LIKE: '_' is a single-character wildcard in LIKE, so a pattern of
+                -- underscores also matched titled codes such as EF-TIME-IS-AT-HAND. Only a
+                -- genuine EF-yyyy-MM-dd-LOCATION code identifies a dated meeting.
+                WHEN "SermonCode" GLOB 'EF-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*' THEN 'Meeting'
+                WHEN "SermonCode" LIKE 'EF-%' THEN 'Book'
+                ELSE (
+                    SELECT "SourceType"
+                    FROM "ContentSources"
+                    WHERE "ContentSources"."Id" = "Sermons"."ContentSourceId"
+                )
+            END
+            WHERE "ContentType" IS NULL;
+            """,
+            cancellationToken);
+
+        if (updated > 0)
+        {
+            log?.Invoke($"Classified {updated} document(s) with a ContentType.");
+        }
     }
 
     private static async Task MarkMigrationAppliedIfHistoryExistsAsync(
@@ -1128,7 +1266,11 @@ public static class MessageFlowDatabaseRepair
         return Convert.ToInt64(result);
     }
 
-    private static async Task ExecuteAsync(
+    /// <summary>
+    /// Runs a statement and reports how many rows it affected. Most callers ignore the count;
+    /// backfills use it to log how much work the repair actually did.
+    /// </summary>
+    private static async Task<int> ExecuteAsync(
         SqliteConnection connection,
         string sql,
         CancellationToken cancellationToken,
@@ -1141,6 +1283,6 @@ public static class MessageFlowDatabaseRepair
             command.Parameters.Add(parameter);
         }
 
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

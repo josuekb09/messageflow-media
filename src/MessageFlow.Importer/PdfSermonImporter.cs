@@ -1,10 +1,12 @@
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using MessageFlow.Core.Sermons;
 using MessageFlow.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MessageFlow.Importer;
 
-public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
+public sealed partial class PdfSermonImporter(MessageFlowDbContext dbContext)
 {
     private const int AuthorId = 1;
     private readonly PdfTextExtractor textExtractor = new();
@@ -27,7 +29,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         Report(options, $"Found {summary.TotalFiles:N0} PDF files.", 0, summary.TotalFiles, 0, 0, 0);
 
         var sourceContext = await LoadSourceMetadataContextAsync(options, cancellationToken);
-        var authorId = await EnsureAuthorExistsAsync(sourceContext, cancellationToken);
+        var authorId = await EnsureAuthorExistsAsync(sourceContext, options.SourceRoot, cancellationToken);
         if (options.Reset)
         {
             await ResetImportedSermonsAsync(options.SourceRoot, cancellationToken);
@@ -125,12 +127,68 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
             return ImportFileResult.Skip;
         }
 
+        // Check for browser download copy, e.g. "197106-Circular-english (1).pdf"
+        var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+        if (Regex.IsMatch(fileNameWithoutExt, @"\s*\(\d+\)$"))
+        {
+            var baseName = Regex.Replace(fileNameWithoutExt, @"\s*\(\d+\)$", string.Empty).Trim();
+            var dir = Path.GetDirectoryName(filePath);
+            var ext = Path.GetExtension(filePath);
+            if (dir is not null)
+            {
+                var canonicalFile = Path.Combine(dir, baseName + ext);
+                if (File.Exists(canonicalFile))
+                {
+                    await WriteImportLogAsync(filePath, "Skipped", $"Duplicate browser copy of {Path.GetFileName(canonicalFile)}", cancellationToken);
+                    return ImportFileResult.Skip;
+                }
+            }
+        }
+
         var pages = textExtractor.ExtractPages(filePath);
         var metadata = SermonMetadataParser.Parse(filePath, options.SourceRoot, sourceContext);
         if (!string.IsNullOrWhiteSpace(options.LanguageOverride) &&
             !string.Equals(metadata.Language, options.LanguageOverride, StringComparison.OrdinalIgnoreCase))
         {
             metadata = metadata with { Language = options.LanguageOverride };
+        }
+
+        if (!options.Force)
+        {
+            // Scoped to the content source on purpose. A global check lets a document in one
+            // library block an unrelated one in another: retired test imports held the codes
+            // CL-2020-04 and CL-2020-12 and kept the real 2020 circular letters out of the
+            // Brother Frank library. It also protects the Branham collection, where two files
+            // can legitimately share a date code.
+            var contentSourceId = sourceContext?.Id;
+            var duplicateByCode = await dbContext.Sermons
+                .AsNoTracking()
+                .Where(sermon => sermon.AuthorId == authorId &&
+                                 sermon.ContentSourceId == contentSourceId &&
+                                 sermon.SermonCode == metadata.SermonCode &&
+                                 sermon.SourceFilePath != filePath)
+                .Select(sermon => new { sermon.Id, sermon.SourceFilePath })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (duplicateByCode is not null)
+            {
+                await WriteImportLogAsync(filePath, "Skipped", $"Duplicate publication code {metadata.SermonCode} (already imported from {Path.GetFileName(duplicateByCode.SourceFilePath)}).", cancellationToken);
+                return ImportFileResult.Skip;
+            }
+
+            // The same publication can reach the library under two filename styles, which produce
+            // two different codes, so the code check alone cannot see them as one document.
+            // Comparing the file itself catches that.
+            var duplicateByContent = await FindDuplicateByContentAsync(
+                filePath,
+                contentSourceId,
+                cancellationToken);
+
+            if (duplicateByContent is not null)
+            {
+                await WriteImportLogAsync(filePath, "Skipped", $"Identical file already imported as {Path.GetFileName(duplicateByContent)}.", cancellationToken);
+                return ImportFileResult.Skip;
+            }
         }
 
         if (string.Equals(metadata.Language, "sw", StringComparison.OrdinalIgnoreCase) &&
@@ -199,6 +257,7 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
             Date = metadata.Date,
             Location = metadata.Location,
             Language = metadata.Language,
+            ContentType = ResolveContentType(metadata, sourceContext),
             SourceFilePath = filePath,
             CreatedAt = DateTime.UtcNow,
             Paragraphs = paragraphs.Select(paragraph => new SermonParagraph
@@ -255,6 +314,100 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
         Console.WriteLine();
     }
 
+    /// <summary>
+    /// Finds a document in the same library that was imported from a byte-identical file, and
+    /// returns its source path. Returns null when the file has not been imported before.
+    /// <para>
+    /// Hashing is limited to files whose size already matches an imported one, so an import run
+    /// does not read every PDF in the library twice.
+    /// </para>
+    /// </summary>
+    private async Task<string?> FindDuplicateByContentAsync(
+        string filePath,
+        int? contentSourceId,
+        CancellationToken cancellationToken)
+    {
+        var fileInfo = new FileInfo(filePath);
+        if (!fileInfo.Exists)
+        {
+            return null;
+        }
+
+        var candidates = await dbContext.Sermons
+            .AsNoTracking()
+            .Where(sermon => sermon.ContentSourceId == contentSourceId &&
+                             sermon.SourceFilePath != filePath)
+            .Select(sermon => sermon.SourceFilePath)
+            .ToListAsync(cancellationToken);
+
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        string? incomingHash = null;
+        foreach (var candidate in candidates)
+        {
+            var candidateInfo = new FileInfo(candidate);
+            if (!candidateInfo.Exists || candidateInfo.Length != fileInfo.Length)
+            {
+                continue;
+            }
+
+            incomingHash ??= await ComputeFileHashAsync(filePath, cancellationToken);
+            var candidateHash = await ComputeFileHashAsync(candidate, cancellationToken);
+            if (string.Equals(incomingHash, candidateHash, StringComparison.Ordinal))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static async Task<string> ComputeFileHashAsync(string filePath, CancellationToken cancellationToken)
+    {
+        await using var stream = File.OpenRead(filePath);
+        var hash = await SHA256.HashDataAsync(stream, cancellationToken);
+        return Convert.ToHexString(hash);
+    }
+
+    /// <summary>
+    /// Decides what kind of document this is, so one library can hold several types.
+    /// Mirrors the classification the database repair applies to existing rows: the publication
+    /// code carries the type, and anything unrecognised inherits the source's declared type.
+    /// </summary>
+    private static string? ResolveContentType(
+        SermonMetadata metadata,
+        SourceMetadataContext? sourceContext)
+    {
+        if (SermonMetadataParser.IsBrotherBranhamSource(sourceContext))
+        {
+            return "Sermon";
+        }
+
+        if (metadata.SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CircularLetter";
+        }
+
+        if (EwaldFrankMeetingCodeRegex().IsMatch(metadata.SermonCode))
+        {
+            return "Meeting";
+        }
+
+        if (metadata.SermonCode.StartsWith("EF-", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Book";
+        }
+
+        return string.IsNullOrWhiteSpace(sourceContext?.SourceType) ? null : sourceContext.SourceType;
+    }
+
+    /// <summary>Matches a dated meeting code such as EF-1987-01-28-KREFELD.</summary>
+    [GeneratedRegex(@"^EF-\d{4}-\d{2}-\d{2}-", RegexOptions.IgnoreCase)]
+    private static partial Regex EwaldFrankMeetingCodeRegex();
+
     private static bool ShouldApplyCircularLetterQualityFilter(
         SourceMetadataContext? sourceContext,
         SermonMetadata metadata)
@@ -295,9 +448,13 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
     {
         if (options.ContentSourceId is null)
         {
-            var branham = await dbContext.ContentSources
+            var isFrank = SermonMetadataParser.IsEwaldFrankFilePath(options.SourceRoot) ||
+                          options.SourceRoot.Contains("frank", StringComparison.OrdinalIgnoreCase);
+            var targetSourceName = isFrank ? "brother_frank" : "brother_branham";
+
+            var defaultSource = await dbContext.ContentSources
                 .AsNoTracking()
-                .Where(contentSource => contentSource.Name == "brother_branham")
+                .Where(contentSource => contentSource.Name == targetSourceName)
                 .Select(contentSource => new
                 {
                     contentSource.Id,
@@ -307,13 +464,13 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return branham is null
+            return defaultSource is null
                 ? null
                 : new SourceMetadataContext(
-                    branham.Id,
-                    branham.Name,
-                    branham.DisplayName,
-                    branham.SourceType);
+                    defaultSource.Id,
+                    defaultSource.Name,
+                    defaultSource.DisplayName,
+                    defaultSource.SourceType);
         }
 
         var source = await dbContext.ContentSources
@@ -342,14 +499,21 @@ public sealed class PdfSermonImporter(MessageFlowDbContext dbContext)
 
     private async Task<int> EnsureAuthorExistsAsync(
         SourceMetadataContext? sourceContext,
+        string sourceRoot,
         CancellationToken cancellationToken)
     {
-        if (SermonMetadataParser.IsBrotherBranhamSource(sourceContext))
+        // The folder being imported is checked before falling back to Branham. Without it, a
+        // source row that could not be resolved makes IsBrotherBranhamSource(null) true, and
+        // every Brother Frank PDF in the run would be filed under William Marrion Branham.
+        var isEwaldFrank = SermonMetadataParser.IsEwaldFrankSource(sourceContext) ||
+                           SermonMetadataParser.IsEwaldFrankFilePath(sourceRoot);
+
+        if (!isEwaldFrank && SermonMetadataParser.IsBrotherBranhamSource(sourceContext))
         {
             return await EnsureBrotherBranhamAuthorExistsAsync(cancellationToken);
         }
 
-        var authorMetadata = SermonMetadataParser.GetAuthorMetadata(sourceContext);
+        var authorMetadata = SermonMetadataParser.GetAuthorMetadata(sourceContext, sourceRoot);
         var existingAuthor = await dbContext.Authors
             .FirstOrDefaultAsync(author => author.FullName == authorMetadata.FullName, cancellationToken) ??
                              await dbContext.Authors.FirstOrDefaultAsync(

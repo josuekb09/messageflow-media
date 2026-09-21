@@ -19,7 +19,12 @@ public sealed class LocalLibraryImportService
 {
     public const string SermonType = "Brother Frank Publications";
     public const string SongType = "Additional Songs";
-    private const string FrankSourceName = "brother_frank_custom";
+    /// <summary>
+    /// The one Brother Frank library. This used to be a separate "brother_frank_custom" source,
+    /// which left the operator with two identically named entries in the Sources filter and no
+    /// single choice covering the whole library.
+    /// </summary>
+    private const string FrankSourceName = "brother_frank";
     private readonly MessageFlowDbContext dbContext;
     private readonly string managedStorageRoot;
 
@@ -223,21 +228,18 @@ public sealed class LocalLibraryImportService
             source = new ContentSource
             {
                 Name = FrankSourceName,
-                DisplayName = "Brother Frank Publications",
-                SourceType = "Book",
-                Description = "Locally imported Brother Frank publications stored in MessageFlow-managed storage.",
+                DisplayName = "Brother Frank",
+                SourceType = "CircularLetter",
+                Description = "Brother Ewald Frank circular letters and literature library.",
                 LocalFolderPath = Path.GetDirectoryName(managedPath),
                 CreatedAt = DateTime.UtcNow
             };
             dbContext.ContentSources.Add(source);
         }
-        else
-        {
-            source.DisplayName = "Brother Frank Publications";
-            source.SourceType = "Book";
-            source.Description = "Locally imported Brother Frank publications stored in MessageFlow-managed storage.";
-            source.LocalFolderPath = Path.GetDirectoryName(managedPath);
-        }
+
+        // An existing library keeps its own name, type and folder. Importing one book must not
+        // relabel the whole Brother Frank library as a book collection or repoint it at the
+        // managed storage folder. The document's own ContentType records what this file is.
 
         var author = await dbContext.Authors.FirstOrDefaultAsync(item => item.DisplayName == "Brother Frank", cancellationToken);
         if (author is null)
@@ -261,6 +263,9 @@ public sealed class LocalLibraryImportService
             Date = prepared.Metadata.Date,
             Location = prepared.Metadata.Location,
             Language = prepared.Metadata.Language,
+            ContentType = prepared.Metadata.SermonCode.StartsWith("CL-", StringComparison.OrdinalIgnoreCase)
+                ? "CircularLetter"
+                : "Book",
             SourceFilePath = managedPath,
             CreatedAt = DateTime.UtcNow,
             Paragraphs = prepared.Paragraphs.Select(paragraph => new SermonParagraph

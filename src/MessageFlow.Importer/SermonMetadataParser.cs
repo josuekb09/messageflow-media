@@ -35,6 +35,11 @@ public static partial class SermonMetadataParser
         string sourceRoot,
         SourceMetadataContext? sourceContext)
     {
+        if (IsEwaldFrankSource(sourceContext) || IsEwaldFrankFilePath(filePath))
+        {
+            return ParseEwaldFrank(filePath, sourceRoot, sourceContext);
+        }
+
         return IsBrotherBranhamSource(sourceContext)
             ? Parse(filePath, sourceRoot)
             : ParseGeneric(filePath, sourceRoot, sourceContext);
@@ -63,22 +68,30 @@ public static partial class SermonMetadataParser
                 ContainsIgnoreCase(sourceContext.Name, "ewald"));
     }
 
-    public static ImportAuthorMetadata GetAuthorMetadata(SourceMetadataContext? sourceContext)
+    public static bool IsEwaldFrankFilePath(string filePath)
     {
+        var normalized = filePath.Replace('/', '\\');
+        return normalized.Contains("Bro Frank", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains("Ewald Frank", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains("brother_frank", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static ImportAuthorMetadata GetAuthorMetadata(SourceMetadataContext? sourceContext, string? filePath = null)
+    {
+        if (IsEwaldFrankSource(sourceContext) || (filePath is not null && IsEwaldFrankFilePath(filePath)))
+        {
+            return new ImportAuthorMetadata(
+                EwaldFrankFullName,
+                EwaldFrankDisplayName,
+                "Imported from the Brother Ewald Frank local publication library.");
+        }
+
         if (IsBrotherBranhamSource(sourceContext))
         {
             return new ImportAuthorMetadata(
                 "William Marrion Branham",
                 "Brother Branham",
                 "Primary sermon author for the local MessageFlow sermon library.");
-        }
-
-        if (IsEwaldFrankSource(sourceContext))
-        {
-            return new ImportAuthorMetadata(
-                EwaldFrankFullName,
-                EwaldFrankDisplayName,
-                "Imported from the Ewald Frank local PDF source.");
         }
 
         var displayName = sourceContext?.DisplayName.Trim();
@@ -91,6 +104,209 @@ public static partial class SermonMetadataParser
             TrimTo(displayName, 200),
             TrimTo(displayName, 120),
             $"Imported from the {displayName} local PDF source.");
+    }
+
+    public static SermonMetadata ParseEwaldFrank(
+        string filePath,
+        string sourceRoot,
+        SourceMetadataContext? sourceContext)
+    {
+        if (EwaldFrankMetadataCatalog.TryFind(filePath, out var catalogMetadata))
+        {
+            return BuildEwaldFrankCatalogMetadata(filePath, sourceRoot, catalogMetadata);
+        }
+
+        var rawFileName = Path.GetFileNameWithoutExtension(filePath);
+        var fileName = Regex.Replace(rawFileName, @"\s*\(\d+\)$", string.Empty).Trim();
+
+        // 1. Meeting transcripts with date, time, and location:
+        // e.g. 1985-10-27-1400-Zurich-english.pdf, 1975-11-05-1930-Krefeld-english.pdf
+        var meetingMatch = EwaldFrankMeetingRegex().Match(fileName);
+        if (meetingMatch.Success)
+        {
+            var year = int.Parse(meetingMatch.Groups["year"].Value, CultureInfo.InvariantCulture);
+            var month = int.Parse(meetingMatch.Groups["month"].Value, CultureInfo.InvariantCulture);
+            var day = int.Parse(meetingMatch.Groups["day"].Value, CultureInfo.InvariantCulture);
+            var location = meetingMatch.Groups["loc"].Value;
+            var monthName = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
+            var date = new DateTime(year, month, day);
+            var title = $"Meeting in {location} - {monthName} {day}, {year}";
+            var code = $"EF-{year:D4}-{month:D2}-{day:D2}-{location.ToUpperInvariant()}";
+
+            return new SermonMetadata(
+                TrimTo(title, 300),
+                TrimTo(code, 80),
+                year,
+                date,
+                Location: location,
+                Language: "en");
+        }
+
+        // 2. Known books and brochures
+        if (fileName.Contains("Marriage_the_ancient_problem", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SermonMetadata(
+                "Marriage — The Ancient Problem",
+                "EF-MARRIAGE-THE-ANCIENT-PROBLEM",
+                0,
+                Date: null,
+                Location: null,
+                Language: "en");
+        }
+
+        if (fileName.Contains("Time_Is_At_Hand", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SermonMetadata(
+                "The Time Is At Hand",
+                "EF-TIME-IS-AT-HAND",
+                0,
+                Date: null,
+                Location: null,
+                Language: "en");
+        }
+
+        if (fileName.Contains("A_prophet_sent_from_God", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SermonMetadata(
+                "William Branham — A Prophet Sent From God",
+                "EF-WILLIAM-BRANHAM-A-PROPHET-SENT-FROM-GOD",
+                0,
+                Date: null,
+                Location: null,
+                Language: "en");
+        }
+
+        if (fileName.Contains("Revelation", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SermonMetadata(
+                "The Revelation — A Book With 7 Seals?",
+                "EF-REVELATION-BOOK-7-SEALS",
+                0,
+                Date: null,
+                Location: null,
+                Language: "en");
+        }
+
+        // 3. Seasonal dates, e.g. Spring2005.pdf
+        var seasonMatch = EwaldFrankSeasonalRegex().Match(fileName);
+        if (seasonMatch.Success)
+        {
+            var seasonName = seasonMatch.Groups["season"].Value;
+            var year = int.Parse(seasonMatch.Groups["year"].Value, CultureInfo.InvariantCulture);
+            var month = seasonName.Equals("Spring", StringComparison.OrdinalIgnoreCase) ? 3 :
+                        seasonName.Equals("Summer", StringComparison.OrdinalIgnoreCase) ? 6 :
+                        seasonName.Equals("Autumn", StringComparison.OrdinalIgnoreCase) || seasonName.Equals("Fall", StringComparison.OrdinalIgnoreCase) ? 9 : 12;
+            var date = new DateTime(year, month, 1);
+            var capitalizedSeason = char.ToUpperInvariant(seasonName[0]) + seasonName[1..].ToLowerInvariant();
+            return new SermonMetadata(
+                $"Circular Letter - {capitalizedSeason} {year}",
+                $"CL-{year}-{capitalizedSeason.ToUpperInvariant()}",
+                year,
+                date,
+                Location: null,
+                Language: "en");
+        }
+
+        // 4. Compact month ranges: yyyyMMMM e.g. 19940304, 20060304, 20190405, 20041112
+        var monthRangeMatch = EwaldFrankCompactMonthRangeRegex().Match(fileName);
+        if (monthRangeMatch.Success)
+        {
+            var year = int.Parse(monthRangeMatch.Groups["year"].Value, CultureInfo.InvariantCulture);
+            var m1 = int.Parse(monthRangeMatch.Groups["m1"].Value, CultureInfo.InvariantCulture);
+            var m2 = int.Parse(monthRangeMatch.Groups["m2"].Value, CultureInfo.InvariantCulture);
+            if (m1 is >= 1 and <= 12 && m2 is >= 1 and <= 12)
+            {
+                var name1 = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(m1);
+                var name2 = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(m2);
+                var subtitle = ExtractEwaldFrankSubtitle(fileName);
+                var title = string.IsNullOrWhiteSpace(subtitle)
+                    ? $"Circular Letter - {name1}-{name2} {year}"
+                    : $"Circular Letter - {name1}-{name2} {year} - {subtitle}";
+                var code = $"CL-{year:D4}-{m1:D2}-{m2:D2}";
+                var date = new DateTime(year, m1, 1);
+
+                return new SermonMetadata(
+                    TrimTo(title, 300),
+                    TrimTo(code, 80),
+                    year,
+                    date,
+                    Location: null,
+                    Language: "en");
+            }
+        }
+
+        // 5. Delimited or compact year-month: 1971-06, 197209, 1980-05, 200509, 200512, 201112, etc.
+        var yearMonthMatch = EwaldFrankYearMonthRegex().Match(fileName);
+        if (yearMonthMatch.Success)
+        {
+            var year = int.Parse(yearMonthMatch.Groups["year"].Value, CultureInfo.InvariantCulture);
+            var month = int.Parse(yearMonthMatch.Groups["month"].Value, CultureInfo.InvariantCulture);
+            if (month is >= 1 and <= 12)
+            {
+                var monthName = CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
+                var subtitle = ExtractEwaldFrankSubtitle(fileName);
+                var title = string.IsNullOrWhiteSpace(subtitle)
+                    ? $"Circular Letter - {monthName} {year}"
+                    : $"Circular Letter - {monthName} {year} - {subtitle}";
+                var code = $"CL-{year:D4}-{month:D2}";
+                var date = new DateTime(year, month, 1);
+
+                return new SermonMetadata(
+                    TrimTo(title, 300),
+                    TrimTo(code, 80),
+                    year,
+                    date,
+                    Location: null,
+                    Language: "en");
+            }
+        }
+
+        // 6. Year only, e.g. 2000-Circular-english.pdf
+        var yearOnlyMatch = FourDigitYearRegex().Match(fileName);
+        if (yearOnlyMatch.Success && int.TryParse(yearOnlyMatch.Value, CultureInfo.InvariantCulture, out var yearOnly))
+        {
+            var subtitle = ExtractEwaldFrankSubtitle(fileName);
+            var title = string.IsNullOrWhiteSpace(subtitle)
+                ? $"Circular Letter - {yearOnly}"
+                : $"Circular Letter - {yearOnly} - {subtitle}";
+            var code = $"CL-{yearOnly:D4}";
+            var date = new DateTime(yearOnly, 1, 1);
+
+            return new SermonMetadata(
+                TrimTo(title, 300),
+                TrimTo(code, 80),
+                yearOnly,
+                date,
+                Location: null,
+                Language: "en");
+        }
+
+        // Fallback for any generic Ewald Frank document
+        var fallbackTitle = CleanGenericTitle(fileName);
+        return new SermonMetadata(
+            TrimTo(string.IsNullOrWhiteSpace(fallbackTitle) ? "Brother Frank Publication" : fallbackTitle, 300),
+            SafeCodeFromFileName(fileName),
+            0,
+            Date: null,
+            Location: null,
+            Language: "en");
+    }
+
+    private static string ExtractEwaldFrankSubtitle(string fileName)
+    {
+        if (fileName.Contains("70_Weeks_of_Daniel", StringComparison.OrdinalIgnoreCase) ||
+            fileName.Contains("70 Weeks of Daniel", StringComparison.OrdinalIgnoreCase))
+        {
+            return "70 Weeks of Daniel";
+        }
+
+        if (fileName.Contains("Wakeupcall", StringComparison.OrdinalIgnoreCase) ||
+            fileName.Contains("Wake up call", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Wake-up Call";
+        }
+
+        return string.Empty;
     }
 
     private static SermonMetadata ParseGeneric(
@@ -580,4 +796,16 @@ public static partial class SermonMetadataParser
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhiteSpaceRegex();
+
+    [GeneratedRegex(@"^(?<year>19\d{2}|20\d{2})-(?<month>0?[1-9]|1[0-2])-(?<day>0?[1-9]|[12]\d|3[01])-\d{4}-(?<loc>[A-Za-z]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex EwaldFrankMeetingRegex();
+
+    [GeneratedRegex(@"^(?<season>Spring|Summer|Autumn|Fall|Winter)(?<year>19\d{2}|20\d{2})", RegexOptions.IgnoreCase)]
+    private static partial Regex EwaldFrankSeasonalRegex();
+
+    [GeneratedRegex(@"^(?<year>19\d{2}|20\d{2})(?<m1>0[1-9]|1[0-2])(?<m2>0[1-9]|1[0-2])(?!\d)")]
+    private static partial Regex EwaldFrankCompactMonthRangeRegex();
+
+    [GeneratedRegex(@"^(?<year>19\d{2}|20\d{2})[-_]?(?<month>0[1-9]|1[0-2])(?!\d)")]
+    private static partial Regex EwaldFrankYearMonthRegex();
 }

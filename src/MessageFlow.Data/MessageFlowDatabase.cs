@@ -96,16 +96,17 @@ public static class MessageFlowDatabase
             {
                 sermonCommand.CommandText =
                     """
-                    SELECT COALESCE(Language, '(null)'), COUNT(*)
-                    FROM Sermons
-                    GROUP BY Language
-                    ORDER BY Language
+                    SELECT COALESCE(s.Language, '(null)'), COALESCE(a.DisplayName, 'Unknown'), COUNT(*)
+                    FROM Sermons s
+                    LEFT JOIN Authors a ON a.Id = s.AuthorId
+                    GROUP BY s.Language, a.DisplayName
+                    ORDER BY s.Language, a.DisplayName
                     """;
                 using var reader = sermonCommand.ExecuteReader();
                 var parts = new List<string>();
                 while (reader.Read())
                 {
-                    parts.Add($"{reader.GetString(0)}={reader.GetInt64(1)}");
+                    parts.Add($"{reader.GetString(0)} ({reader.GetString(1)})={reader.GetInt64(2)}");
                 }
 
                 log(parts.Count == 0
