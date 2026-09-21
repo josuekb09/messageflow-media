@@ -731,18 +731,6 @@ public partial class ProjectWindow : Window
         }
 
         var title = TitleTextBlock.Visibility == Visibility.Visible ? TitleTextBlock.Text : string.Empty;
-        var titleBlock = new TextBlock
-        {
-            Text = title,
-            FontFamily = ParagraphTextBlock.FontFamily,
-            FontWeight = FontWeights.Bold,
-            FontStyle = ParagraphTextBlock.FontStyle,
-            FontStretch = ParagraphTextBlock.FontStretch,
-            FontSize = fontSize,
-            LineHeight = CalculateLineHeight(fontSize),
-            TextAlignment = TextAlignment.Center,
-            TextWrapping = TextWrapping.Wrap,
-        };
         var bodyBlock = new TextBlock
         {
             Text = text,
@@ -756,16 +744,68 @@ public partial class ProjectWindow : Window
             TextWrapping = ParagraphTextBlock.TextWrapping,
         };
 
+        // The title does not scale with the candidate body size. It renders at
+        // TitleTextBlock.FontSize, which the caller has already set (GetBibleReferenceFontSize for
+        // Bible). Measuring it at the candidate size under-charged its height whenever the real
+        // title was the larger of the two, which let a "fitting" body overflow the clipped stage.
+        // Charging the larger of the two measurements corrects that while keeping this estimate
+        // strictly no more generous than before.
+        var titleSize = new WpfSize(0, 0);
         if (!string.IsNullOrWhiteSpace(title))
         {
-            titleBlock.Measure(new WpfSize(availableSize.Width, double.PositiveInfinity));
+            var candidateTitleSize = MeasureProjectionTitle(title, fontSize, FontWeights.Bold, availableSize.Width);
+            var renderedTitleSize = MeasureProjectionTitle(
+                title,
+                TitleTextBlock.FontSize,
+                TitleTextBlock.FontWeight,
+                availableSize.Width,
+                TitleTextBlock.LineHeight);
+            titleSize = new WpfSize(
+                Math.Max(candidateTitleSize.Width, renderedTitleSize.Width),
+                Math.Max(candidateTitleSize.Height, renderedTitleSize.Height));
         }
 
         bodyBlock.Measure(new WpfSize(availableSize.Width, double.PositiveInfinity));
         var gap = string.IsNullOrWhiteSpace(title) ? 0 : Math.Clamp(availableSize.Height * 0.018, 10, 18);
         var tolerance = GetDpiAwareFitTolerance();
-        return Math.Max(titleBlock.DesiredSize.Width, bodyBlock.DesiredSize.Width) <= availableSize.Width + tolerance.Width &&
-               titleBlock.DesiredSize.Height + gap + bodyBlock.DesiredSize.Height <= availableSize.Height + tolerance.Height;
+        return Math.Max(titleSize.Width, bodyBlock.DesiredSize.Width) <= availableSize.Width + tolerance.Width &&
+               titleSize.Height + gap + bodyBlock.DesiredSize.Height <= availableSize.Height + tolerance.Height;
+    }
+
+    /// <summary>
+    /// Measures the projection title at a given font size. <paramref name="lineHeight"/> is the
+    /// title block's own line height when one has been set; NaN means "derive it from the font
+    /// size", which is what an unset <see cref="TextBlock.LineHeight"/> reports.
+    /// </summary>
+    private WpfSize MeasureProjectionTitle(
+        string title,
+        double fontSize,
+        FontWeight fontWeight,
+        double availableWidth,
+        double lineHeight = double.NaN)
+    {
+        if (fontSize <= 0)
+        {
+            return new WpfSize(0, 0);
+        }
+
+        var block = new TextBlock
+        {
+            Text = title,
+            FontFamily = ParagraphTextBlock.FontFamily,
+            FontWeight = fontWeight,
+            FontStyle = ParagraphTextBlock.FontStyle,
+            FontStretch = ParagraphTextBlock.FontStretch,
+            FontSize = fontSize,
+            LineHeight = double.IsNaN(lineHeight) || lineHeight <= 0
+                ? CalculateLineHeight(fontSize)
+                : lineHeight,
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+        };
+
+        block.Measure(new WpfSize(availableWidth, double.PositiveInfinity));
+        return block.DesiredSize;
     }
 
     private WpfSize GetDpiAwareFitTolerance()

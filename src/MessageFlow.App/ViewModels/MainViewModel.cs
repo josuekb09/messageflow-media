@@ -971,6 +971,12 @@ public sealed partial class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(CenterPanelTitle));
                 OnPropertyChanged(nameof(SermonHighlightQuery));
                 OnPropertyChanged(nameof(PreviewHighlightQuery));
+
+                // Previous/Next Paragraph is bound to CanShowSelectionNavigation, which reads this
+                // property. Without this raise the buttons stayed hidden for every document opened
+                // without first visiting another library tab, because nothing else told the binding
+                // that reading mode had started.
+                OnPropertyChanged(nameof(CanShowSelectionNavigation));
                 OpenSermonCommand.RaiseCanExecuteChanged();
                 BackToSermonSearchResultsCommand.RaiseCanExecuteChanged();
                 RaiseCommandStates();
@@ -6029,7 +6035,13 @@ public sealed partial class MainViewModel : ObservableObject
         ApplyProjectionTextSizeAdjustment(0);
         projectionFontSizeUsesSafeFit = true;
         OnPropertyChanged(nameof(IsProjectionFontSizeUsingSafeFit));
-        StatusText = "Projection text restored to the largest safe fit.";
+
+        // Sermons never shrink to fit: they hold one church-readable size and paginate, so Fit
+        // only clears the A-/A+ offset. Only Bible and Songs run a real measured fit, so only they
+        // may claim one.
+        StatusText = IsLiveSermonProjection
+            ? "Projection text size reset to the standard sermon size."
+            : "Projection text restored to the largest safe fit.";
     }
 
     private void RequestPreviousProjectionPage()
