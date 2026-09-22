@@ -297,7 +297,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ObservableCollection<FilterOption> YearFilters { get; } = [];
 
-    public ObservableCollection<SermonResultViewModel> SermonResults { get; } = [];
+    // Browsing a library fills this with well over a thousand documents at once, so it replaces its
+    // contents in one notification rather than adding item by item. See SetResults.
+    public BulkObservableCollection<SermonResultViewModel> SermonResults { get; } = [];
 
     public ObservableCollection<ParagraphResultViewModel> ParagraphResults { get; } = [];
 
@@ -4120,29 +4122,29 @@ public sealed partial class MainViewModel : ObservableObject
             ? allParagraphResults.FirstOrDefault()
             : allParagraphResults.FirstOrDefault(paragraph => paragraph.ParagraphId == preferredParagraphId.Value);
 
-        SermonResults.Clear();
-        foreach (var item in allParagraphResults
-                     .Select((result, index) => new { Result = result, Index = index })
-                     .GroupBy(item => item.Result.SermonId)
-                     .Select(group => new
-                     {
-                         Rank = group.Min(item => item.Index),
-                          Sermon = new SermonResultViewModel(
-                              group.Key,
-                              group.First().Result.SermonTitle,
-                              group.First().Result.SermonCode,
-                              group.First().Result.Year,
-                              group.Count(),
-                              group.First().Result.AuthorDisplayName,
-                              group.First().Result.SourceDisplayName,
-                              group.First().Result.SourceType,
-                              group.First().Result.ParagraphTextPreview,
-                              group.First().Result.ContentType)
-                      })
-                     .OrderBy(item => item.Rank))
-        {
-            SermonResults.Add(item.Sermon);
-        }
+        var sermons = allParagraphResults
+            .Select((result, index) => new { Result = result, Index = index })
+            .GroupBy(item => item.Result.SermonId)
+            .Select(group => new
+            {
+                Rank = group.Min(item => item.Index),
+                 Sermon = new SermonResultViewModel(
+                     group.Key,
+                     group.First().Result.SermonTitle,
+                     group.First().Result.SermonCode,
+                     group.First().Result.Year,
+                     group.Count(),
+                     group.First().Result.AuthorDisplayName,
+                     group.First().Result.SourceDisplayName,
+                     group.First().Result.SourceType,
+                     group.First().Result.ParagraphTextPreview,
+                     group.First().Result.ContentType)
+             })
+            .OrderBy(item => item.Rank)
+            .Select(item => item.Sermon)
+            .ToList();
+
+        SermonResults.ReplaceAll(sermons);
 
         var nextSermon = preferredParagraph is null
             ? SermonResults.FirstOrDefault()

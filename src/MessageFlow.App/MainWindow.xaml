@@ -345,10 +345,23 @@
                                                TextWrapping="Wrap" />
                                 </StackPanel>
 
+                                <!-- Browsing a whole library lists every document (over 1200 for
+                                     Brother Branham), so this list must virtualize. The app-wide
+                                     ListBox style sets CanContentScroll="False", which measures the
+                                     panel with infinite height and realizes every card. These four
+                                     attached properties override that for this list only; every
+                                     other list in the app stays on the global style because none of
+                                     them exceeds 200 items. ScrollUnit="Pixel" keeps the smooth
+                                     per-pixel scrolling (and GentleScroll's pixel wheel step)
+                                     that CanContentScroll="False" was providing. -->
                                 <ListBox Grid.Row="1"
                                          MinHeight="0"
                                          ScrollViewer.VerticalScrollBarVisibility="Visible"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.CanContentScroll="True"
+                                         VirtualizingPanel.IsVirtualizing="True"
+                                         VirtualizingPanel.VirtualizationMode="Recycling"
+                                         VirtualizingPanel.ScrollUnit="Pixel"
                                          ItemsSource="{Binding SermonResults}"
                                          SelectedItem="{Binding SelectedSermon}">
                                     <ListBox.Style>
