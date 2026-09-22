@@ -1,10 +1,10 @@
-# MessageFlow Media 1.0.4
+# MessageFlow Media 1.0.5
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
 
 ## Library in this build
 
-- **Sermons:** 1,208 English, 384 French, 622 Swahili
+- **Sermons:** 1,288 English (1,203 Brother Branham and 85 Brother Frank Publications), 384 French, 622 Swahili
 - **Bibles:** KJV, Louis Segond (LSG), SWHULB
 - **Songs:** 357 English, 499 French hymns (verse then chorus after each couplet), and 281 Swahili hymns
 
@@ -12,9 +12,11 @@ Every interface language has its matching sermons, Bible, and songbook.
 
 ## Fixes
 
-- Bible search bar keeps localized book names after selecting a chapter or verse (Genèse stays Genèse in French; Mwanzo stays Mwanzo in Kiswahili instead of reverting to Genesis)
-- Kiswahili hymns are included in the installed library
-- The “songs not available” status no longer stays on the Sermons tab after switching languages
+- The Brother Frank library is repaired. It was split across duplicate and test content sources, two circular letters were missing, and selecting Brother Frank sometimes returned no search results. It is now one complete library of 85 documents, which raises the English sermon count from 1,208 to 1,288
+- Previous and Next Paragraph navigation now works for Brother Frank documents; the Bible and Brother Branham sermons already had it
+- Bible projection text no longer runs off the screen on some verses
+- Switching between sermon library filters with no search text no longer takes several seconds
+- Removed a duplicate Source and Year filter control that appeared in two places in the interface and could show two different states at once
 
 ## Desktop app
 
@@ -25,6 +27,6 @@ Every interface language has its matching sermons, Bible, and songbook.
 
 ## Download
 
-Installer: [GitHub release v1.0.4](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.4)
+Installer: [GitHub release v1.0.5](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.5)
 
-The installer is too large for the git tree. The website Download button serves the hosted installer asset.
+The installer is too large for the git tree. Attach only `MessageFlowMediaSetup.exe` to the GitHub Release; the website Download button uses that release asset.
