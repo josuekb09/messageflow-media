@@ -21,6 +21,114 @@
         PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <!-- Library navigation rail. One button per LibraryTabs TabItem; the active
+             button carries a 2px accent bar on its leading edge (square on that side)
+             and switches its glyph from MutedTextBrush to AccentBrush. Glyph codepoints
+             are verified present in both Segoe Fluent Icons and Segoe MDL2 Assets, so
+             the fallback renders rather than showing empty boxes. -->
+        <Style x:Key="NavigationRailButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="Width" Value="56" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border x:Name="AccentBar"
+                                    Grid.Column="0"
+                                    Background="Transparent"
+                                    CornerRadius="0"
+                                    Margin="0,6" />
+
+                            <Border x:Name="Wash"
+                                    Grid.Column="1"
+                                    Background="Transparent"
+                                    CornerRadius="8"
+                                    Margin="4,4,6,4" />
+
+                            <ContentPresenter Grid.Column="1"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Wash" Property="Background" Value="{DynamicResource HoverFillBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="AccentBar" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Wash" Property="Background" Value="{DynamicResource HoverFillBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Sermon result cards: the selected card keeps the plain card background and
+             is marked with a 3px accent bar on its leading edge instead of a solid fill
+             wash. Scoped to the sermon list; every other list keeps the global style. -->
+        <Style x:Key="SermonCardItemStyle" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource BorderRadius}"
+                                ClipToBounds="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border x:Name="AccentEdge"
+                                        Grid.Column="0"
+                                        Background="Transparent"
+                                        CornerRadius="0" />
+
+                                <Border x:Name="HoverWash"
+                                        Grid.Column="1"
+                                        Background="{DynamicResource AccentBrush}"
+                                        Opacity="0" />
+
+                                <ContentPresenter Grid.Column="1"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HoverWash" Property="Opacity" Value="0.06" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="AccentEdge" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="AuthorFilterPillStyle" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
@@ -94,12 +202,20 @@
                             Orientation="Horizontal"
                             Margin="0,0,18,4"
                             VerticalAlignment="Center">
-                    <Image Source="pack://application:,,,/Assets/Brand/messageflow-mark-256.png"
-                           Width="28"
-                           Height="28"
-                           Margin="0,0,9,0"
-                           Stretch="Uniform"
-                           SnapsToDevicePixels="True" />
+                    <!-- Inline mark only. This follows AccentBrush, so it reads sky blue in
+                         the dark theme and gold in the light one. The app's fixed identity -
+                         window/taskbar icon, the .exe icon, the shortcut and the installer -
+                         stays permanently gold and is unaffected by this. -->
+                    <Path Data="M5.7,19.7 L5.7,7.7 L14,15.9 L22.3,7.7 L22.3,19.7"
+                          Stroke="{DynamicResource AccentBrush}"
+                          StrokeThickness="3.2"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round"
+                          Width="28"
+                          Height="28"
+                          Stretch="None"
+                          Margin="0,0,9,0" />
                     <TextBlock Text="MessageFlow"
                                FontSize="20"
                                FontWeight="SemiBold"
@@ -215,6 +331,116 @@
         <Grid Grid.Row="1"
               Margin="18"
               ClipToBounds="True">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Library navigation rail, full height of the workspace and flush against
+                 the Library panel it drives. Buttons are wired to their TabItem in
+                 code-behind, which reuses LibraryTabs_SelectionChanged for the switch. -->
+            <Border Grid.Column="0"
+                    Width="60"
+                    Margin="0,0,10,0"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource BorderRadius}">
+                <StackPanel Margin="0,10" VerticalAlignment="Top">
+                    <ToggleButton x:Name="NavSermonsButton"
+                                  Style="{StaticResource NavigationRailButtonStyle}"
+                                  AutomationProperties.Name="{loc:Tr Nav_Sermons}"
+                                  ToolTip="{loc:Tr Nav_Sermons}"
+                                  Checked="NavigationRailButton_Checked">
+                        <Path Data="M4,5 L4,19 L20,19 L20,5 Z M12,5 L12,19"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                              StrokeThickness="2"
+                              StrokeLineJoin="Round"
+                              Width="24"
+                              Height="24"
+                              Stretch="None"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </ToggleButton>
+                    <!-- Segoe Fluent Icons has no cross glyph, so the Bible icon is drawn
+                         here instead. Stroke follows the button's Foreground, which the
+                         shared style's IsChecked trigger already swaps between
+                         MutedTextBrush and AccentBrush, so this button keeps exactly the
+                         same active-state behaviour as the four glyph buttons. Round caps
+                         match the open-stroke styling of the MessageFlow mark. -->
+                    <ToggleButton x:Name="NavBibleButton"
+                                  Style="{StaticResource NavigationRailButtonStyle}"
+                                  AutomationProperties.Name="{loc:Tr Nav_Bible}"
+                                  ToolTip="{loc:Tr Nav_Bible}"
+                                  Checked="NavigationRailButton_Checked">
+                        <Path Data="M 12,3 L 12,21 M 6,9 L 18,9"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                              StrokeThickness="2.5"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Width="24"
+                              Height="24"
+                              Stretch="None"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </ToggleButton>
+                    <ToggleButton x:Name="NavSongsButton"
+                                  Style="{StaticResource NavigationRailButtonStyle}"
+                                  AutomationProperties.Name="{loc:Tr Nav_Songs}"
+                                  ToolTip="{loc:Tr Nav_Songs}"
+                                  Checked="NavigationRailButton_Checked">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="M15,4 L15,16 M15,4 C18,5 18,8 15,9"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                  StrokeThickness="2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round" />
+                            <Ellipse Canvas.Left="9"
+                                     Canvas.Top="14"
+                                     Width="7"
+                                     Height="5"
+                                     Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                        </Canvas>
+                    </ToggleButton>
+                    <ToggleButton x:Name="NavFavoritesButton"
+                                  Style="{StaticResource NavigationRailButtonStyle}"
+                                  AutomationProperties.Name="{loc:Tr Nav_Favorites}"
+                                  ToolTip="{loc:Tr Nav_Favorites}"
+                                  Checked="NavigationRailButton_Checked">
+                        <Path Data="M12,2 L14.6,9.5 L22,9.8 L16.2,14.6 L18.2,22 L12,17.6 L5.8,22 L7.8,14.6 L2,9.8 L9.4,9.5 Z"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                              StrokeThickness="2"
+                              StrokeLineJoin="Round"
+                              Width="24"
+                              Height="24"
+                              Stretch="None"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </ToggleButton>
+                    <ToggleButton x:Name="NavHistoryButton"
+                                  Style="{StaticResource NavigationRailButtonStyle}"
+                                  AutomationProperties.Name="{loc:Tr Nav_History}"
+                                  ToolTip="{loc:Tr Nav_History}"
+                                  Checked="NavigationRailButton_Checked">
+                        <Canvas Width="24" Height="24">
+                            <Ellipse Canvas.Left="4"
+                                     Canvas.Top="4"
+                                     Width="16"
+                                     Height="16"
+                                     Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                     StrokeThickness="2"
+                                     Fill="Transparent" />
+                            <Path Data="M12,12 L12,7 M12,12 L16,13"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                  StrokeThickness="2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round" />
+                        </Canvas>
+                    </ToggleButton>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Column="1" ClipToBounds="True">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.85*" MinWidth="380" />
                 <ColumnDefinition Width="6" />
@@ -363,7 +589,8 @@
                                          VirtualizingPanel.VirtualizationMode="Recycling"
                                          VirtualizingPanel.ScrollUnit="Pixel"
                                          ItemsSource="{Binding SermonResults}"
-                                         SelectedItem="{Binding SelectedSermon}">
+                                         SelectedItem="{Binding SelectedSermon}"
+                                         ItemContainerStyle="{StaticResource SermonCardItemStyle}">
                                     <ListBox.Style>
                                         <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                             <Setter Property="Visibility" Value="Visible" />
@@ -390,17 +617,23 @@
                                                          <RowDefinition Height="Auto" />
                                                          <RowDefinition Height="Auto" />
                                                      </Grid.RowDefinitions>
-                                                     <TextBlock Text="{Binding Title}"
+                                                     <!-- Document-type chip, above the title. -->
+                                                     <Border HorizontalAlignment="Left"
+                                                             Margin="0,0,0,8"
+                                                             Padding="8,2"
+                                                             CornerRadius="9"
+                                                             Background="{DynamicResource HighlightBackgroundBrush}">
+                                                         <TextBlock Text="{Binding ContentTypeDisplay}"
+                                                                    Foreground="{DynamicResource HighlightForegroundBrush}"
+                                                                    FontSize="11"
+                                                                    FontWeight="SemiBold" />
+                                                     </Border>
+                                                     <TextBlock Grid.Row="1"
+                                                                Text="{Binding Title}"
                                                                 FontSize="16"
                                                                 FontWeight="SemiBold"
                                                                 TextWrapping="Wrap"
                                                                 LineHeight="21" />
-                                                     <TextBlock Grid.Row="1"
-                                                                Margin="0,8,0,0"
-                                                                Text="{Binding ContentTypeDisplay}"
-                                                                Foreground="{DynamicResource AccentBrush}"
-                                                                FontSize="14"
-                                                                FontWeight="SemiBold" />
                                                      <TextBlock Grid.Row="2"
                                                                 Margin="0,7,0,0"
                                                                 Text="{Binding MetaLine}"
@@ -1609,6 +1842,7 @@
                     </StackPanel>
                 </Grid>
             </Border>
+            </Grid>
         </Grid>
 
         <Border Grid.Row="2"

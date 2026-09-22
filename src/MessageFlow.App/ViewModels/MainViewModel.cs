@@ -2297,14 +2297,10 @@ public sealed partial class MainViewModel : ObservableObject
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(LatestBackupPath))
-            {
-                StatusText = "No backup has been created yet.";
-                return;
-            }
-
-            var backupFolder = Path.GetDirectoryName(LatestBackupPath);
-            if (string.IsNullOrWhiteSpace(backupFolder) || !Directory.Exists(backupFolder))
+            // Opens the backup folder itself, not the folder of whichever backup happened to be
+            // made during this session, so it works on a fresh launch.
+            var backupFolder = ResolveBackupsFolder();
+            if (!Directory.Exists(backupFolder))
             {
                 StatusText = "Backup folder could not be found.";
                 return;
@@ -7126,15 +7122,38 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The folder every backup is written to, beside the database. Resolved the same way as
+    /// the backup writers above, so the button opens exactly where they save.
+    /// </summary>
+    private static string ResolveBackupsFolder()
+    {
+        var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+        return Path.Combine(
+            Path.GetDirectoryName(databasePath) ?? Directory.GetCurrentDirectory(),
+            "backups");
+    }
+
     private bool CanOpenLatestBackupFolder()
     {
-        if (IsDatabaseOperationRunning || string.IsNullOrWhiteSpace(LatestBackupPath))
+        // Gated on what is actually on disk, not on LatestBackupPath. That property only holds a
+        // backup made during this session, so keying off it left the button greyed out on every
+        // fresh launch even when the folder held backups from previous ones.
+        if (IsDatabaseOperationRunning)
         {
             return false;
         }
 
-        var backupFolder = Path.GetDirectoryName(LatestBackupPath);
-        return !string.IsNullOrWhiteSpace(backupFolder) && Directory.Exists(backupFolder);
+        try
+        {
+            var backupFolder = ResolveBackupsFolder();
+            return Directory.Exists(backupFolder) && Directory.EnumerateFiles(backupFolder).Any();
+        }
+        catch (Exception)
+        {
+            // An unreadable or disconnected backup location simply means there is nothing to open.
+            return false;
+        }
     }
 
     private static string CreateAuthorLabel(string displayName, string fullName, int authorId)

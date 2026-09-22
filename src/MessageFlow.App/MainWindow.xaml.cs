@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using MessageFlow.App.Localization;
@@ -49,6 +50,9 @@ public partial class MainWindow : Window
     {
         try
         {
+            // The rail has no container until the window loads, so the tab selected at
+            // startup never reaches it through SelectionChanged. Seed it once here.
+            UpdateNavigationRail();
             SearchBox.Focus();
             await viewModel.InitializeAsync();
         }
@@ -605,6 +609,7 @@ public partial class MainWindow : Window
         viewModel.SetBibleMode(bibleSelected);
         viewModel.SetSongsMode(songsSelected);
 
+        UpdateNavigationRail();
         AnimateLibraryTabChange();
 
         if (bibleSelected)
@@ -624,6 +629,64 @@ public partial class MainWindow : Window
         if (ReferenceEquals(LibraryTabs.SelectedItem, HistoryTab))
         {
             await viewModel.RefreshProjectionHistoryAsync();
+        }
+    }
+
+    /// <summary>
+    /// Rail button to the tab it selects. The rail is a second way to drive
+    /// <see cref="LibraryTabs"/>, never a second copy of the switching logic: it only sets
+    /// SelectedItem, and LibraryTabs_SelectionChanged still does all the work.
+    /// </summary>
+    private IEnumerable<(ToggleButton Button, TabItem Tab)> NavigationRailButtons =>
+    [
+        (NavSermonsButton, SermonsTab),
+        (NavBibleButton, BibleTab),
+        (NavSongsButton, SongsTab),
+        (NavFavoritesButton, FavoritesTab),
+        (NavHistoryButton, HistoryTab),
+    ];
+
+    /// <summary>
+    /// Guards the two-way sync: selecting a tab re-checks its rail button, which would
+    /// otherwise re-select the tab and recurse.
+    /// </summary>
+    private bool suppressNavigationRailSync;
+
+    private void NavigationRailButton_Checked(object sender, RoutedEventArgs e)
+    {
+        if (suppressNavigationRailSync || sender is not ToggleButton button)
+        {
+            return;
+        }
+
+        foreach (var (candidate, tab) in NavigationRailButtons)
+        {
+            if (ReferenceEquals(candidate, button))
+            {
+                LibraryTabs.SelectedItem = tab;
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Mirrors the current tab onto the rail. A ToggleButton would otherwise let the
+    /// operator un-check the active button and leave the rail showing nothing selected,
+    /// so the active one is re-checked rather than toggled off.
+    /// </summary>
+    private void UpdateNavigationRail()
+    {
+        suppressNavigationRailSync = true;
+        try
+        {
+            foreach (var (button, tab) in NavigationRailButtons)
+            {
+                button.IsChecked = ReferenceEquals(LibraryTabs.SelectedItem, tab);
+            }
+        }
+        finally
+        {
+            suppressNavigationRailSync = false;
         }
     }
 
