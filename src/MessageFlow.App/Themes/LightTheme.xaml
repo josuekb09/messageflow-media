@@ -1,29 +1,29 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Operator chrome aligned with website/app/globals.css light SaaS tokens. -->
-    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F8FAFC" />
-    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FAF7F2" />
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFEFB" />
     <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="BorderBrush" Color="#E2E8F0" />
-    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#334155" />
-    <SolidColorBrush x:Key="MutedTextBrush" Color="#64748B" />
-    <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
-    <SolidColorBrush x:Key="SelectionFillBrush" Color="#DBEAFE" />
-    <SolidColorBrush x:Key="HoverFillBrush" Color="#F1F5F9" />
-    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#2563EB" />
-    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#1D4ED8" />
-    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="GhostButtonHoverBackgroundBrush" Color="#EFF6FF" />
-    <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#E2E8F0" />
-    <SolidColorBrush x:Key="DisabledTextBrush" Color="#94A3B8" />
-    <SolidColorBrush x:Key="ComboBoxItemHighlightBrush" Color="#EFF6FF" />
-    <SolidColorBrush x:Key="ComboBoxItemSelectedBrush" Color="#DBEAFE" />
-    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#F1F5F9" />
-    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#CBD5E1" />
-    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#94A3B8" />
-    <SolidColorBrush x:Key="HighlightBackgroundBrush" Color="#DBEAFE" />
-    <SolidColorBrush x:Key="HighlightForegroundBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#E7DFD1" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#211D16" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#6B6255" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#8F8574" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#B8791E" />
+    <SolidColorBrush x:Key="SelectionFillBrush" Color="#F3E6CC" />
+    <SolidColorBrush x:Key="HoverFillBrush" Color="#F3E6CC" />
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#B8791E" />
+    <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="#96611A" />
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FFF8EC" />
+    <SolidColorBrush x:Key="GhostButtonHoverBackgroundBrush" Color="#F3E6CC" />
+    <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#E7DFD1" />
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="#A89E8C" />
+    <SolidColorBrush x:Key="ComboBoxItemHighlightBrush" Color="#F3E6CC" />
+    <SolidColorBrush x:Key="ComboBoxItemSelectedBrush" Color="#E9D9B8" />
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#FAF7F2" />
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#D8CFBC" />
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#C2B8A3" />
+    <SolidColorBrush x:Key="HighlightBackgroundBrush" Color="#F3E6CC" />
+    <SolidColorBrush x:Key="HighlightForegroundBrush" Color="#211D16" />
     <SolidColorBrush x:Key="TextSelectionForegroundBrush" Color="#FFFFFF" />
 </ResourceDictionary>
