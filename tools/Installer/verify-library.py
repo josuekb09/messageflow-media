@@ -5,7 +5,12 @@ import sqlite3
 import sys
 
 
-EXPECTED_SERMONS = {"en": 1208, "fr": 384, "sw": 622}
+# Refreshed after the Brother Frank library repair, which folded four content sources
+# into one, removed test/duplicate documents and imported two missing circular letters:
+# English sermons went 1208 -> 1288 (1203 Branham + 85 Brother Frank). French, Swahili
+# and every song count are unchanged. See docs/BROTHER_FRANK_LIBRARY_AUDIT.md before
+# "correcting" these back.
+EXPECTED_SERMONS = {"en": 1288, "fr": 384, "sw": 622}
 EXPECTED_SONGS = {"en": 357, "fr": 499, "sw": 281}
 EXPECTED_BIBLES = {"KJV", "LSG", "SWHULB"}
 

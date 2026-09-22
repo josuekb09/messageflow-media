@@ -7,7 +7,10 @@ for %%I in ("%SCRIPT_DIR%..\..") do set "REPO_ROOT=%%~fI"
 set "SOLUTION=%REPO_ROOT%\MessageFlow.sln"
 set "APP_PROJECT=%REPO_ROOT%\src\MessageFlow.App\MessageFlow.App.csproj"
 set "SOURCE_DB=%REPO_ROOT%\database\messageflow.db"
-if not defined MESSAGEFLOW_RELEASE_DIR set "MESSAGEFLOW_RELEASE_DIR=D:\MessageFlow Release\MessageFlow"
+rem Default output lives beside the repository, not on a fixed drive letter, because
+rem the repository is not always on D:. Override with the MESSAGEFLOW_RELEASE_DIR
+rem environment variable to stage a release elsewhere. dist\ is gitignored.
+if not defined MESSAGEFLOW_RELEASE_DIR set "MESSAGEFLOW_RELEASE_DIR=%REPO_ROOT%\dist\ChurchRelease"
 set "RELEASE_DIR=%MESSAGEFLOW_RELEASE_DIR%"
 set "RELEASE_DB_DIR=%RELEASE_DIR%\database"
 set "RELEASE_DB=%RELEASE_DB_DIR%\messageflow.db"

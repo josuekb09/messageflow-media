@@ -14,12 +14,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$env:TEMP = "D:\Temp"
-$env:TMP = "D:\Temp"
-$env:NUGET_PACKAGES = "D:\Temp\nuget"
-$env:NUGET_HTTP_CACHE_PATH = "D:\Temp\nuget-http"
-$env:DOTNET_CLI_HOME = "D:\Temp\dotnet-cli"
-New-Item -ItemType Directory -Force -Path "D:\Temp\nuget", "D:\Temp\nuget-http", "D:\Temp\dotnet-cli" | Out-Null
 
 $scriptDir = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($scriptDir)) {
@@ -28,6 +22,18 @@ if ([string]::IsNullOrWhiteSpace($scriptDir)) {
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 }
+
+# Publish temp state is isolated from the machine-wide caches so a release build
+# cannot pick up half-restored packages. It lives beside the repository rather
+# than on a fixed drive letter, because the repository is not always on D:.
+# dist\ is gitignored, so nothing here reaches source control.
+$tempRoot = Join-Path $RepoRoot "dist\_tmp"
+$env:TEMP = $tempRoot
+$env:TMP = $tempRoot
+$env:NUGET_PACKAGES = Join-Path $tempRoot "nuget"
+$env:NUGET_HTTP_CACHE_PATH = Join-Path $tempRoot "nuget-http"
+$env:DOTNET_CLI_HOME = Join-Path $tempRoot "dotnet-cli"
+New-Item -ItemType Directory -Force -Path $env:NUGET_PACKAGES, $env:NUGET_HTTP_CACHE_PATH, $env:DOTNET_CLI_HOME | Out-Null
 
 $publishDir = Join-Path $RepoRoot "dist\publish"
 $outputDir = Join-Path $RepoRoot "dist"
@@ -39,9 +45,9 @@ if (-not (Test-Path -LiteralPath $databaseFile)) {
     throw "The production database was not found: $databaseFile"
 }
 
-New-Item -ItemType Directory -Force -Path $publishDir, $outputDir, "D:\Temp" | Out-Null
+New-Item -ItemType Directory -Force -Path $publishDir, $outputDir, $tempRoot | Out-Null
 
-$snapshotDb = "D:\Temp\bundled-messageflow.db"
+$snapshotDb = Join-Path $tempRoot "bundled-messageflow.db"
 $snapshotScript = Join-Path $scriptDir "snapshot-sqlite.py"
 $verifyScript = Join-Path $scriptDir "verify-library.py"
 if (Test-Path -LiteralPath $snapshotDb) {
@@ -61,11 +67,11 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Publishing self-contained win-x64 Release..."
-$env:TEMP = "D:\Temp"
-$env:TMP = "D:\Temp"
-$env:NUGET_PACKAGES = "D:\Temp\nuget"
-$env:NUGET_HTTP_CACHE_PATH = "D:\Temp\nuget-http"
-$env:DOTNET_CLI_HOME = "D:\Temp\dotnet-cli"
+$env:TEMP = $tempRoot
+$env:TMP = $tempRoot
+$env:NUGET_PACKAGES = Join-Path $tempRoot "nuget"
+$env:NUGET_HTTP_CACHE_PATH = Join-Path $tempRoot "nuget-http"
+$env:DOTNET_CLI_HOME = Join-Path $tempRoot "dotnet-cli"
 dotnet publish $appProject `
     -c $Configuration `
     -r win-x64 `
