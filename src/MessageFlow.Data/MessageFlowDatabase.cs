@@ -17,7 +17,9 @@ public static class MessageFlowDatabase
         Path.Combine(AppContext.BaseDirectory, DatabaseFolderName, DatabaseFileName);
 
     /// <summary>
-    /// Writable data root on D:. Never %LocalAppData% on C:.
+    /// Writable data root used when the install folder itself cannot be written, for example an
+    /// all-users install under Program Files. It stays on D: (or another non-system drive) when
+    /// one exists so data from earlier installs, which always lived there, is still found.
     /// </summary>
     public static string UserDataRoot =>
         Path.Combine(GetPreferredDataDriveRoot(), UserDataFolderName);
@@ -41,7 +43,7 @@ public static class MessageFlowDatabase
     }
 
     /// <summary>
-    /// Legacy name. Previously %LocalAppData% on C:; now the D: user-data database.
+    /// Legacy name for <see cref="UserDataDatabasePath"/>.
     /// </summary>
     public static string AppDataDatabasePath => UserDataDatabasePath;
 
@@ -62,6 +64,9 @@ public static class MessageFlowDatabase
         }
     }
 
+    /// <summary>
+    /// A data path is usable when it is valid and its folder can be written, on any drive.
+    /// </summary>
     public static bool IsAllowedDataPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -71,7 +76,8 @@ public static class MessageFlowDatabase
 
         try
         {
-            return !IsSystemCDrive(Path.GetFullPath(path));
+            var directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            return !string.IsNullOrEmpty(directory) && DirectoryIsWritable(directory);
         }
         catch
         {
@@ -181,6 +187,7 @@ public static class MessageFlowDatabase
             return existing[0].FullName;
         }
 
+        // The bundled database sits in a folder this user cannot write, so work on a copy.
         var executableDatabasePath = ExecutableDatabasePath;
         if (File.Exists(executableDatabasePath) && !IsAllowedDataPath(executableDatabasePath))
         {
@@ -242,7 +249,9 @@ public static class MessageFlowDatabase
             }
         }
 
-        return preferred;
+        // A computer with only a system drive. The old fallback named D: here even when it did
+        // not exist, so the app could not start; the user's local app data is always writable.
+        return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
     }
 
     private static bool IsSystemCDrive(string path)
@@ -251,7 +260,34 @@ public static class MessageFlowDatabase
         return string.Equals(root, @"C:\", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool DirectoryIsWritable(string directory)
+    /// <summary>
+    /// True when the database file can be opened for writing: not marked read-only, not denied
+    /// by permissions, and not held exclusively by another program. It only opens and closes the
+    /// file, so it stays fast and leaves the contents and timestamps untouched.
+    /// </summary>
+    public static bool DatabaseFileIsWritable(string databasePath)
+    {
+        try
+        {
+            using var stream = new FileStream(
+                databasePath,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite | FileShare.Delete);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// True when a small file can be created and deleted in <paramref name="directory"/>. SQLite
+    /// needs this beside the database for its journal, so a writable database file alone is
+    /// not enough.
+    /// </summary>
+    public static bool DirectoryIsWritable(string directory)
     {
         try
         {

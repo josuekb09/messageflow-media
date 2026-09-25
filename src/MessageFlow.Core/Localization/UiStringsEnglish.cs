@@ -491,6 +491,8 @@ public static class UiStringsEnglish
         ["Confirm_RestoreDatabaseTitle"] = "Restore MessageFlow Database",
         ["Confirm_ImportBibleReplace"] = "{0} already exists. Replace existing verses?",
         ["Msg_StartupFailed"] = "MessageFlow opened, but startup initialization failed.{0}{0}{1}{0}{0}Details were written to logs\\app-startup.log.",
-        ["Msg_StartupFailedTitle"] = "MessageFlow Startup Error"
+        ["Msg_StartupFailedTitle"] = "MessageFlow Startup Error",
+        ["Msg_DataFolderNotWritable"] = "MessageFlow can't save data to its usual folder right now.{0}{0}This can happen if the folder needs permission, or if a connected drive was disconnected.{0}{0}Try restarting MessageFlow, or ask whoever installed it to check that the location below allows saving (write access):{0}{0}{1}",
+        ["Msg_DataFolderNotWritableTitle"] = "MessageFlow can't save data"
     };
 }

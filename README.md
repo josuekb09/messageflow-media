@@ -40,7 +40,7 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 ## Install on Windows 10 / 11 (64-bit)
 
 1. Open the [v1.0.4 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.4) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
-2. Run the installer. Prefer installing on drive **D:** if that is the church media disk.
+2. Run the installer. No administrator permission is needed. Keep the suggested `Documents\MessageFlowMedia` folder or choose any folder on any drive.
 3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
 5. Choose English, Français, or Kiswahili. Search a sermon, verse, or hymn. Press `Ctrl+P` to project.

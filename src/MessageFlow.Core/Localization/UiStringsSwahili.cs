@@ -185,6 +185,8 @@ public static class UiStringsSwahili
         ["Status_SelectedParagraph"] = "Ibara {0} imechaguliwa.",
         ["Status_NoMatchingParagraph"] = "Hakuna ibara inayolingana.",
         ["Status_StartupFailed"] = "Kuanzisha kumeshindikana. Tazama logs\\app-startup.log.",
+        ["Msg_DataFolderNotWritable"] = "MessageFlow haiwezi kuhifadhi data kwenye folda yake ya kawaida kwa sasa.{0}{0}Hii inaweza kutokea ikiwa folda inahitaji ruhusa, au ikiwa diski iliyounganishwa imetenganishwa.{0}{0}Jaribu kuanzisha upya MessageFlow, au mwombe aliyeisakinisha aangalie kwamba mahali palipoonyeshwa hapa chini panaruhusu kuhifadhi (ruhusa ya kuandika):{0}{0}{1}",
+        ["Msg_DataFolderNotWritableTitle"] = "MessageFlow haiwezi kuhifadhi",
         ["Status_ProjectionOpen"] = "Onyesho: limefunguliwa kwenye {0}",
         ["Status_ProjectionClosed"] = "Onyesho: limefungwa",
         ["Status_NoExactPhrase"] = "Hakuna kifungu kamili kilichopatikana",

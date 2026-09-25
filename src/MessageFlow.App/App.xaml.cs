@@ -38,11 +38,6 @@ public partial class App : System.Windows.Application
 
             var databasePath = MessageFlowDatabase.DefaultDatabasePath;
             LogStartupMessage($"MessageFlow database path: {databasePath}");
-            if (!MessageFlowDatabase.IsAllowedDataPath(databasePath))
-            {
-                throw new InvalidOperationException(
-                    $"MessageFlow refused to use a C: database path:{Environment.NewLine}{databasePath}");
-            }
 
             if (!File.Exists(databasePath))
             {
@@ -51,13 +46,32 @@ public partial class App : System.Windows.Application
                     databasePath);
             }
 
+            // Loaded before the write check so its message appears in the operator's language.
+            // It only reads a small settings file and falls back to the default on any error.
+            Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
+
+            // Fail now, in plain words, rather than minutes later mid-service with a SQLite error.
+            // This is one tiny file write and one file open, not a database open.
+            var databaseDirectory = Path.GetDirectoryName(Path.GetFullPath(databasePath)) ?? string.Empty;
+            if (!MessageFlowDatabase.DirectoryIsWritable(databaseDirectory) ||
+                !MessageFlowDatabase.DatabaseFileIsWritable(databasePath))
+            {
+                LogStartupMessage($"Database location is not writable: {databasePath}");
+                MessageBox.Show(
+                    Loc.F("Msg_DataFolderNotWritable", Environment.NewLine, databasePath),
+                    Loc.T("Msg_DataFolderNotWritableTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+
             MessageFlowDatabaseRepair
                 .RepairAsync(databasePath, LogStartupMessage)
                 .GetAwaiter()
                 .GetResult();
             MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
 
-            Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
             AppTheme.Apply(UiThemePreference.LoadIsLight());
 
             serviceProvider = new ServiceCollection()
