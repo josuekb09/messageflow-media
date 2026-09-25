@@ -236,6 +236,8 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(CenterPanelTitle));
         OnPropertyChanged(nameof(RightPanelTitle));
         OnPropertyChanged(nameof(LibraryCountText));
+        OnPropertyChanged(nameof(SermonBrowseCapNotice));
+        OnPropertyChanged(nameof(ShowAllBrowseResultsText));
         OnPropertyChanged(nameof(PreviewHeader));
         OnPropertyChanged(nameof(PreviewMeta));
         OnPropertyChanged(nameof(SelectedParagraphHeader));

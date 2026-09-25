@@ -569,6 +569,20 @@
                                                Foreground="{DynamicResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap" />
+
+                                    <!-- Shown only while a library browse lists the first
+                                         SermonBrowseDisplayLimit documents of a larger library. -->
+                                    <TextBlock Margin="0,6,0,0"
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Visibility="{Binding IsSermonBrowseCapped, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Run Text="{Binding SermonBrowseCapNotice, Mode=OneWay}" />
+                                        <Hyperlink Command="{Binding ShowAllBrowseResultsCommand}"
+                                                   Foreground="{DynamicResource AccentBrush}">
+                                            <Run Text="{Binding ShowAllBrowseResultsText, Mode=OneWay}" />
+                                        </Hyperlink>
+                                    </TextBlock>
                                 </StackPanel>
 
                                 <!-- Browsing a whole library lists every document (over 1200 for

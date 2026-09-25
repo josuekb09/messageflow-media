@@ -36,6 +36,15 @@ public sealed partial class MainViewModel : ObservableObject
 
     private const string FrankSourceName = "brother_frank";
 
+    /// <summary>
+    /// How many documents an empty-search library browse lists before the operator asks for the
+    /// rest. It matches the 200-result cap of text search. Listing all 1,203 Brother Branham
+    /// documents costs about three seconds of UI time on every library switch, while the query
+    /// itself is cheap, so the full list is still fetched and only the display is capped. Text
+    /// search always queries the database directly and never looks at this list.
+    /// </summary>
+    private const int SermonBrowseDisplayLimit = 200;
+
     private const double ProjectionFontAdjustmentStep = 2;
     private const double MinimumProjectionFontAdjustment = -24;
     private const double MaximumProjectionFontAdjustment = 24;
@@ -102,6 +111,8 @@ public sealed partial class MainViewModel : ObservableObject
     private int? focusedSermonId;
     private SermonResultViewModel? focusedSermon;
     private bool suppressProjectionDisplayPreferenceSave;
+    private bool suppressSermonSelectionRefresh;
+    private bool showAllBrowseResults;
     private int resultCount;
     private List<ParagraphResultViewModel> allParagraphResults = [];
     private List<ParagraphResultViewModel> focusedSermonParagraphs = [];
@@ -232,6 +243,7 @@ public sealed partial class MainViewModel : ObservableObject
         });
         SelectBranhamSourceCommand = new RelayCommand(() => SelectLibraryByName(BranhamSourceName));
         SelectFrankSourceCommand = new RelayCommand(() => SelectLibraryByName(FrankSourceName));
+        ShowAllBrowseResultsCommand = new RelayCommand(ShowAllBrowseResults);
 
         InitializeUiLanguage();
         InitializeUiTheme();
@@ -411,6 +423,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public RelayCommand SelectFrankSourceCommand { get; }
 
+    public RelayCommand ShowAllBrowseResultsCommand { get; }
+
     public bool IsAllSourcesSelected => SelectedSourceFilter?.Value is null;
 
     public bool IsBranhamSourceSelected => IsLibrarySelected(BranhamSourceName);
@@ -537,7 +551,10 @@ public sealed partial class MainViewModel : ObservableObject
                 if (!isSermonReadingMode)
                 {
                     ClearSermonWithinSearch(resetText: true);
-                    RefreshParagraphResultsForSelectedSermon();
+                    if (!suppressSermonSelectionRefresh)
+                    {
+                        RefreshParagraphResultsForSelectedSermon();
+                    }
                 }
             }
         }
@@ -1157,6 +1174,22 @@ public sealed partial class MainViewModel : ObservableObject
             : isSermonBrowseMode
                 ? Loc.Count(ResultCount, "Count_Sermon_One", "Count_Sermon_Many")
             : Loc.Count(ResultCount, "Count_Paragraph_One", "Count_Paragraph_Many");
+
+    /// <summary>
+    /// True while an empty-search library browse lists only the first
+    /// <see cref="SermonBrowseDisplayLimit"/> documents of a larger library.
+    /// </summary>
+    public bool IsSermonBrowseCapped =>
+        isSermonBrowseMode && !showAllBrowseResults && ResultCount > SermonBrowseDisplayLimit;
+
+    public string SermonBrowseCapNotice =>
+        Loc.F(
+            "Sermon_BrowseCapNotice",
+            SermonResults.Count.ToString("N0"),
+            Loc.Count(ResultCount, "Count_Document_One", "Count_Document_Many"));
+
+    public string ShowAllBrowseResultsText =>
+        Loc.F("Sermon_ShowAllDocuments", ResultCount.ToString("N0"));
 
     public string PreviewHeader =>
         IsBibleMode
@@ -3998,6 +4031,8 @@ public sealed partial class MainViewModel : ObservableObject
 
             var preferredParagraphId = resultViewModels.FirstOrDefault()?.ParagraphId;
 
+            // Every new browse or search starts capped again; "Show all" lasts for one listing.
+            showAllBrowseResults = false;
             SetResults(resultViewModels, preferredParagraphId, snapshot.IsFilterOnlyBrowse);
 
             if (snapshot.ProjectBestResult)
@@ -4140,7 +4175,30 @@ public sealed partial class MainViewModel : ObservableObject
             .Select(item => item.Sermon)
             .ToList();
 
-        SermonResults.ReplaceAll(sermons);
+        // Only the displayed list is capped. allParagraphResults and ResultCount keep the whole
+        // library, so the count shown stays honest and "Show all" needs no second query.
+        if (isSermonBrowseMode && !showAllBrowseResults && sermons.Count > SermonBrowseDisplayLimit)
+        {
+            sermons = sermons.Take(SermonBrowseDisplayLimit).ToList();
+        }
+
+        // The Reset from ReplaceAll makes the ListBox drop the old selection, which writes
+        // SelectedSermon = null back through the two-way binding. Refreshing paragraphs for a null
+        // selection would load every paragraph of the whole library one at a time, only to be
+        // replaced moments later when the real next selection is applied below.
+        suppressSermonSelectionRefresh = true;
+        try
+        {
+            SermonResults.ReplaceAll(sermons);
+        }
+        finally
+        {
+            suppressSermonSelectionRefresh = false;
+        }
+
+        OnPropertyChanged(nameof(IsSermonBrowseCapped));
+        OnPropertyChanged(nameof(SermonBrowseCapNotice));
+        OnPropertyChanged(nameof(ShowAllBrowseResultsText));
 
         var nextSermon = preferredParagraph is null
             ? SermonResults.FirstOrDefault()
@@ -4159,8 +4217,37 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Lists every document of the current library browse. The rows are already in memory, so
+    /// this re-applies them without the display cap rather than querying again.
+    /// </summary>
+    private void ShowAllBrowseResults()
+    {
+        if (!IsSermonBrowseCapped)
+        {
+            return;
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        showAllBrowseResults = true;
+        SetResults(allParagraphResults, SelectedParagraph?.ParagraphId, isSermonBrowseMode: true);
+        StatusText = Loc.F(
+            "Status_BrowseFound",
+            Loc.Count(ResultCount, "Count_Document_One", "Count_Document_Many"),
+            stopwatch.ElapsedMilliseconds.ToString("N0"));
+    }
+
     private string BuildSearchStatus(SearchSnapshot snapshot, long elapsedMilliseconds)
     {
+        if (snapshot.IsFilterOnlyBrowse && IsSermonBrowseCapped)
+        {
+            return Loc.F(
+                "Status_BrowseShowingFirst",
+                SermonResults.Count.ToString("N0"),
+                Loc.Count(ResultCount, "Count_Document_One", "Count_Document_Many"),
+                elapsedMilliseconds.ToString("N0"));
+        }
+
         if (snapshot.IsFilterOnlyBrowse)
         {
             return Loc.F(
