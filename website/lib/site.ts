@@ -15,9 +15,9 @@ export const site = {
   downloadHref:
     "https://github.com/josuekb09/messageflow-media/releases/latest/download/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
-  installerSize: "~795 MB",
+  installerSize: "~628 MB",
   installerSha256:
-    "F600098885462530D01FE500BF3D575444BA61FD359A1ADFE9BC4ABD14478FE6",
+    "10A2F080BCC27BA1629EC172DAF83597BD665CAB03FDA64A206FCD26E3B53FCB",
   supportEmail: "kabuyatambwe03@gmail.com",
   ccEmail: "Paulinkabeya@gmail.com",
 } as const;
