@@ -162,6 +162,7 @@ public static class UiStringsSwahili
 
         // ---- Status / Bible info used on the main screen ----
         ["Status_Ready"] = "Tayari",
+        ["Splash_Loading"] = "Inapakia maktaba...",
         ["Status_Selected"] = "{0} imechaguliwa.",
         ["Status_SearchingBible"] = "Inatafuta Biblia...",
         ["Status_Searching"] = "Inatafuta...",

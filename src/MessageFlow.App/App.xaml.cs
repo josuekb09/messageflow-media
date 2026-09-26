@@ -26,10 +26,14 @@ public partial class App : System.Windows.Application
         WriteStartupLog(message);
     }
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         RegisterExceptionHandlers();
-        ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+        // The splash is the first window, so WPF makes it MainWindow. Explicit shutdown until the
+        // real main window takes over keeps closing the splash from ending the application.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        SplashWindow? splash = null;
 
         try
         {
@@ -50,6 +54,13 @@ public partial class App : System.Windows.Application
             // It only reads a small settings file and falls back to the default on any error.
             Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
 
+            // Applied before the splash so it opens in the operator's theme. It only reads a small
+            // settings file and swaps one resource dictionary.
+            AppTheme.Apply(UiThemePreference.LoadIsLight());
+
+            splash = new SplashWindow();
+            splash.Show();
+
             // Fail now, in plain words, rather than minutes later mid-service with a SQLite error.
             // This is one tiny file write and one file open, not a database open.
             var databaseDirectory = Path.GetDirectoryName(Path.GetFullPath(databasePath)) ?? string.Empty;
@@ -57,6 +68,7 @@ public partial class App : System.Windows.Application
                 !MessageFlowDatabase.DatabaseFileIsWritable(databasePath))
             {
                 LogStartupMessage($"Database location is not writable: {databasePath}");
+                splash.CloseSplash();
                 MessageBox.Show(
                     Loc.F("Msg_DataFolderNotWritable", Environment.NewLine, databasePath),
                     Loc.T("Msg_DataFolderNotWritableTitle"),
@@ -66,13 +78,13 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            MessageFlowDatabaseRepair
-                .RepairAsync(databasePath, LogStartupMessage)
-                .GetAwaiter()
-                .GetResult();
-            MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
-
-            AppTheme.Apply(UiThemePreference.LoadIsLight());
+            // The disk-bound repair and inventory touch no UI, so they run off the UI thread and the
+            // splash stays responsive through a cold-disk start. Everything after resumes on the UI thread.
+            await Task.Run(async () =>
+            {
+                await MessageFlowDatabaseRepair.RepairAsync(databasePath, LogStartupMessage);
+                MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
+            });
 
             serviceProvider = new ServiceCollection()
                 .AddMessageFlowData(databasePath)
@@ -83,11 +95,14 @@ public partial class App : System.Windows.Application
 
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
             mainWindow.Show();
             LogStartupMessage("MainWindow shown.");
+            splash.CloseSplash();
         }
         catch (Exception ex)
         {
+            splash?.CloseSplash();
             LogStartupError("MessageFlow failed during application startup.", ex);
             ShowStartupError("MessageFlow could not start.", ex);
             Shutdown(1);

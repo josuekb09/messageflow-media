@@ -308,6 +308,7 @@ public static class UiStringsEnglish
 
         // ---- Status messages ----
         ["Status_Ready"] = "Ready",
+        ["Splash_Loading"] = "Loading library...",
         ["Status_ProjectionDisplaySet"] = "Projection display set to {0}.",
         ["Status_Selected"] = "Selected {0}.",
         ["Status_SelectedParagraph"] = "Selected Paragraph {0}.",

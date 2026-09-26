@@ -1,0 +1,45 @@
+<Window x:Class="MessageFlow.App.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:MessageFlow.App.Localization"
+        Title="MessageFlow"
+        Icon="pack://application:,,,/Assets/Brand/messageflow-app-icon-1024.png"
+        Width="380"
+        Height="300"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="1"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        Closing="Window_Closing">
+    <!-- Shown while the database is repaired on a background thread, so a cold-disk start
+         looks like loading rather than a frozen window. Draggable, but not closable. -->
+    <Grid Margin="32">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Image Source="pack://application:,,,/Assets/Brand/messageflow-app-icon-1024.png"
+                   Width="96"
+                   Height="96"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   HorizontalAlignment="Center" />
+            <TextBlock Text="MessageFlow"
+                       FontSize="24"
+                       FontWeight="SemiBold"
+                       Margin="0,16,0,20"
+                       HorizontalAlignment="Center" />
+            <ProgressBar IsIndeterminate="True"
+                         Width="220"
+                         Height="4"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Background="{DynamicResource PanelBackgroundBrush}"
+                         BorderThickness="0" />
+            <TextBlock Text="{loc:Tr Splash_Loading}"
+                       FontSize="13"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       Margin="0,12,0,0"
+                       HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Window>

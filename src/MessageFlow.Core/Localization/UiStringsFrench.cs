@@ -308,6 +308,7 @@ public static class UiStringsFrench
 
         // ---- Messages d'état ----
         ["Status_Ready"] = "Prêt",
+        ["Splash_Loading"] = "Chargement de la bibliothèque...",
         ["Status_ProjectionDisplaySet"] = "Écran de projection défini sur {0}.",
         ["Status_Selected"] = "{0} sélectionné.",
         ["Status_SelectedParagraph"] = "Paragraphe {0} sélectionné.",
