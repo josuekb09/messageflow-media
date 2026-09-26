@@ -494,6 +494,7 @@ public static class UiStringsFrench
         ["Msg_StartupFailed"] = "MessageFlow s'est ouvert, mais l'initialisation a échoué.{0}{0}{1}{0}{0}Les détails ont été écrits dans logs\\app-startup.log.",
         ["Msg_StartupFailedTitle"] = "Erreur de démarrage MessageFlow",
         ["Msg_DataFolderNotWritable"] = "MessageFlow ne peut pas enregistrer de données dans son dossier habituel pour le moment.{0}{0}Cela peut arriver si le dossier demande une autorisation, ou si un disque connecté a été débranché.{0}{0}Essayez de redémarrer MessageFlow, ou demandez à la personne qui l'a installé de vérifier que l'emplacement ci-dessous autorise l'enregistrement (accès en écriture) :{0}{0}{1}",
-        ["Msg_DataFolderNotWritableTitle"] = "MessageFlow ne peut pas enregistrer"
+        ["Msg_DataFolderNotWritableTitle"] = "MessageFlow ne peut pas enregistrer",
+        ["Msg_AlreadyRunning"] = "MessageFlow est déjà en cours d'exécution."
     };
 }

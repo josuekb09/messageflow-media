@@ -1214,6 +1214,9 @@ public static class MessageFlowDatabaseRepair
         SqliteConnection connection,
         CancellationToken cancellationToken)
     {
+        // One transaction, so an interrupted rebuild rolls back to the previous index instead of
+        // committing the DELETE on its own and leaving search empty or half-built.
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         await ExecuteAsync(connection, """DELETE FROM "SermonParagraphsFts";""", cancellationToken);
         await ExecuteAsync(
             connection,
@@ -1253,6 +1256,7 @@ public static class MessageFlowDatabaseRepair
             LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId";
             """,
             cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private static async Task<long> ExecuteScalarLongAsync(

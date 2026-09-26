@@ -172,6 +172,17 @@ public static class MessageFlowDatabase
 
     private static string ResolveDefaultDatabasePath()
     {
+        // The app's own installed database always wins when it can be written. Comparing sizes
+        // against it once let an older, larger MessageFlowMedia folder on another drive outrank
+        // a fresh install, so the size comparison below is only a fallback.
+        var executableDatabasePath = ExecutableDatabasePath;
+        if (File.Exists(executableDatabasePath) &&
+            new FileInfo(executableDatabasePath).Length > 0 &&
+            IsAllowedDataPath(executableDatabasePath))
+        {
+            return executableDatabasePath;
+        }
+
         var candidates = EnumerateDatabaseCandidates().ToList();
         var existing = candidates
             .Where(path => File.Exists(path) && IsAllowedDataPath(path))
@@ -188,7 +199,6 @@ public static class MessageFlowDatabase
         }
 
         // The bundled database sits in a folder this user cannot write, so work on a copy.
-        var executableDatabasePath = ExecutableDatabasePath;
         if (File.Exists(executableDatabasePath) && !IsAllowedDataPath(executableDatabasePath))
         {
             EnsureDatabaseDirectory(UserDataDatabasePath);

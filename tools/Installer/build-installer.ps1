@@ -50,6 +50,7 @@ New-Item -ItemType Directory -Force -Path $publishDir, $outputDir, $tempRoot | O
 $snapshotDb = Join-Path $tempRoot "bundled-messageflow.db"
 $snapshotScript = Join-Path $scriptDir "snapshot-sqlite.py"
 $verifyScript = Join-Path $scriptDir "verify-library.py"
+$integrityScript = Join-Path $scriptDir "check-snapshot-integrity.py"
 if (Test-Path -LiteralPath $snapshotDb) {
     Remove-Item -LiteralPath $snapshotDb -Force
 }
@@ -58,6 +59,12 @@ Write-Host "Checkpointing SQLite WAL and creating a consistent snapshot (VACUUM 
 python $snapshotScript $databaseFile $snapshotDb
 if ($LASTEXITCODE -ne 0) {
     throw "SQLite snapshot failed."
+}
+
+Write-Host "Checking snapshot integrity (repairs index-only defects)..."
+python $integrityScript $snapshotDb
+if ($LASTEXITCODE -ne 0) {
+    throw "Bundled SQLite snapshot failed integrity_check."
 }
 
 Write-Host "Verifying bundled library counts..."

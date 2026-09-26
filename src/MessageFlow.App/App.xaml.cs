@@ -13,8 +13,12 @@ namespace MessageFlow.App;
 
 public partial class App : System.Windows.Application
 {
+    private const string SingleInstanceMutexName = @"Global\MessageFlowMedia.SingleInstance";
+
     private ServiceProvider? serviceProvider;
     private bool exceptionHandlersRegistered;
+    private Mutex? singleInstanceMutex;
+    private bool ownsSingleInstanceMutex;
 
     public static void LogStartupError(string message, Exception exception)
     {
@@ -39,6 +43,21 @@ public partial class App : System.Windows.Application
         {
             LogStartupMessage("MessageFlow startup beginning.");
             base.OnStartup(e);
+
+            // Checked before the database path is even resolved: two instances rebuilding the search
+            // index against one database file is how a database was corrupted during testing.
+            if (!TryAcquireSingleInstance())
+            {
+                LogStartupMessage("Another MessageFlow instance is already running; this one is exiting.");
+                Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
+                MessageBox.Show(
+                    Loc.T("Msg_AlreadyRunning"),
+                    "MessageFlow",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                Shutdown(0);
+                return;
+            }
 
             var databasePath = MessageFlowDatabase.DefaultDatabasePath;
             LogStartupMessage($"MessageFlow database path: {databasePath}");
@@ -112,7 +131,42 @@ public partial class App : System.Windows.Application
     protected override void OnExit(ExitEventArgs e)
     {
         serviceProvider?.Dispose();
+        ReleaseSingleInstance();
         base.OnExit(e);
+    }
+
+    private bool TryAcquireSingleInstance()
+    {
+        // Global, so an installed copy and a dev build, or two Windows sessions, also exclude each other.
+        singleInstanceMutex = new Mutex(initiallyOwned: false, SingleInstanceMutexName);
+        try
+        {
+            ownsSingleInstanceMutex = singleInstanceMutex.WaitOne(0);
+        }
+        catch (AbandonedMutexException)
+        {
+            // The previous owner crashed without releasing it. Ownership passes to this instance.
+            ownsSingleInstanceMutex = true;
+        }
+
+        return ownsSingleInstanceMutex;
+    }
+
+    private void ReleaseSingleInstance()
+    {
+        if (singleInstanceMutex is null)
+        {
+            return;
+        }
+
+        if (ownsSingleInstanceMutex)
+        {
+            singleInstanceMutex.ReleaseMutex();
+            ownsSingleInstanceMutex = false;
+        }
+
+        singleInstanceMutex.Dispose();
+        singleInstanceMutex = null;
     }
 
     private void RegisterExceptionHandlers()
