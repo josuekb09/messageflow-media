@@ -5,24 +5,25 @@
   --foreground: #0a0a0a;
 }
 
+/*
+ * Black, white, and gray, with one accent: the gold of the app's badge mark
+ * (AccentBrush in src/MessageFlow.App/Themes/LightTheme.xaml). Gold is kept for the
+ * logo, the primary download button, and a few highlights. Text on a gold button is
+ * ink rather than white, because white on #B8791E is below 4.5:1 contrast.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-page: #fafafa;
+  --color-page: #ffffff;
+  --color-surface: #f5f5f5;
   --color-ink: #0a0a0a;
-  --color-ink-secondary: #3f3f46;
-  --color-ink-muted: #71717a;
-  --color-line: #e4e4e7;
-  --color-brand: #2563eb;
-  --color-brand-hover: #1d4ed8;
-  --color-app: #0f141c;
-  --color-app-panel: #151b24;
-  --color-app-card: #1a2230;
-  --color-app-line: #334155;
-  --color-app-text: #f8fafc;
-  --color-app-muted: #94a3b8;
-  --color-app-sky: #38bdf8;
+  --color-ink-secondary: #404040;
+  --color-ink-muted: #737373;
+  --color-line: #e5e5e5;
+  --color-brand: #b8791e;
+  --color-brand-hover: #a56c1a;
   --font-sans: var(--font-geist);
+  --font-serif: var(--font-fraunces);
 }
 
 html {
@@ -38,13 +39,25 @@ body {
   overflow-x: clip;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
 img,
 video {
   max-width: 100%;
   height: auto;
 }
 
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 ::selection {
-  background: #dbeafe;
+  background: #f1e3cc;
   color: #0a0a0a;
 }

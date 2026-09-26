@@ -1,10 +1,5 @@
-import type { Locale } from "@/lib/i18n";
-
-export const interfaceScreenshots: Record<
-  Locale,
-  { src: string; width: number; height: number }
-> = {
-  en: { src: "/media/app-english.png", width: 1918, height: 1008 },
-  fr: { src: "/media/app-french.png", width: 1918, height: 1009 },
-  sw: { src: "/media/app-swahili.png", width: 1918, height: 1006 },
-};
+// Real captures of the current Windows app (1.0.5 layout with the navigation rail).
+export const themeScreenshots = {
+  dark: { src: "/media/app-dark.png", width: 1918, height: 1006 },
+  light: { src: "/media/app-light.png", width: 1918, height: 1006 },
+} as const;

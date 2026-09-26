@@ -1,8 +1,8 @@
 export const site = {
   name: "MessageFlow Media",
-  tagline: "The modern standard for church media projection",
+  tagline: "Sermon, Bible, and song projection for churches",
   description:
-    "Lightning-fast offline Windows software to search and project sermons, Bibles, and multilingual songbooks in English, French, and Kiswahili — no internet required.",
+    "Free offline Windows software for church media teams. Search and project Brother Branham's sermons, Brother Frank's publications, the Bible, and songs in English, French, and Kiswahili.",
   url: "https://www.messageflow.tech",
   version: "1.0.5",
   releaseDate: "September 2026",

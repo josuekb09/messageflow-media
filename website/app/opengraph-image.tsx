@@ -17,10 +17,10 @@ export default function OpenGraphImage() {
           justifyContent: "center",
           padding: 80,
           background: "#ffffff",
-          color: "#0F172A",
+          color: "#0A0A0A",
         }}
       >
-        <div style={{ display: "flex", fontSize: 20, color: "#2563EB", fontWeight: 600 }}>
+        <div style={{ display: "flex", fontSize: 20, color: "#B8791E", fontWeight: 600 }}>
           MessageFlow · v{site.version}
         </div>
         <div
@@ -35,7 +35,7 @@ export default function OpenGraphImage() {
         >
           {site.tagline}
         </div>
-        <div style={{ display: "flex", marginTop: 28, fontSize: 22, color: "#64748B" }}>
+        <div style={{ display: "flex", marginTop: 28, fontSize: 22, color: "#737373" }}>
           {site.releaseDate} · Windows 10 / 11
         </div>
       </div>

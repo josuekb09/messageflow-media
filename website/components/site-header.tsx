@@ -12,8 +12,8 @@ export function SiteHeader() {
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const navLinks = [
-    { href: "/#features", label: t.nav.features },
     { href: "/#product", label: t.nav.product },
+    { href: "/#features", label: t.nav.features },
     { href: "/#install", label: t.nav.install },
     { href: "/feedback", label: t.nav.feedback },
     { href: "/download", label: t.nav.download },
@@ -37,10 +37,10 @@ export function SiteHeader() {
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-white/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-page/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center gap-2.5" onClick={() => setMenuOpen(false)}>
-          <BrandLogo className="h-8 w-8 shrink-0" />
+          <BrandLogo className="h-7 w-7 shrink-0" />
           <span className="hidden truncate text-[15px] font-semibold tracking-tight text-ink min-[380px]:inline">
             {site.name}
           </span>
@@ -103,7 +103,7 @@ export function SiteHeader() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-lg px-3 py-3 text-[15px] font-medium text-ink-secondary hover:bg-page hover:text-ink"
+                className="rounded-lg px-3 py-3 text-[15px] font-medium text-ink-secondary hover:bg-surface hover:text-ink"
                 onClick={() => setMenuOpen(false)}
               >
                 {link.label}

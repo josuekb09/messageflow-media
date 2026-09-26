@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { Geist } from "next/font/google";
+import { Fraunces, Geist } from "next/font/google";
 import { LanguageProvider } from "@/components/language-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -16,6 +16,13 @@ import "./globals.css";
 const geist = Geist({
   variable: "--font-geist",
   subsets: ["latin", "latin-ext"],
+});
+
+// Headings only. Variable, with the optical-size axis so large titles get the display cut.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin", "latin-ext"],
+  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
@@ -60,7 +67,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={localeHtmlLang[initialLocale]}
-      className={`${geist.variable} h-full overflow-x-clip antialiased`}
+      className={`${geist.variable} ${fraunces.variable} h-full overflow-x-clip antialiased`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >

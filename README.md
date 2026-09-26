@@ -2,16 +2,16 @@
 
 Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-Current public release: **v1.0.4** (August 2026).
+Current public release: **v1.0.5** (September 2026).
 
 Website: [www.messageflow.tech](https://www.messageflow.tech)  
-Download: [GitHub Releases v1.0.4](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.4)
+Download: [GitHub Releases v1.0.5](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.5)
 
 ## Library in this build
 
 | | English | French | Kiswahili |
 |---|---|---|---|
-| Sermons (William Marrion Branham) | 1,208 | 384 | 622 |
+| Sermons and publications | 1,288 (1,203 Brother Branham + 85 Brother Frank) | 384 Brother Branham | 622 Brother Branham |
 | Bibles | KJV | Louis Segond 1910 (LSG) | SWHULB (Biblia Takatifu) |
 | Songs | 357 | 499 French hymns | 281 Swahili hymns |
 
@@ -24,7 +24,7 @@ French hymns that have a refrain use **verse → chorus → verse → chorus**.
 - Song search and projection with verse/chorus sections
 - Favorites and projection history
 - Dual-screen projection (operator chrome vs congregation screen)
-- Optional light theme (white and blue); dark remains the default
+- Optional light theme (warm white and gold); dark remains the default
 - Keyboard shortcuts: `Ctrl+F` search, `Ctrl+P` project, arrow keys to move
 - Offline use after installation — no account, no ads, no subscription
 
@@ -39,7 +39,7 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 
 ## Install on Windows 10 / 11 (64-bit)
 
-1. Open the [v1.0.4 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.4) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
+1. Open the [v1.0.5 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.5) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
 2. Run the installer. No administrator permission is needed. Keep the suggested `Documents\MessageFlowMedia` folder or choose any folder on any drive.
 3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.

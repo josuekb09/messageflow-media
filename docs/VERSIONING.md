@@ -3,18 +3,18 @@
 ## Current Version
 
 ```text
-v1.0.4
+v1.0.5
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.4
+MessageFlow Media v1.0.5
 ```
 
-## Included In v1.0.4
+## Included In v1.0.5
 
-- 1,208 English, 384 French, and 622 Swahili sermons
+- 1,288 English (1,203 Brother Branham + 85 Brother Frank), 384 French, and 622 Swahili sermons and publications
 - Bibles: KJV, Louis Segond (LSG), SWHULB
 - 357 English songs
 - 499 French hymns with verse → chorus interleaving

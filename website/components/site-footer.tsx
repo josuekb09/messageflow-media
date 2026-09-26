@@ -29,13 +29,13 @@ export function SiteFooter() {
             </p>
             <ul className="mt-4 space-y-2.5 text-ink-muted">
               <li>
-                <Link href="/#features" className="transition-colors hover:text-ink">
-                  {t.nav.features}
+                <Link href="/#product" className="transition-colors hover:text-ink">
+                  {t.nav.product}
                 </Link>
               </li>
               <li>
-                <Link href="/#product" className="transition-colors hover:text-ink">
-                  {t.nav.product}
+                <Link href="/#features" className="transition-colors hover:text-ink">
+                  {t.nav.features}
                 </Link>
               </li>
               <li>

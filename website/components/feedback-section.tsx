@@ -13,7 +13,7 @@ export function FeedbackSection({ variant }: { variant: "home" | "page" }) {
       className={
         variant === "page"
           ? "bg-white"
-          : "border-t border-line bg-page"
+          : "border-t border-line bg-surface"
       }
     >
       <div
@@ -21,7 +21,7 @@ export function FeedbackSection({ variant }: { variant: "home" | "page" }) {
           variant === "page" ? "py-16 sm:py-20" : "py-20 sm:py-24"
         }`}
       >
-        <Heading className="text-pretty text-2xl font-semibold tracking-tight text-ink sm:text-3xl md:text-4xl">
+        <Heading className="text-pretty text-3xl font-medium text-ink sm:text-4xl">
           {t.feedback.title}
         </Heading>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-secondary sm:text-base">

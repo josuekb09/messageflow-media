@@ -23,7 +23,7 @@ export function LanguageSwitcher() {
             aria-label={localeNames[code]}
             className={`min-h-9 min-w-9 rounded-md px-2 py-1.5 font-medium transition-colors sm:min-w-0 sm:px-2.5 ${
               active
-                ? "bg-page text-ink"
+                ? "bg-surface text-ink"
                 : "text-ink-muted hover:text-ink"
             }`}
           >

@@ -59,34 +59,19 @@ export type Dictionary = {
   };
   product: {
     title: string;
-    videoTitle: string;
-    screenshotsTitle: string;
-    englishUi: string;
-    frenchUi: string;
-    swahiliUi: string;
+    lead: string;
+    darkLabel: string;
+    lightLabel: string;
   };
   features: {
     title: string;
-    items: { title: string; body: string }[];
-  };
-  library: {
-    title: string;
-    items: { title: string; body: string }[];
+    lead: string;
+    items: { title: string; body: string; detail: string }[];
   };
   install: {
     title: string;
     lead: string;
-    steps: {
-      n: string;
-      title: string;
-      body: string;
-      labels: {
-        primary: string;
-        secondary: string;
-        action: string;
-        badge: string;
-      };
-    }[];
+    steps: { n: string; title: string; body: string }[];
   };
   footer: {
     blurb: string;
@@ -130,7 +115,7 @@ export type Dictionary = {
 export const dictionaries: Record<Locale, Dictionary> = {
   en: {
     nav: {
-      features: "Features",
+      features: "Library",
       product: "Interface",
       install: "Install",
       download: "Download for Windows",
@@ -142,18 +127,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
       menuClose: "Close menu",
     },
     hero: {
-      eyebrow: "v{version} Live · Built for Windows 10 / 11",
-      title: "The modern standard for church media projection",
+      eyebrow: "Version {version} · Free for churches · Windows 10 / 11",
+      title: "Find the sermon, verse, or song. Put it on the screen.",
       subtitle:
-        "Lightning-fast offline Windows software to search and project sermons, Bibles, and multilingual songbooks in English, French, and Kiswahili — no internet required.",
-      secondaryCta: "Watch the demo",
+        "MessageFlow Media is free Windows software for church media teams. Search Brother Branham's sermons, Brother Frank's publications, the Bible, and songbooks, then project the paragraph or verse on the second screen. It works offline, in English, French, and Kiswahili.",
+      secondaryCta: "See the interface",
     },
     download: {
       button: "Download for Windows",
       heading: "Ready for Sunday morning",
       pageTitle: "Download for Windows",
       pageSubtitle: "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Downloads MessageFlowMediaSetup.exe (~563 MB). Install on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project.",
+      note: "Downloads MessageFlowMediaSetup.exe ({size}). Install on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project.",
       safetyTitle: "If Chrome or Windows blocks the file",
       safetyLead:
         "MessageFlow Media is free church software. The installer is not signed with a paid Microsoft certificate yet, so some PCs warn on a first download. That is a Windows/Chrome reputation check, not a virus.",
@@ -168,100 +153,62 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "The file is the official installer from www.messageflow.tech. It contains sermons, Bibles, and songs for offline church use.",
     },
     product: {
-      title: "The operator desk, in every language",
-      videoTitle: "Product demo",
-      screenshotsTitle: "Interface gallery",
-      englishUi: "English",
-      frenchUi: "Français",
-      swahiliUi: "Kiswahili",
+      title: "One operator screen, in dark or light",
+      lead: "The operator works on the computer. The congregation sees only the projection window. Pick the theme that suits the room.",
+      darkLabel: "Dark theme",
+      lightLabel: "Light theme",
     },
     features: {
-      title: "Built for the live service, not the cloud",
+      title: "What's in the library",
+      lead: "Installed once, then available without internet.",
       items: [
         {
-          title: "100% offline and secure",
-          body: "No internet during service. Your library lives on this computer. No cloud sync. No ads. No accounts.",
+          title: "Sermons and publications",
+          body: "Search by title, sermon code, year, phrase, or paragraph number, then project a single paragraph.",
+          detail:
+            "English: 1,203 Brother Branham sermons and 85 Brother Frank publications. French: 384. Kiswahili: 622.",
         },
         {
-          title: "Multilingual mastery",
-          body: "English, French, and Kiswahili across sermons, Bibles, and structured songbooks — native, not bolted on.",
+          title: "The Bible",
+          body: "Type a reference such as John 3:16, or a keyword. Move verse by verse with the arrow keys.",
+          detail: "King James Version · Louis Segond 1910 · Biblia Takatifu (SWHULB)",
         },
         {
-          title: "Instant operator workflow",
-          body: "Ctrl+F to search, Ctrl+P to project, arrow keys to move. Dual-screen projection without fighting the OS.",
-        },
-      ],
-    },
-    library: {
-      title: "What's in the box",
-      items: [
-        {
-          title: "English",
-          body: "1,208 sermons, English songbook, and the KJV Bible.",
-        },
-        {
-          title: "Français",
-          body: "384 sermons, 499 Dinanga hymns, and Louis Segond.",
-        },
-        {
-          title: "Kiswahili",
-          body: "622 sermons, 281 official hymns, and the SWHULB Bible.",
+          title: "Songs",
+          body: "Find a song by its title or a line of the lyrics, then project it verse by verse, with the chorus where it belongs.",
+          detail: "357 English · 499 French · 281 Kiswahili",
         },
       ],
     },
     install: {
       title: "From download to projection",
-      lead: "Four steps. No account. No network required after install.",
+      lead: "Four steps. No account, and no internet needed after installing.",
       steps: [
         {
           n: "01",
           title: "Download",
-          body: "Save MessageFlowMediaSetup.exe (~563 MB) for Windows 10 or 11 (64-bit).",
-          labels: {
-            primary: "MessageFlowMediaSetup.exe",
-            secondary: "~563 MB · 64-bit",
-            action: "Download",
-            badge: "Setup",
-          },
+          body: "Download MessageFlowMediaSetup.exe ({size}) for Windows 10 or 11, 64-bit.",
         },
         {
           n: "02",
           title: "Install",
-          body: "Run the wizard. If Windows shows “protected your PC”, click More info → Run anyway. Choose a disk with room for the offline library.",
-          labels: {
-            primary: "MessageFlow Media",
-            secondary: "Setup wizard",
-            action: "Install",
-            badge: "Next",
-          },
+          body: "Run the installer. If Windows says it protected your PC, choose More info, then Run anyway. Pick a drive with room for the library.",
         },
         {
           n: "03",
-          title: "Extend the display",
-          body: "Connect the projector or TV, press Win+P, and choose Extend.",
-          labels: {
-            primary: "Laptop",
-            secondary: "Projector",
-            action: "Extend",
-            badge: "Win+P",
-          },
+          title: "Connect the projector",
+          body: "Plug in the projector or TV, press Win+P, and choose Extend.",
         },
         {
           n: "04",
           title: "Search and project",
-          body: "Open MessageFlow Media, pick a language, then press Ctrl+P.",
-          labels: {
-            primary: "Search",
-            secondary: "Screen",
-            action: "Project",
-            badge: "Ctrl+P",
-          },
+          body: "Open MessageFlow Media, choose your language, find what you need, and press Ctrl+P.",
         },
       ],
     },
     footer: {
       blurb:
-        "Free Windows software for the church operator desk — sermons, Bibles, and hymns, fully offline.",
+        "Free Windows software for church media teams: sermons, the Bible, and songs, fully offline.",
       product: "Product",
       release: "Release",
       copyright: "© 2026 MessageFlow Media. All rights reserved.",
@@ -303,7 +250,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
   },
   fr: {
     nav: {
-      features: "Fonctionnalités",
+      features: "Bibliothèque",
       product: "Interface",
       install: "Installation",
       download: "Télécharger pour Windows",
@@ -315,18 +262,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
       menuClose: "Fermer le menu",
     },
     hero: {
-      eyebrow: "v{version} disponible · Windows 10 / 11",
-      title: "Le standard moderne de la projection média à l'église",
+      eyebrow: "Version {version} · Gratuit pour les églises · Windows 10 / 11",
+      title: "Trouvez la prédication, le verset ou le cantique. Projetez-le.",
       subtitle:
-        "Logiciel Windows hors ligne, rapide, pour rechercher et projeter prédications, Bibles et recueils de cantiques en anglais, français et kiswahili — sans connexion Internet.",
-      secondaryCta: "Voir la démo",
+        "MessageFlow Media est un logiciel Windows gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank, la Bible et les recueils de cantiques, puis projetez le paragraphe ou le verset sur le second écran. Il fonctionne hors ligne, en anglais, en français et en kiswahili.",
+      secondaryCta: "Voir l'interface",
     },
     download: {
       button: "Télécharger pour Windows",
       heading: "Prêt pour le dimanche matin",
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
-      note: "Télécharge MessageFlowMediaSetup.exe (~563 Mo). Installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre.",
+      note: "Télécharge MessageFlowMediaSetup.exe ({size}). Installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre avant de projeter.",
       safetyTitle: "Si Chrome ou Windows bloque le fichier",
       safetyLead:
         "MessageFlow Media est un logiciel d'église gratuit. L'installateur n'est pas encore signé avec un certificat Microsoft payant, donc certains PC affichent un avertissement au premier téléchargement. Ce n'est pas un virus : c'est un contrôle de réputation Windows/Chrome.",
@@ -341,100 +288,62 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Ce fichier est l'installateur officiel de www.messageflow.tech. Il contient prédications, Bibles et cantiques pour un usage hors ligne à l'église.",
     },
     product: {
-      title: "Le pupitre, dans chaque langue",
-      videoTitle: "Démonstration",
-      screenshotsTitle: "Galerie d'interface",
-      englishUi: "English",
-      frenchUi: "Français",
-      swahiliUi: "Kiswahili",
+      title: "Un seul écran opérateur, en sombre ou en clair",
+      lead: "L'opérateur travaille sur l'ordinateur. L'assemblée ne voit que la fenêtre de projection. Choisissez le thème qui convient à la salle.",
+      darkLabel: "Thème sombre",
+      lightLabel: "Thème clair",
     },
     features: {
-      title: "Conçu pour le direct, pas pour le cloud",
+      title: "Ce que contient la bibliothèque",
+      lead: "Installée une fois, puis disponible sans Internet.",
       items: [
         {
-          title: "100 % hors ligne et sûr",
-          body: "Pas d'internet pendant le culte. La bibliothèque reste sur cet ordinateur. Pas de cloud, pas de publicité, pas de compte.",
+          title: "Prédications et publications",
+          body: "Recherchez par titre, code de prédication, année, expression ou numéro de paragraphe, puis projetez un seul paragraphe.",
+          detail:
+            "Anglais : 1 203 prédications de frère Branham et 85 publications de frère Frank. Français : 384. Kiswahili : 622.",
         },
         {
-          title: "Maîtrise multilingue",
-          body: "Anglais, français et kiswahili pour les prédications, les Bibles et les recueils structurés — natif, pas ajouté après coup.",
+          title: "La Bible",
+          body: "Tapez une référence comme Jean 3:16, ou un mot-clé. Avancez verset par verset avec les flèches.",
+          detail: "King James Version · Louis Segond 1910 · Biblia Takatifu (SWHULB)",
         },
         {
-          title: "Flux opérateur instantané",
-          body: "Ctrl+F pour chercher, Ctrl+P pour projeter, flèches pour avancer. Projection double écran sans lutter avec Windows.",
-        },
-      ],
-    },
-    library: {
-      title: "Ce qui est inclus",
-      items: [
-        {
-          title: "English",
-          body: "1 208 prédications, recueil anglais et Bible KJV.",
-        },
-        {
-          title: "Français",
-          body: "384 prédications, 499 cantiques Dinanga et Louis Segond.",
-        },
-        {
-          title: "Kiswahili",
-          body: "622 prédications, 281 cantiques officiels et Bible SWHULB.",
+          title: "Cantiques",
+          body: "Trouvez un cantique par son titre ou une ligne des paroles, puis projetez-le couplet par couplet, avec le refrain au bon endroit.",
+          detail: "357 en anglais · 499 en français · 281 en kiswahili",
         },
       ],
     },
     install: {
       title: "Du téléchargement à la projection",
-      lead: "Quatre étapes. Aucun compte. Aucun réseau après l'installation.",
+      lead: "Quatre étapes. Aucun compte, et aucune connexion Internet après l'installation.",
       steps: [
         {
           n: "01",
           title: "Télécharger",
-          body: "Enregistrez MessageFlowMediaSetup.exe (~563 Mo) pour Windows 10 ou 11 (64 bits).",
-          labels: {
-            primary: "MessageFlowMediaSetup.exe",
-            secondary: "~563 Mo · 64 bits",
-            action: "Télécharger",
-            badge: "Fichier",
-          },
+          body: "Téléchargez MessageFlowMediaSetup.exe ({size}) pour Windows 10 ou 11, 64 bits.",
         },
         {
           n: "02",
           title: "Installer",
-          body: "Lancez l'assistant. Si Windows affiche « a protégé votre PC », cliquez sur Plus d'infos → Exécuter quand même. Choisissez un disque avec assez d'espace pour la bibliothèque hors ligne.",
-          labels: {
-            primary: "MessageFlow Media",
-            secondary: "Assistant",
-            action: "Installer",
-            badge: "Suivant",
-          },
+          body: "Lancez l'installateur. Si Windows indique qu'il a protégé votre PC, choisissez Plus d'infos, puis Exécuter quand même. Choisissez un disque avec assez d'espace pour la bibliothèque.",
         },
         {
           n: "03",
-          title: "Étendre l'écran",
-          body: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P, puis choisissez Étendre.",
-          labels: {
-            primary: "PC",
-            secondary: "Projecteur",
-            action: "Étendre",
-            badge: "Win+P",
-          },
+          title: "Brancher le projecteur",
+          body: "Branchez le projecteur ou le téléviseur, appuyez sur Win+P et choisissez Étendre.",
         },
         {
           n: "04",
           title: "Rechercher et projeter",
-          body: "Ouvrez MessageFlow Media, choisissez la langue, puis appuyez sur Ctrl+P.",
-          labels: {
-            primary: "Rechercher",
-            secondary: "Écran",
-            action: "Projeter",
-            badge: "Ctrl+P",
-          },
+          body: "Ouvrez MessageFlow Media, choisissez la langue, trouvez ce qu'il vous faut et appuyez sur Ctrl+P.",
         },
       ],
     },
     footer: {
       blurb:
-        "Logiciel Windows gratuit pour le pupitre de projection — prédications, Bibles et cantiques, entièrement hors ligne.",
+        "Logiciel Windows gratuit pour les équipes média des églises : prédications, Bible et cantiques, entièrement hors ligne.",
       product: "Produit",
       release: "Version",
       copyright: "© 2026 MessageFlow Media. Tous droits réservés.",
@@ -476,7 +385,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
   },
   sw: {
     nav: {
-      features: "Vipengele",
+      features: "Maktaba",
       product: "Kiolesura",
       install: "Sakinisha",
       download: "Pakua kwa Windows",
@@ -488,18 +397,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
       menuClose: "Funga menyu",
     },
     hero: {
-      eyebrow: "v{version} Iko hai · Windows 10 / 11",
-      title: "Kiwango cha kisasa cha kuonyesha media kanisani",
+      eyebrow: "Toleo {version} · Bure kwa makanisa · Windows 10 / 11",
+      title: "Pata hubiri, mstari au wimbo. Uonyeshe kwenye skrini.",
       subtitle:
-        "Programu ya Windows nje ya mtandao, yenye kasi, kutafuta na kuonyesha mahubiri, Biblia, na vitabu vya nyimbo kwa Kiingereza, Kifaransa na Kiswahili — bila intaneti.",
-      secondaryCta: "Tazama onyesho",
+        "MessageFlow Media ni programu ya Windows ya bure kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank, Biblia na vitabu vya nyimbo, kisha onyesha aya au mstari kwenye skrini ya pili. Inafanya kazi bila intaneti, kwa Kiingereza, Kifaransa na Kiswahili.",
+      secondaryCta: "Tazama kiolesura",
     },
     download: {
       button: "Pakua kwa Windows",
       heading: "Tayari kwa ibada ya Jumapili",
       pageTitle: "Pakua kwa Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
-      note: "Inapakua MessageFlowMediaSetup.exe (~563 MB). Isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend.",
+      note: "Inapakua MessageFlowMediaSetup.exe ({size}). Isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend kabla ya kuonyesha.",
       safetyTitle: "Ikiwa Chrome au Windows inazuia faili",
       safetyLead:
         "MessageFlow Media ni programu ya kanisa bila malipo. Setup bado haijatiwa saini kwa cheti cha Microsoft kinacholipiwa, kwa hiyo kompyuta nyingine huonyesha onyo wakati wa kupakua mara ya kwanza. Si virusi: ni ukaguzi wa sifa wa Windows/Chrome.",
@@ -514,100 +423,62 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Faili hii ni setup rasmi kutoka www.messageflow.tech. Ina mahubiri, Biblia, na nyimbo kwa matumizi ya kanisa nje ya mtandao.",
     },
     product: {
-      title: "Dawati la operator, katika kila lugha",
-      videoTitle: "Onyesho la bidhaa",
-      screenshotsTitle: "Matunzio ya kiolesura",
-      englishUi: "English",
-      frenchUi: "Français",
-      swahiliUi: "Kiswahili",
+      title: "Skrini moja ya operator, meusi au meupe",
+      lead: "Operator anafanya kazi kwenye kompyuta. Waumini wanaona dirisha la kuonyesha pekee. Chagua mandhari inayofaa ukumbi.",
+      darkLabel: "Mandhari meusi",
+      lightLabel: "Mandhari meupe",
     },
     features: {
-      title: "Imetengenezwa kwa ibada, si wingu",
+      title: "Kilichomo kwenye maktaba",
+      lead: "Sakinisha mara moja, kisha tumia bila intaneti.",
       items: [
         {
-          title: "100% nje ya mtandao na salama",
-          body: "Hakuna intaneti wakati wa ibada. Maktaba yako iko kwenye kompyuta hii. Hakuna wingu. Hakuna matangazo. Hakuna akaunti.",
+          title: "Mahubiri na machapisho",
+          body: "Tafuta kwa kichwa, msimbo wa hubiri, mwaka, maneno au namba ya aya, kisha onyesha aya moja.",
+          detail:
+            "Kiingereza: mahubiri 1,203 ya Ndugu Branham na machapisho 85 ya Ndugu Frank. Kifaransa: 384. Kiswahili: 622.",
         },
         {
-          title: "Ustadi wa lugha nyingi",
-          body: "Kiingereza, Kifaransa na Kiswahili katika mahubiri, Biblia, na vitabu vya nyimbo vilivyopangwa — asili, si nyongeza.",
+          title: "Biblia",
+          body: "Andika rejea kama Yohana 3:16, au neno kuu. Songa mstari kwa mstari kwa vitufe vya mishale.",
+          detail: "King James Version · Louis Segond 1910 · Biblia Takatifu (SWHULB)",
         },
         {
-          title: "Kazi ya operator papo hapo",
-          body: "Ctrl+F kutafuta, Ctrl+P kuonyesha, mishale kusogeza. Kuonyesha skrini mbili bila kupigana na Windows.",
-        },
-      ],
-    },
-    library: {
-      title: "Kilichomo ndani",
-      items: [
-        {
-          title: "English",
-          body: "Mahubiri 1,208, kitabu cha nyimbo za Kiingereza, na Biblia KJV.",
-        },
-        {
-          title: "Français",
-          body: "Mahubiri 384, nyimbo 499 za Dinanga, na Louis Segond.",
-        },
-        {
-          title: "Kiswahili",
-          body: "Mahubiri 622, nyimbo 281 rasmi, na Biblia SWHULB.",
+          title: "Nyimbo",
+          body: "Tafuta wimbo kwa kichwa chake au mstari wa maneno yake, kisha uonyeshe ubeti kwa ubeti, pamoja na kiitikio mahali pake.",
+          detail: "Kiingereza 357 · Kifaransa 499 · Kiswahili 281",
         },
       ],
     },
     install: {
       title: "Kutoka kupakua hadi kuonyesha",
-      lead: "Hatua nne. Hakuna akaunti. Hakuna mtandao baada ya kusakinisha.",
+      lead: "Hatua nne. Hakuna akaunti, na hakuna intaneti baada ya kusakinisha.",
       steps: [
         {
           n: "01",
           title: "Pakua",
-          body: "Hifadhi MessageFlowMediaSetup.exe (~563 MB) kwa Windows 10 au 11 (biti 64).",
-          labels: {
-            primary: "MessageFlowMediaSetup.exe",
-            secondary: "~563 MB · biti 64",
-            action: "Pakua",
-            badge: "Setup",
-          },
+          body: "Pakua MessageFlowMediaSetup.exe ({size}) kwa Windows 10 au 11, biti 64.",
         },
         {
           n: "02",
           title: "Sakinisha",
-          body: "Fungua setup. Ikiwa Windows inaonyesha “protected your PC”, bonyeza More info → Run anyway. Chagua diski yenye nafasi ya kutosha kwa maktaba nje ya mtandao.",
-          labels: {
-            primary: "MessageFlow Media",
-            secondary: "Usakinishaji",
-            action: "Sakinisha",
-            badge: "Ifuatayo",
-          },
+          body: "Endesha setup. Ikiwa Windows inasema imelinda kompyuta yako, chagua More info, kisha Run anyway. Chagua diski yenye nafasi ya kutosha kwa maktaba.",
         },
         {
           n: "03",
-          title: "Panua skrini",
-          body: "Unganisha projekta au TV, bonyeza Win+P, kisha chagua Extend.",
-          labels: {
-            primary: "Kompyuta",
-            secondary: "Projekta",
-            action: "Panua",
-            badge: "Win+P",
-          },
+          title: "Unganisha projekta",
+          body: "Chomeka projekta au TV, bonyeza Win+P, kisha chagua Extend.",
         },
         {
           n: "04",
           title: "Tafuta na uonyeshe",
-          body: "Fungua MessageFlow Media, chagua lugha, kisha bonyeza Ctrl+P.",
-          labels: {
-            primary: "Tafuta",
-            secondary: "Skrini",
-            action: "Onyesha",
-            badge: "Ctrl+P",
-          },
+          body: "Fungua MessageFlow Media, chagua lugha, tafuta unachohitaji, kisha bonyeza Ctrl+P.",
         },
       ],
     },
     footer: {
       blurb:
-        "Programu ya bure ya Windows kwa dawati la kuonyesha kanisani — mahubiri, Biblia, na nyimbo, nje ya mtandao.",
+        "Programu ya Windows ya bure kwa timu za media za kanisa: mahubiri, Biblia na nyimbo, bila intaneti.",
       product: "Bidhaa",
       release: "Toleo",
       copyright: "© 2026 MessageFlow Media. Haki zote zimehifadhiwa.",
@@ -651,4 +522,13 @@ export const dictionaries: Record<Locale, Dictionary> = {
 
 export function interpolate(template: string, values: Record<string, string>) {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
+}
+
+/**
+ * Installer size in the reader's units (French writes megabytes as "Mo"), with a
+ * non-breaking space so "598" and "MB" never wrap onto separate lines.
+ */
+export function localizedSize(locale: Locale, size: string) {
+  const units = locale === "fr" ? size.replace(/\bMB\b/, "Mo") : size;
+  return units.replace(/ /g, " ");
 }

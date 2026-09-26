@@ -224,8 +224,8 @@ export function FeedbackForm() {
                 key={value}
                 className={`inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/30 ${
                   selected
-                    ? "border-brand bg-brand text-white"
-                    : "border-line bg-page text-ink-secondary hover:text-ink"
+                    ? "border-ink bg-ink text-white"
+                    : "border-line bg-page text-ink-secondary hover:border-ink/30 hover:text-ink"
                 }`}
               >
                 <input
@@ -274,7 +274,7 @@ export function FeedbackForm() {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
       >
         {status === "submitting" ? t.feedback.submitting : t.feedback.submit}
       </button>

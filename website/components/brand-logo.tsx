@@ -6,7 +6,7 @@ type BrandLogoProps = {
 };
 
 /**
- * Official MessageFlow mark (the blue wave “M”) from the WPF desktop app.
+ * Official MessageFlow mark (the gold “M” badge) from the WPF desktop app.
  *
  * Copied from:
  *   src/MessageFlow.App/Assets/Brand/messageflow-mark.svg
@@ -16,9 +16,8 @@ type BrandLogoProps = {
  * App icon copied from:
  *   src/MessageFlow.App/Assets/Brand/messageflow-app-icon.svg
  *
- * The horizontal wordmark SVG uses white “Message” text and is not used on this
- * light page. The mark is paired with charcoal “MessageFlow” type instead,
- * matching the desktop title bar (mark + name).
+ * The horizontal wordmark SVG is not used on this light page. The mark is paired
+ * with ink “MessageFlow” type instead, matching the desktop title bar (mark + name).
  */
 const sources = {
   mark: { src: "/brand/mark.svg", alt: "MessageFlow" },
