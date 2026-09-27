@@ -1356,8 +1356,6 @@ public sealed partial class MainViewModel : ObservableObject
 
         var startupMessages = new List<string>();
 
-        QueueBrotherFrankPublicationMetadataRefresh();
-
         try
         {
             var filterLoadResult = await LoadFilterOptionsAsync(dbContext);
@@ -1444,7 +1442,15 @@ public sealed partial class MainViewModel : ObservableObject
         return LoadProjectionHistoryAsync();
     }
 
-    private void QueueBrotherFrankPublicationMetadataRefresh()
+    /// <summary>
+    /// Brings Brother Frank publication metadata up to date during startup, behind the splash.
+    /// A repair ends in a full search-index rebuild that holds a write lock for minutes, so it
+    /// must finish before the main window accepts input; running it after the window was shown
+    /// is what left clicks and language switches failing with "database is locked". It touches
+    /// no UI and is meant to run on a background thread. It never fails startup: on error it
+    /// logs and the Admin repair remains available.
+    /// </summary>
+    public static async Task RepairBrotherFrankPublicationMetadataAsync(IServiceScopeFactory scopeFactory)
     {
         if (!ShowBrotherFrankLibrary)
         {
@@ -1452,45 +1458,24 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        _ = Task.Run(async () =>
+        try
         {
-            try
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+            if (!await HasBrotherFrankPublicationMetadataDriftAsync(dbContext))
             {
-                await using var scope = scopeFactory.CreateAsyncScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
-                if (!await HasBrotherFrankPublicationMetadataDriftAsync(dbContext))
-                {
-                    App.LogStartupMessage("Brother Frank publication metadata already current.");
-                    return;
-                }
-
-                App.LogStartupMessage("Brother Frank publication metadata repair queued after UI startup.");
-                await EnsureBrotherFrankPublicationMetadataAsync(dbContext);
-
-                await Application.Current.Dispatcher.InvokeAsync(async () =>
-                {
-                    try
-                    {
-                        await RefreshFilterOptionsPreservingSelectionAsync();
-                        await LoadContentSourcesAsync(SelectedContentSource?.Id);
-                        QueueSearch();
-                        StatusText = "Brother Frank publication metadata refreshed.";
-                    }
-                    catch (Exception ex)
-                    {
-                        App.LogStartupError("Brother Frank post-repair UI refresh failed.", ex);
-                    }
-                });
+                App.LogStartupMessage("Brother Frank publication metadata already current.");
+                return;
             }
-            catch (Exception ex)
-            {
-                App.LogStartupError("Brother Frank publication metadata repair failed after startup.", ex);
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    StatusText = "Brother Frank publication metadata could not be refreshed. Admin repair remains available.";
-                });
-            }
-        });
+
+            App.LogStartupMessage("Brother Frank publication metadata repair running before UI startup.");
+            await EnsureBrotherFrankPublicationMetadataAsync(dbContext);
+            App.LogStartupMessage("Brother Frank publication metadata repair completed.");
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Brother Frank publication metadata repair failed during startup.", ex);
+        }
     }
 
     public async Task RefreshLibrariesAfterImportAsync()
@@ -1697,10 +1682,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private static async Task<bool> SearchIndexExistsAsync()
     {
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = MessageFlowDatabase.DefaultDatabasePath
-        }.ToString();
+        var connectionString = MessageFlowDatabase.CreateConnectionString(MessageFlowDatabase.DefaultDatabasePath);
 
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
@@ -7144,11 +7126,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         SqliteConnection.ClearAllPools();
 
-        var sourceConnectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = databasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate
-        }.ToString();
+        var sourceConnectionString = MessageFlowDatabase.CreateConnectionString(databasePath);
 
         var destinationConnectionString = new SqliteConnectionStringBuilder
         {

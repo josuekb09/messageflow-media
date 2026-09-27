@@ -1,5 +1,4 @@
 using MessageFlow.Core.Abstractions;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,10 +17,7 @@ public static class DependencyInjection
     {
         MessageFlowDatabase.EnsureDatabaseDirectory(databasePath);
 
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = databasePath
-        }.ToString();
+        var connectionString = MessageFlowDatabase.CreateConnectionString(databasePath);
 
         services.AddDbContext<MessageFlowDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<ISermonRepository, SermonRepository>();

@@ -67,10 +67,7 @@ public static class MessageFlowDatabaseRepair
 
             log?.Invoke($"Database repair starting. Database path: {databasePath}");
 
-            var connectionString = new SqliteConnectionStringBuilder
-            {
-                DataSource = databasePath
-            }.ToString();
+            var connectionString = MessageFlowDatabase.CreateConnectionString(databasePath);
 
             await using var connection = new SqliteConnection(connectionString);
             await connection.OpenAsync(cancellationToken);
@@ -248,7 +245,10 @@ public static class MessageFlowDatabaseRepair
                 )
                 VALUES (
                     'brother_frank',
-                    'Brother Frank',
+                    -- Must match the name the app's publication metadata check expects. When the
+                    -- two disagreed, every launch renamed the source back and forth and rebuilt
+                    -- the whole search index, locking the database for minutes after startup.
+                    'Brother Frank Publications',
                     'CircularLetter',
                     'Local Brother Ewald Frank circular letters and literature library.',
                     NULL,
@@ -464,10 +464,7 @@ public static class MessageFlowDatabaseRepair
         MessageFlowDatabase.EnsureDatabaseDirectory(databasePath);
         Batteries_V2.Init();
 
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = databasePath
-        }.ToString();
+        var connectionString = MessageFlowDatabase.CreateConnectionString(databasePath);
 
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync(cancellationToken);

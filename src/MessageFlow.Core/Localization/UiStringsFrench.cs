@@ -32,6 +32,7 @@ public static class UiStringsFrench
         // ---- Sélecteur de langue ----
         ["Lang_SelectorTooltip"] = "Changer la langue de l'application",
         ["Lang_Changed"] = "Langue de l'application définie sur {0}.",
+        ["Lang_ChangeFailed"] = "Impossible de passer en {0} : la bibliothèque n'a pas pu être chargée. La langue précédente a été conservée.",
         ["Lang_ChangedToEnglish"] = "Langue de l'application définie sur l'anglais.",
         ["Lang_ChangedToFrench"] = "Langue de l'application définie sur le français.",
 

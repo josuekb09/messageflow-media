@@ -33,6 +33,7 @@ public static class UiStringsSwahili
         // ---- Language selector ----
         ["Lang_SelectorTooltip"] = "Badilisha lugha ya programu",
         ["Lang_Changed"] = "Lugha ya programu imewekwa kuwa {0}.",
+        ["Lang_ChangeFailed"] = "Imeshindikana kubadili kuwa {0}: maktaba haikupakia. Lugha iliyotangulia imebaki.",
         ["Lang_ChangedToEnglish"] = "Lugha ya programu imewekwa kuwa Kiingereza.",
         ["Lang_ChangedToFrench"] = "Lugha ya programu imewekwa kuwa Kifaransa.",
         ["Theme_Light"] = "Mandhari meupe",

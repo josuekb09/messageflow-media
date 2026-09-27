@@ -97,27 +97,53 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            // The disk-bound repair and inventory touch no UI, so they run off the UI thread and the
-            // splash stays responsive through a cold-disk start. Everything after resumes on the UI thread.
-            await Task.Run(async () =>
-            {
-                await MessageFlowDatabaseRepair.RepairAsync(databasePath, LogStartupMessage);
-                MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
-            });
-
+            // Building the provider opens no connection and creates no window; the singletons are
+            // only constructed on first resolve, after the background work below.
             serviceProvider = new ServiceCollection()
                 .AddMessageFlowData(databasePath)
                 .AddMessageFlowSearch()
                 .AddSingleton<MainViewModel>()
                 .AddSingleton<MainWindow>()
                 .BuildServiceProvider();
+            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+
+            // The disk-bound repair, inventory and publication metadata check touch no UI, so they
+            // run off the UI thread and the splash stays responsive through a cold-disk start. The
+            // metadata repair can rebuild the whole search index, which holds a write lock for
+            // minutes; it finishes here, before any window accepts input, so no operator action
+            // can collide with it. Everything after resumes on the UI thread.
+            await Task.Run(async () =>
+            {
+                await MessageFlowDatabaseRepair.RepairAsync(databasePath, LogStartupMessage);
+                MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
+                await MainViewModel.RepairBrotherFrankPublicationMetadataAsync(scopeFactory);
+            });
 
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+            // The main window loads its data disabled, and WPF runs that load inside Show() itself.
+            // Topmost is set first so the newly activated main window can never cover the splash;
+            // it stays in front until the load finishes and the window accepts input. (Owning the
+            // splash would also work, but an owner must already be shown, which is too late.)
+            splash.Topmost = true;
             mainWindow.Show();
             LogStartupMessage("MainWindow shown.");
+            var initializationFailure = await mainWindow.Initialization;
+            LogStartupMessage("MainWindow initialized and accepting input.");
             splash.CloseSplash();
+            mainWindow.Activate();
+
+            if (initializationFailure is not null)
+            {
+                MessageBox.Show(
+                    mainWindow,
+                    Loc.F("Msg_StartupFailed", Environment.NewLine, initializationFailure.Message),
+                    Loc.T("Msg_StartupFailedTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
         catch (Exception ex)
         {

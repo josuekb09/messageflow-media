@@ -55,6 +55,31 @@ public static class MessageFlowDatabase
             "Re-run MessageFlowMediaSetup.exe, or copy messageflow.db into the database folder that MessageFlow is using.";
     }
 
+    /// <summary>
+    /// How long a statement that meets another connection's lock keeps retrying before failing
+    /// with SQLite Error 5. Microsoft.Data.Sqlite implements this wait itself, synchronously, even
+    /// for async calls, so a query issued from the UI thread freezes the UI for up to this long.
+    /// Raising it trades "database is locked" for a longer freeze; long writers are instead kept
+    /// out of interactive use (see the startup gate in App.OnStartup).
+    /// </summary>
+    public const int LockWaitSeconds = 30;
+
+    /// <summary>
+    /// The one place app connections to the MessageFlow database are described, so EF Core and
+    /// every raw SqliteConnection share the same lock-wait behavior.
+    /// </summary>
+    public static string CreateConnectionString(
+        string databasePath,
+        SqliteOpenMode mode = SqliteOpenMode.ReadWriteCreate)
+    {
+        return new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = mode,
+            DefaultTimeout = LockWaitSeconds
+        }.ToString();
+    }
+
     public static void EnsureDatabaseDirectory(string databasePath)
     {
         var directory = Path.GetDirectoryName(databasePath);
@@ -89,11 +114,7 @@ public static class MessageFlowDatabase
     {
         try
         {
-            var connectionString = new SqliteConnectionStringBuilder
-            {
-                DataSource = databasePath,
-                Mode = SqliteOpenMode.ReadOnly
-            }.ToString();
+            var connectionString = CreateConnectionString(databasePath, SqliteOpenMode.ReadOnly);
 
             using var connection = new SqliteConnection(connectionString);
             connection.Open();

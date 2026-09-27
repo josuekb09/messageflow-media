@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private bool? liveProjectionIsFullscreen;
     private string? liveProjectionTargetKey;
     private Rect? savedLiveProjectionWindowedBounds;
+    private readonly TaskCompletionSource<Exception?> initialization = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -25,6 +26,10 @@ public partial class MainWindow : Window
         DataContext = viewModel;
 
         InitializeComponent();
+
+        // Input stays off until the view-model has loaded its data, so nothing the operator
+        // clicks can run against half-loaded filters. App keeps the splash up until then.
+        IsEnabled = false;
 
         viewModel.ProjectRequested += ShowProjectionWindow;
         viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
@@ -46,26 +51,34 @@ public partial class MainWindow : Window
             BibleNavigationList.ScrollIntoView(viewModel.SelectedBibleNavigationItem));
     }
 
+    /// <summary>
+    /// Completes once startup data has loaded and the window accepts input. The result is the
+    /// failure, if loading failed; App reports it after the splash has closed, so the message
+    /// never opens underneath the topmost splash.
+    /// </summary>
+    public Task<Exception?> Initialization => initialization.Task;
+
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        Exception? failure = null;
         try
         {
             // The rail has no container until the window loads, so the tab selected at
             // startup never reaches it through SelectionChanged. Seed it once here.
             UpdateNavigationRail();
-            SearchBox.Focus();
             await viewModel.InitializeAsync();
         }
         catch (Exception ex)
         {
             App.LogStartupError("MainWindow initialization failed.", ex);
             viewModel.StatusText = Loc.T("Status_StartupFailed");
-
-            MessageBox.Show(
-                Loc.F("Msg_StartupFailed", Environment.NewLine, ex.Message),
-                Loc.T("Msg_StartupFailedTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            failure = ex;
+        }
+        finally
+        {
+            IsEnabled = true;
+            SearchBox.Focus();
+            initialization.TrySetResult(failure);
         }
     }
 

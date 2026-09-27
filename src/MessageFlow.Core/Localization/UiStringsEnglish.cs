@@ -32,6 +32,7 @@ public static class UiStringsEnglish
         // ---- Language selector ----
         ["Lang_SelectorTooltip"] = "Change the application language",
         ["Lang_Changed"] = "Application language set to {0}.",
+        ["Lang_ChangeFailed"] = "Could not switch to {0}: the library did not load. The previous language was kept.",
         ["Lang_ChangedToEnglish"] = "Application language set to English.",
         ["Lang_ChangedToFrench"] = "Application language set to French.",
 

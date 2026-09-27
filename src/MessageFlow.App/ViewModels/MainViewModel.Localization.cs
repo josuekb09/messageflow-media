@@ -16,6 +16,9 @@ public sealed partial class MainViewModel
     private bool suppressThemeSave;
     private bool hasSermonContentForCurrentLanguage = true;
     private bool hasSongContentForCurrentLanguage = true;
+    private int languageChangeVersion;
+
+    private static readonly TimeSpan LanguageContentRetryDelay = TimeSpan.FromSeconds(2);
 
     public IReadOnlyList<AppLanguage> AvailableUiLanguages => AppLanguages.All;
 
@@ -29,13 +32,14 @@ public sealed partial class MainViewModel
                 return;
             }
 
+            var previousLanguage = selectedUiLanguage;
             selectedUiLanguage = value;
             OnPropertyChanged();
             if (!suppressUiLanguageSave)
             {
                 UiLanguagePreference.Save(value);
                 Localizer.Instance.SetLanguage(value);
-                _ = ApplyContentLanguageAsync();
+                _ = ApplyContentLanguageAsync(previousLanguage);
             }
         }
     }
@@ -139,7 +143,142 @@ public sealed partial class MainViewModel
         }
     }
 
-    private async Task ApplyContentLanguageAsync()
+    /// <summary>
+    /// Switches the library content to the newly selected language as a unit. The UI strings
+    /// have already switched; if the content cannot be loaded even after one retry, everything
+    /// — selector, saved preference, UI strings and content — goes back to the previous language,
+    /// so the operator never sees Year filters or status text in one language and the rest of
+    /// the window in another.
+    /// </summary>
+    private async Task ApplyContentLanguageAsync(AppLanguage previousLanguage)
+    {
+        var version = ++languageChangeVersion;
+        var requestedLanguage = SelectedUiLanguage;
+
+        ResetContentForLanguageChange();
+        var failure = await TryLoadLanguageContentAsync();
+        if (version != languageChangeVersion)
+        {
+            // The operator picked another language meanwhile; that change now owns the window.
+            return;
+        }
+
+        if (failure is null)
+        {
+            LogLanguageContentLoaded();
+            QueueSearchForCurrentMode();
+            StatusText = Loc.F("Lang_Changed", requestedLanguage.NativeName);
+            return;
+        }
+
+        App.LogStartupError(
+            $"Language change to {requestedLanguage.Code} failed after a retry; " +
+            $"reverting fully to {previousLanguage.Code}.",
+            failure);
+
+        suppressUiLanguageSave = true;
+        try
+        {
+            SelectedUiLanguage = previousLanguage;
+        }
+        finally
+        {
+            suppressUiLanguageSave = false;
+        }
+
+        UiLanguagePreference.Save(previousLanguage);
+        Localizer.Instance.SetLanguage(previousLanguage);
+
+        ResetContentForLanguageChange();
+        var revertFailure = await TryLoadLanguageContentAsync();
+        if (version != languageChangeVersion)
+        {
+            return;
+        }
+
+        if (revertFailure is null)
+        {
+            LogLanguageContentLoaded();
+        }
+        else
+        {
+            App.LogStartupError(
+                $"Restoring {previousLanguage.Code} content after the failed language change also failed; " +
+                "library lists may stay empty until the language is selected again or the app restarts.",
+                revertFailure);
+        }
+
+        QueueSearchForCurrentMode();
+        StatusText = Loc.F("Lang_ChangeFailed", requestedLanguage.NativeName);
+    }
+
+    /// <summary>
+    /// Runs the full content load, and once more after a short pause if it fails. Each attempt
+    /// reloads everything from the start, so a success always leaves every list consistent.
+    /// Returns the final failure, or null on success.
+    /// </summary>
+    private async Task<Exception?> TryLoadLanguageContentAsync()
+    {
+        try
+        {
+            await LoadLanguageContentAsync();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError($"Loading {ContentLanguageCode} content failed; retrying once.", ex);
+        }
+
+        await Task.Delay(LanguageContentRetryDelay);
+
+        try
+        {
+            await LoadLanguageContentAsync();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex;
+        }
+    }
+
+    private async Task LoadLanguageContentAsync()
+    {
+        await RefreshContentAvailabilityAsync();
+        await RefreshFilterOptionsPreservingSelectionAsync();
+        await LoadFavoritesAsync();
+        await LoadProjectionHistoryAsync();
+        await LoadBibleTranslationsAsync();
+    }
+
+    private void LogLanguageContentLoaded()
+    {
+        App.LogStartupMessage(
+            $"Language changed to {SelectedUiLanguage.Code} " +
+            $"(content={ContentLanguageCode}, bible={SelectedUiLanguage.BibleLanguageName}/" +
+            $"{SelectedUiLanguage.PreferredBibleAbbreviation}): " +
+            $"sermonsAvailable={HasSermonContentForCurrentLanguage}, " +
+            $"bibleTranslations={BibleTranslations.Count}, " +
+            $"selectedBible={SelectedBibleTranslation?.Abbreviation ?? "(none)"}.");
+    }
+
+    private void QueueSearchForCurrentMode()
+    {
+        if (IsBibleMode)
+        {
+            QueueBibleSearch();
+        }
+        else if (IsSongsMode)
+        {
+            QueueSongSearch();
+        }
+        else
+        {
+            QueueSearch();
+        }
+    }
+
+    private void ResetContentForLanguageChange()
     {
         if (IsSermonReadingMode)
         {
@@ -162,34 +301,6 @@ public sealed partial class MainViewModel
         RebuildProjectionFontSizes();
         RefreshProjectionDisplayOptions();
         RefreshLocalizedProperties();
-
-        await RefreshContentAvailabilityAsync();
-        await RefreshFilterOptionsPreservingSelectionAsync();
-        await LoadFavoritesAsync();
-        await LoadProjectionHistoryAsync();
-        await LoadBibleTranslationsAsync();
-        App.LogStartupMessage(
-            $"Language changed to {SelectedUiLanguage.Code} " +
-            $"(content={ContentLanguageCode}, bible={SelectedUiLanguage.BibleLanguageName}/" +
-            $"{SelectedUiLanguage.PreferredBibleAbbreviation}): " +
-            $"sermonsAvailable={HasSermonContentForCurrentLanguage}, " +
-            $"bibleTranslations={BibleTranslations.Count}, " +
-            $"selectedBible={SelectedBibleTranslation?.Abbreviation ?? "(none)"}.");
-
-        if (IsBibleMode)
-        {
-            QueueBibleSearch();
-        }
-        else if (IsSongsMode)
-        {
-            QueueSongSearch();
-        }
-        else
-        {
-            QueueSearch();
-        }
-
-        StatusText = Loc.F("Lang_Changed", SelectedUiLanguage.NativeName);
     }
 
     private async Task RefreshContentAvailabilityAsync()
