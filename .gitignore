@@ -29,6 +29,7 @@ database/*.db-wal
 # database explicit so it can be intentionally tracked or release-only.
 database/*.db
 /database/messageflow.db
+database/backups/
 
 # The production database is validated and bundled by the release tooling,
 # but is intentionally excluded from source control.
@@ -36,3 +37,8 @@ database/*.db
 # Local copy of the Windows installer for the Next.js download button.
 # GitHub/Vercel cannot host this ~600MB+ binary; attach it to a GitHub Release.
 /website/public/MessageFlowMediaSetup.exe
+
+.vercel
+.vscode/
+*.zip
+images/

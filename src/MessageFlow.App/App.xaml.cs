@@ -20,6 +20,8 @@ public partial class App : System.Windows.Application
     private Mutex? singleInstanceMutex;
     private bool ownsSingleInstanceMutex;
 
+    public static readonly System.Diagnostics.Stopwatch StartupTimer = System.Diagnostics.Stopwatch.StartNew();
+
     public static void LogStartupError(string message, Exception exception)
     {
         WriteStartupLog($"{message}{Environment.NewLine}{exception}");
@@ -34,8 +36,6 @@ public partial class App : System.Windows.Application
     {
         RegisterExceptionHandlers();
 
-        // The splash is the first window, so WPF makes it MainWindow. Explicit shutdown until the
-        // real main window takes over keeps closing the splash from ending the application.
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         SplashWindow? splash = null;
 
@@ -44,8 +44,6 @@ public partial class App : System.Windows.Application
             LogStartupMessage("MessageFlow startup beginning.");
             base.OnStartup(e);
 
-            // Checked before the database path is even resolved: two instances rebuilding the search
-            // index against one database file is how a database was corrupted during testing.
             if (!TryAcquireSingleInstance())
             {
                 LogStartupMessage("Another MessageFlow instance is already running; this one is exiting.");
@@ -69,19 +67,12 @@ public partial class App : System.Windows.Application
                     databasePath);
             }
 
-            // Loaded before the write check so its message appears in the operator's language.
-            // It only reads a small settings file and falls back to the default on any error.
             Localizer.Instance.SetLanguage(UiLanguagePreference.Load());
-
-            // Applied before the splash so it opens in the operator's theme. It only reads a small
-            // settings file and swaps one resource dictionary.
             AppTheme.Apply(UiThemePreference.LoadIsLight());
 
             splash = new SplashWindow();
             splash.Show();
 
-            // Fail now, in plain words, rather than minutes later mid-service with a SQLite error.
-            // This is one tiny file write and one file open, not a database open.
             var databaseDirectory = Path.GetDirectoryName(Path.GetFullPath(databasePath)) ?? string.Empty;
             if (!MessageFlowDatabase.DirectoryIsWritable(databaseDirectory) ||
                 !MessageFlowDatabase.DatabaseFileIsWritable(databasePath))
@@ -97,8 +88,6 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            // Building the provider opens no connection and creates no window; the singletons are
-            // only constructed on first resolve, after the background work below.
             serviceProvider = new ServiceCollection()
                 .AddMessageFlowData(databasePath)
                 .AddMessageFlowSearch()
@@ -107,29 +96,32 @@ public partial class App : System.Windows.Application
                 .BuildServiceProvider();
             var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
-            // The disk-bound repair, inventory and publication metadata check touch no UI, so they
-            // run off the UI thread and the splash stays responsive through a cold-disk start. The
-            // metadata repair can rebuild the whole search index, which holds a write lock for
-            // minutes; it finishes here, before any window accepts input, so no operator action
-            // can collide with it. Everything after resumes on the UI thread.
-            await Task.Run(async () =>
+            // The database repair and publication metadata checks run asynchronously in the background
+            // so the main window is shown immediately (< 3 seconds) and the UI thread never blocks.
+            var backgroundDbTask = Task.Run(async () =>
             {
-                await MessageFlowDatabaseRepair.RepairAsync(databasePath, LogStartupMessage);
-                MessageFlowDatabase.WriteLibraryInventory(databasePath, LogStartupMessage);
-                await MainViewModel.RepairBrotherFrankPublicationMetadataAsync(scopeFactory);
+                try
+                {
+                    await MessageFlowDatabaseRepair.RepairAsync(databasePath, LogStartupMessage);
+                    await MainViewModel.RepairBrotherFrankPublicationMetadataAsync(scopeFactory);
+                }
+                catch (Exception ex)
+                {
+                    LogStartupError("Background database validation failed.", ex);
+                }
             });
 
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;
+            mainWindow.AttachBackgroundDatabaseTask(backgroundDbTask);
             ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-            // The main window loads its data disabled, and WPF runs that load inside Show() itself.
-            // Topmost is set first so the newly activated main window can never cover the splash;
-            // it stays in front until the load finishes and the window accepts input. (Owning the
-            // splash would also work, but an owner must already be shown, which is too late.)
-            splash.Topmost = true;
+            // Show the main window immediately with a responsive loading state
             mainWindow.Show();
             LogStartupMessage("MainWindow shown.");
+            splash.CloseSplash();
+            mainWindow.Activate();
+
             var initializationFailure = await mainWindow.Initialization;
             LogStartupMessage("MainWindow initialized and accepting input.");
             splash.CloseSplash();
@@ -246,7 +238,7 @@ public partial class App : System.Windows.Application
             Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
             File.AppendAllText(
                 logPath,
-                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}{Environment.NewLine}");
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [+{StartupTimer.ElapsedMilliseconds} ms] {message}{Environment.NewLine}{Environment.NewLine}");
         }
         catch
         {

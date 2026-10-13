@@ -856,6 +856,16 @@ public static class MessageFlowDatabaseRepair
 
             await EnsureSermonParagraphsFtsTriggersAsync(connection, cancellationToken);
 
+            if (!forceRebuild)
+            {
+                var hasFtsRows = await TableHasRowsAsync(connection, "SermonParagraphsFts", cancellationToken);
+                if (hasFtsRows)
+                {
+                    log?.Invoke("SermonParagraphsFts is ready.");
+                    return;
+                }
+            }
+
             var paragraphCount = await ExecuteScalarLongAsync(
                 connection,
                 """SELECT COUNT(1) FROM "SermonParagraphs";""",
@@ -1254,6 +1264,17 @@ public static class MessageFlowDatabaseRepair
             """,
             cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task<bool> TableHasRowsAsync(
+        SqliteConnection connection,
+        string tableName,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""SELECT 1 FROM "{tableName}" LIMIT 1;""";
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return result is not null && result != DBNull.Value;
     }
 
     private static async Task<long> ExecuteScalarLongAsync(

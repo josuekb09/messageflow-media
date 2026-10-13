@@ -2,10 +2,10 @@
 
 Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-Current public release: **v1.0.5** (September 2026).
+Current public release: **v1.0.7** (October 2026).
 
 Website: [www.messageflow.tech](https://www.messageflow.tech)  
-Download: [GitHub Releases v1.0.5](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.5)
+Download: [GitHub Releases v1.0.7](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.7)
 
 ## Library in this build
 

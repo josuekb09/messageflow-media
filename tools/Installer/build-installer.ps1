@@ -55,20 +55,22 @@ if (Test-Path -LiteralPath $snapshotDb) {
     Remove-Item -LiteralPath $snapshotDb -Force
 }
 
+$pythonCmd = if (Get-Command py -ErrorAction SilentlyContinue) { "py" } else { "python" }
+
 Write-Host "Checkpointing SQLite WAL and creating a consistent snapshot (VACUUM INTO)..."
-python $snapshotScript $databaseFile $snapshotDb
+& $pythonCmd $snapshotScript $databaseFile $snapshotDb
 if ($LASTEXITCODE -ne 0) {
     throw "SQLite snapshot failed."
 }
 
 Write-Host "Checking snapshot integrity (repairs index-only defects)..."
-python $integrityScript $snapshotDb
+& $pythonCmd $integrityScript $snapshotDb
 if ($LASTEXITCODE -ne 0) {
     throw "Bundled SQLite snapshot failed integrity_check."
 }
 
 Write-Host "Verifying bundled library counts..."
-python $verifyScript $snapshotDb
+& $pythonCmd $verifyScript $snapshotDb
 if ($LASTEXITCODE -ne 0) {
     throw "Bundled SQLite snapshot failed library verification."
 }

@@ -14,7 +14,8 @@ using Microsoft.Extensions.DependencyInjection;
 const string BranhamSourceName = "brother_branham";
 const string FrankSourceName = "brother_frank";
 
-var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+var databasePath = args.FirstOrDefault(arg => !arg.StartsWith("--", StringComparison.Ordinal)) ??
+                   MessageFlowDatabase.DefaultDatabasePath;
 if (!File.Exists(databasePath))
 {
     Console.WriteLine($"FAIL Database not found: {databasePath}");
@@ -211,6 +212,32 @@ foreach (var term in new[] { "Jesus", "God", "Revelation" })
         frankLeak == 0 ? "No Branham documents." : $"{frankLeak} Branham document(s) leaked."));
     checks.Add(new($"'{term}' scoped to Brother Branham excludes Frank", branhamLeak == 0,
         branhamLeak == 0 ? "No Brother Frank documents." : $"{branhamLeak} Brother Frank document(s) leaked."));
+}
+
+// --- Browse all without search text (clean pagination, no SQLite Error 14) ----------
+await using (var scope = services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<MessageFlowDbContext>();
+    var search = scope.ServiceProvider.GetRequiredService<ISermonSearchService>();
+    var branhamId = (await GetSourceIdAsync(dbContext, BranhamSourceName))!.Value;
+    var frankId = (await GetSourceIdAsync(dbContext, FrankSourceName))!.Value;
+    var visible = new[] { branhamId, frankId };
+
+    var branhamBrowse = await search.BrowseSermonsAsync(
+        contentSourceId: branhamId,
+        maxResults: 2000,
+        language: "en",
+        contentSourceIds: visible);
+    checks.Add(new("Brother Branham browse without search text", branhamBrowse.Count == 1_203,
+        $"{branhamBrowse.Count:N0} documents browsed (expected 1,203)."));
+
+    var frankBrowse = await search.BrowseSermonsAsync(
+        contentSourceId: frankId,
+        maxResults: 2000,
+        language: "en",
+        contentSourceIds: visible);
+    checks.Add(new("Brother Frank browse without search text", frankBrowse.Count == 85,
+        $"{frankBrowse.Count:N0} documents browsed (expected 85)."));
 }
 
 Report(checks);

@@ -2,6 +2,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Media;
 using MessageFlow.Search;
 
 namespace MessageFlow.App.Controls;
@@ -68,11 +69,13 @@ public sealed class HighlightedTextBlock : TextBlock
 
             var highlighted = new Run(source.Substring(range.Start, range.Length))
             {
+                Background = (Application.Current?.TryFindResource("HighlightBackgroundBrush") as Brush)
+                    ?? new SolidColorBrush(Color.FromRgb(14, 116, 144)),
+                Foreground = (Application.Current?.TryFindResource("HighlightForegroundBrush") as Brush)
+                    ?? Brushes.White,
                 FontWeight = FontWeights.SemiBold,
                 TextDecorations = System.Windows.TextDecorations.Underline
             };
-            highlighted.SetResourceReference(TextElement.BackgroundProperty, "HighlightBackgroundBrush");
-            highlighted.SetResourceReference(TextElement.ForegroundProperty, "HighlightForegroundBrush");
             highlighted.SetValue(Typography.CapitalsProperty, FontCapitals.Normal);
             Inlines.Add(highlighted);
             position = range.Start + range.Length;

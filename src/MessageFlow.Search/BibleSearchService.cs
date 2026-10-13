@@ -26,6 +26,14 @@ public sealed class BibleSearchService(MessageFlowDbContext dbContext) : IBibleS
         {
             verses = verses.Where(verse => verse.TranslationId == query.TranslationId.Value);
         }
+        else if (!string.IsNullOrWhiteSpace(query.Language))
+        {
+            verses = verses.Where(verse => verse.BibleTranslation != null && verse.BibleTranslation.Language == query.Language);
+        }
+        else
+        {
+            verses = verses.Where(verse => verse.TranslationId == 1);
+        }
 
         if (BibleReferenceParser.TryParse(normalized, out var reference) && reference.IsValid)
         {
@@ -33,7 +41,6 @@ public sealed class BibleSearchService(MessageFlowDbContext dbContext) : IBibleS
                 verse.BibleBook != null &&
                 verse.BibleBook.Name == reference.BookName &&
                 verse.Chapter == reference.Chapter);
-
             return await ProjectResultsAsync(
                 verses
                     .OrderBy(verse => verse.BibleBook!.BookOrder)

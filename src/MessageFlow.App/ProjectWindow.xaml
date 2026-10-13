@@ -12,14 +12,14 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
-        Background="Black"
+        Background="{DynamicResource ProjectionBackgroundBrush}"
         Loaded="Window_Loaded"
         SizeChanged="Window_SizeChanged"
         DpiChanged="Window_DpiChanged"
         KeyDown="Window_KeyDown"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
     <Grid x:Name="ProjectionRoot"
-          Background="Black"
+          Background="{DynamicResource ProjectionBackgroundBrush}"
           Margin="44,34,44,34">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -31,19 +31,18 @@
         <TextBlock x:Name="TitleTextBlock"
                    Grid.Row="0"
                    Text="{Binding ProjectionParagraphTitle}"
-                   Foreground="White"
+                   Foreground="{DynamicResource ProjectionTitleBrush}"
                    FontSize="30"
                    FontWeight="SemiBold"
                    TextAlignment="Center"
                    TextWrapping="Wrap"
-                   HorizontalAlignment="Stretch"
-                   MaxHeight="76" />
+                   HorizontalAlignment="Stretch" />
 
         <TextBlock x:Name="ParagraphNumberTextBlock"
                    Grid.Row="1"
                    Text="{Binding ProjectionParagraphNumber}"
-                   Margin="0,12,0,28"
-                   Foreground="White"
+                   Margin="0,4,0,12"
+                   Foreground="{DynamicResource ProjectionTitleBrush}"
                    FontSize="22"
                    FontWeight="SemiBold"
                    TextAlignment="Center"
@@ -53,7 +52,7 @@
               Grid.Row="2"
               ClipToBounds="True">
             <TextBlock x:Name="ParagraphTextBlock"
-                       Foreground="White"
+                       Foreground="{DynamicResource ProjectionTextBrush}"
                        FontWeight="SemiBold"
                        TextAlignment="Left"
                        TextWrapping="Wrap"
@@ -63,8 +62,8 @@
 
         <TextBlock x:Name="PageIndicatorTextBlock"
                    Grid.Row="3"
-                   Margin="0,20,0,0"
-                   Foreground="White"
+                   Margin="0,12,0,0"
+                   Foreground="{DynamicResource ProjectionIndicatorBrush}"
                    FontSize="16"
                    FontWeight="SemiBold"
                    HorizontalAlignment="Right"

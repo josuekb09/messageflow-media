@@ -684,6 +684,18 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Default theme fallbacks (aligned with default dark chrome) -->
+        <SolidColorBrush x:Key="SecondaryPanelBrush" Color="#151B24" />
+        <SolidColorBrush x:Key="ButtonPressedBackgroundBrush" Color="#1E40AF" />
+        <SolidColorBrush x:Key="ReferenceEmphasisBrush" Color="#38BDF8" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#22C55E" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#F59E0B" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#EF4444" />
+        <SolidColorBrush x:Key="ProjectionBackgroundBrush" Color="#000000" />
+        <SolidColorBrush x:Key="ProjectionTextBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ProjectionTitleBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ProjectionIndicatorBrush" Color="#FFFFFF" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -72,11 +72,25 @@ public static class MessageFlowDatabase
         string databasePath,
         SqliteOpenMode mode = SqliteOpenMode.ReadWriteCreate)
     {
+        var resolvedMode = mode;
+        if (mode == SqliteOpenMode.ReadWriteCreate && File.Exists(databasePath))
+        {
+            resolvedMode = SqliteOpenMode.ReadWrite;
+        }
+
+        if (resolvedMode != SqliteOpenMode.ReadOnly &&
+            File.Exists(databasePath) &&
+            (!DatabaseFileIsWritable(databasePath) || !DirectoryIsWritable(Path.GetDirectoryName(databasePath) ?? string.Empty)))
+        {
+            resolvedMode = SqliteOpenMode.ReadOnly;
+        }
+
         return new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
-            Mode = mode,
-            DefaultTimeout = LockWaitSeconds
+            Mode = resolvedMode,
+            DefaultTimeout = LockWaitSeconds,
+            Pooling = true
         }.ToString();
     }
 

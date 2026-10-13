@@ -1,9 +1,11 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using MessageFlow.App.Localization;
+using MessageFlow.App.Services;
 using MessageFlow.App.ViewModels;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 
@@ -18,6 +20,7 @@ public partial class MainWindow : Window
     private bool? liveProjectionIsFullscreen;
     private string? liveProjectionTargetKey;
     private Rect? savedLiveProjectionWindowedBounds;
+    private Task? backgroundDatabaseTask;
     private readonly TaskCompletionSource<Exception?> initialization = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public MainWindow(MainViewModel viewModel)
@@ -26,15 +29,43 @@ public partial class MainWindow : Window
         DataContext = viewModel;
 
         InitializeComponent();
+        ApplySavedWindowPlacement();
 
-        // Input stays off until the view-model has loaded its data, so nothing the operator
-        // clicks can run against half-loaded filters. App keeps the splash up until then.
+        // Input stays off until the view-model has loaded its data
         IsEnabled = false;
 
         viewModel.ProjectRequested += ShowProjectionWindow;
         viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
         viewModel.ProjectionPreviewRequested += ShowWindowedProjectionPreview;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+    }
+
+    public void AttachBackgroundDatabaseTask(Task task)
+    {
+        backgroundDatabaseTask = task;
+    }
+
+    private void ApplySavedWindowPlacement()
+    {
+        var placement = MainWindowPlacementPreference.Load();
+        if (placement is not null)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = placement.Left;
+            Top = placement.Top;
+            Width = placement.Width;
+            Height = placement.Height;
+            if (placement.IsMaximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+        }
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        MainWindowPlacementPreference.Save(this);
+        base.OnClosing(e);
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -66,6 +97,10 @@ public partial class MainWindow : Window
             // The rail has no container until the window loads, so the tab selected at
             // startup never reaches it through SelectionChanged. Seed it once here.
             UpdateNavigationRail();
+            if (backgroundDatabaseTask is not null)
+            {
+                await backgroundDatabaseTask;
+            }
             await viewModel.InitializeAsync();
         }
         catch (Exception ex)
@@ -79,6 +114,7 @@ public partial class MainWindow : Window
             IsEnabled = true;
             SearchBox.Focus();
             initialization.TrySetResult(failure);
+            App.LogStartupMessage("Search ready and UI interactive.");
         }
     }
 
@@ -382,13 +418,31 @@ public partial class MainWindow : Window
             e.Key is Key.Left or Key.Right &&
             !ShouldIgnoreParagraphNavigationKeys())
         {
-            var command = e.Key == Key.Left
-                ? viewModel.PreviousParagraphCommand
-                : viewModel.NextParagraphCommand;
-            if (command.CanExecute(null))
+            if (e.Key == Key.Right)
             {
-                command.Execute(null);
-                e.Handled = true;
+                if (viewModel.NextProjectionPageCommand.CanExecute(null))
+                {
+                    viewModel.NextProjectionPageCommand.Execute(null);
+                    e.Handled = true;
+                }
+                else if (viewModel.NextParagraphCommand.CanExecute(null))
+                {
+                    viewModel.NextParagraphCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            else // Key.Left
+            {
+                if (viewModel.PreviousProjectionPageCommand.CanExecute(null))
+                {
+                    viewModel.PreviousProjectionPageCommand.Execute(null);
+                    e.Handled = true;
+                }
+                else if (viewModel.PreviousParagraphCommand.CanExecute(null))
+                {
+                    viewModel.PreviousParagraphCommand.Execute(null);
+                    e.Handled = true;
+                }
             }
         }
     }

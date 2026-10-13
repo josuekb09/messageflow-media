@@ -429,44 +429,112 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         queryContentSourceFtsFilter = null;
         try
         {
-        var parameters = new List<SearchParameter>
-        {
-            new("$limit", ClampBrowseLimit(maxResults))
-        };
-        var clauses = new List<string>
-        {
-            """
-            p.Id = (
-                SELECT p2.Id
-                FROM SermonParagraphs p2
-                WHERE p2.SermonId = s.Id
-                ORDER BY p2.ParagraphNumber, p2.Id
-                LIMIT 1
-            )
-            """
-        };
+            var effectiveLanguage = queryLanguage;
+            var effectiveSourceIds = queryContentSourceIds;
 
-        if (authorId is not null)
-        {
-            clauses.Add("s.AuthorId = $authorId");
-            parameters.Add(new("$authorId", authorId.Value));
-        }
+            var parameters = new List<SearchParameter>
+            {
+                new("$limit", ClampBrowseLimit(maxResults))
+            };
+            var sermonClauses = new List<string>();
 
-        // Source scope is supplied by the shared scope filter, not as a clause here.
+            if (!string.IsNullOrWhiteSpace(effectiveLanguage))
+            {
+                sermonClauses.Add("s.Language = $language");
+                parameters.Add(new("$language", effectiveLanguage));
+            }
 
-        if (year is not null)
-        {
-            clauses.Add("s.Year = $year");
-            parameters.Add(new("$year", year.Value));
-        }
+            if (effectiveSourceIds is not null)
+            {
+                if (effectiveSourceIds.Count == 0)
+                {
+                    sermonClauses.Add("1 = 0");
+                }
+                else
+                {
+                    var contentSourceParams = new List<string>();
+                    for (var i = 0; i < effectiveSourceIds.Count; i++)
+                    {
+                        var paramName = $"$contentSource{i}";
+                        contentSourceParams.Add(paramName);
+                        parameters.Add(new(paramName, effectiveSourceIds[i]));
+                    }
+                    sermonClauses.Add($"s.ContentSourceId IN ({string.Join(", ", contentSourceParams)})");
+                }
+            }
 
-        return await ExecuteQueryAsync(
-            BuildBaseSelect(
-                "SermonParagraphs p",
-                string.Join($"{Environment.NewLine}        AND ", clauses),
-                orderByFtsRank: false),
-            parameters,
-            cancellationToken);
+            if (authorId is not null)
+            {
+                sermonClauses.Add("s.AuthorId = $authorId");
+                parameters.Add(new("$authorId", authorId.Value));
+            }
+
+            if (year is not null)
+            {
+                sermonClauses.Add("s.Year = $year");
+                parameters.Add(new("$year", year.Value));
+            }
+
+            var sermonWhere = sermonClauses.Count > 0
+                ? "WHERE " + string.Join($"{Environment.NewLine}        AND ", sermonClauses)
+                : string.Empty;
+
+            var sql = $$"""
+                WITH PagedSermons AS (
+                    SELECT
+                        s.Id,
+                        s.Title,
+                        s.SermonCode,
+                        s.Year,
+                        s.Date,
+                        s.AuthorId,
+                        s.ContentSourceId,
+                        s.ContentType,
+                        s.Language,
+                        s.SourceFilePath
+                    FROM Sermons s
+                    {{sermonWhere}}
+                    ORDER BY CASE WHEN s.Year > 0 THEN 0 ELSE 1 END, s.Year, s.Date, s.Title
+                    LIMIT $limit
+                )
+                SELECT
+                    s.Id AS SermonId,
+                    COALESCE(p.Id, 0) AS ParagraphId,
+                    s.Title AS SermonTitle,
+                    s.SermonCode,
+                    s.Year,
+                    COALESCE(a.DisplayName, a.FullName, '') AS AuthorDisplayName,
+                    COALESCE(cs.DisplayName, '') AS SourceDisplayName,
+                    COALESCE(cs.SourceType, '') AS SourceType,
+                    COALESCE(s.ContentType, cs.SourceType, '') AS ContentType,
+                    COALESCE(s.Language, '') AS Language,
+                    COALESCE(p.ParagraphNumber, 1) AS ParagraphNumber,
+                    CASE
+                        WHEN p.Text IS NULL THEN ''
+                        WHEN length(p.Text) <= 240 THEN p.Text
+                        ELSE substr(p.Text, 1, 240) || '...'
+                    END AS ParagraphTextPreview,
+                    COALESCE(p.Text, '') AS FullParagraphText,
+                    s.SourceFilePath,
+                    p.PageNumber
+                FROM PagedSermons s
+                LEFT JOIN Authors a ON a.Id = s.AuthorId
+                LEFT JOIN ContentSources cs ON cs.Id = s.ContentSourceId
+                LEFT JOIN SermonParagraphs p ON p.Id = (
+                    SELECT p2.Id
+                    FROM SermonParagraphs p2
+                    WHERE p2.SermonId = s.Id
+                    ORDER BY p2.ParagraphNumber, p2.Id
+                    LIMIT 1
+                )
+                ORDER BY CASE WHEN s.Year > 0 THEN 0 ELSE 1 END, s.Year, s.Date, s.Title;
+                """;
+
+            return await ExecuteQueryAsync(
+                sql,
+                parameters,
+                cancellationToken,
+                applyScopeFilters: false);
         }
         finally
         {
@@ -715,11 +783,12 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
         IReadOnlyCollection<SearchParameter> parameters,
         CancellationToken cancellationToken,
         SermonSearchDiagnostics? diagnostics = null,
-        string? diagnosticPhase = null)
+        string? diagnosticPhase = null,
+        bool applyScopeFilters = true)
     {
         var sqlToRun = sql;
         var parametersToUse = parameters;
-        if (!string.IsNullOrWhiteSpace(queryLanguage) || queryContentSourceIds is not null)
+        if (applyScopeFilters && (!string.IsNullOrWhiteSpace(queryLanguage) || queryContentSourceIds is not null))
         {
             sqlToRun = InsertScopeFilters(sql);
 
@@ -743,6 +812,8 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             connectionTimer.Stop();
             diagnostics?.RecordConnection(connectionTimer.Elapsed);
         }
+
+        await ConfigureConnectionAsync(connection, cancellationToken);
 
         try
         {
@@ -796,6 +867,20 @@ public sealed partial class SermonSearchService(MessageFlowDbContext dbContext) 
             {
                 await connection.CloseAsync();
             }
+        }
+    }
+
+    private static async Task ConfigureConnectionAsync(DbConnection connection, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var pragmaCommand = connection.CreateCommand();
+            pragmaCommand.CommandText = "PRAGMA temp_store = MEMORY; PRAGMA cache_size = -64000;";
+            await pragmaCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch
+        {
+            // Best-effort PRAGMA optimization should never block query execution.
         }
     }
 

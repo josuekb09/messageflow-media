@@ -39,7 +39,7 @@ var branhamDocuments = branhamSourceId is null
     ? 0
     : await ExecuteScalarLongAsync(
         connection,
-        """SELECT COUNT(1) FROM "Sermons" WHERE "ContentSourceId" = $sourceId;""",
+        """SELECT COUNT(1) FROM "Sermons" WHERE "ContentSourceId" = $sourceId AND ("Language" = 'en' OR "Language" IS NULL);""",
         new SqliteParameter("$sourceId", branhamSourceId.Value));
 checks.Add(new CheckResult(
     "Brother Branham document count",

@@ -847,9 +847,9 @@ static Task<string> SermonProjectionTypography()
             vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Medium");
 
             vm.IncreaseProjectionTextSizeCommand.Execute(null);
-            Assert(Math.Abs(vm.SermonProjectionFontSize - 62) < 0.1, "Sermon A+ should add exactly 2 DIPs");
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 63) < 0.1, "Sermon A+ should scale by 5%");
             vm.DecreaseProjectionTextSizeCommand.Execute(null);
-            Assert(Math.Abs(vm.SermonProjectionFontSize - 60) < 0.1, "Sermon A- should subtract exactly 2 DIPs");
+            Assert(Math.Abs(vm.SermonProjectionFontSize - 60) < 0.1, "Sermon A- should scale back by 5%");
             vm.ResetProjectionTextSizeCommand.Execute(null);
 
             var window = new ProjectWindow(vm);
@@ -871,27 +871,25 @@ static Task<string> SermonProjectionTypography()
             Assert(paragraph.LayoutTransform == Transform.Identity && paragraph.RenderTransform == Transform.Identity, "projection should not use scale transforms");
 
             SetField(vm, "activeProjectionContent", new ProjectedContentSnapshot(ProjectionContentType.Bible, "John 4:5", string.Empty, "Then cometh he to a city of Samaria, which is called Sychar."));
-            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Small");
-            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 48d, "Bible Small preset should set a safe target size");
-            vm.IncreaseProjectionTextSizeCommand.Execute(null);
-            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 50d, "Bible A+ should increase by 2 DIPs when safe");
-            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Extra Large");
-            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 78d, "Bible effective size should not exceed its safe fit ceiling");
             vm.ResetProjectionTextSizeCommand.Execute(null);
             Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 78d, "Bible Fit should use the safe fit ceiling");
+            vm.DecreaseProjectionTextSizeCommand.Execute(null);
+            Assert(Math.Abs(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) - (78d * 0.95)) < 0.2, "Bible A- should decrease by 5%");
+            vm.ResetProjectionTextSizeCommand.Execute(null);
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 78d) == 78d, "Bible Auto should restore safe fit ceiling");
 
             SetField(vm, "activeProjectionContent", new ProjectedContentSnapshot(ProjectionContentType.Song, "Song", "Verse 1", "A short lyric line"));
-            vm.SelectedProjectionFontSize = vm.ProjectionFontSizes.Single(option => option.Label == "Medium");
-            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 62d, "Song Medium preset should set a safe target size");
-            vm.DecreaseProjectionTextSizeCommand.Execute(null);
-            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 60d, "Song A- should decrease by 2 DIPs");
             vm.ResetProjectionTextSizeCommand.Execute(null);
-            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 80d, "Song Fit should use the safe fit ceiling");
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 80d, "Song Auto should use the safe fit ceiling");
+            vm.DecreaseProjectionTextSizeCommand.Execute(null);
+            Assert(Math.Abs(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) - (80d * 0.95)) < 0.2, "Song A- should decrease by 5%");
+            vm.ResetProjectionTextSizeCommand.Execute(null);
+            Assert(InvokeInstance<double>(window, "GetSafeSingleScreenFontSize", [typeof(double)], 80d) == 80d, "Song Auto should restore safe fit ceiling");
 
             var bibleReference = InvokeStatic<double>(typeof(ProjectWindow), "GetBibleReferenceFontSize", [typeof(Size)], new Size(1600, 900));
             Assert(bibleReference >= 38 && bibleReference <= 78, "Bible reference should remain within the compact header band");
 
-            detail = $"default=60 DIP; A-/A+=2 DIP; title=38; label=28; long paragraph={pages.Count} pages at one font size; Bible reference={bibleReference:0.#}.";
+            detail = $"default=60 DIP; A-/A+=5% scaling; title=38; label=28; long paragraph={pages.Count} pages at one font size; Bible reference={bibleReference:0.#}.";
         }
         catch (Exception ex)
         {

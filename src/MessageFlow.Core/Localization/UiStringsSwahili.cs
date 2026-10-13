@@ -45,9 +45,9 @@ public static class UiStringsSwahili
         ["Toolbar_SearchSermonsTooltip"] = "Tafuta mahubiri kwa kichwa, msimbo, kifungu, au namba ya ibara",
         ["Toolbar_FontSizeTooltip"] = "Ukubwa wa maandishi ya onyesho",
         ["Toolbar_DecreaseTextTooltip"] = "Punguza ukubwa wa maandishi",
-        ["Toolbar_FitTextTooltip"] = "Linganisha maandishi na skrini",
+        ["Toolbar_FitTextTooltip"] = "Linganisha maandishi na skrini kiotomatiki",
         ["Toolbar_IncreaseTextTooltip"] = "Ongeza ukubwa wa maandishi",
-        ["Toolbar_Fit"] = "Linganisha",
+        ["Toolbar_Fit"] = "Auto",
 
         // ---- Navigation / library ----
         ["Nav_Library"] = "Maktaba",

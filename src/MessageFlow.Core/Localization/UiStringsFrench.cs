@@ -46,9 +46,9 @@ public static class UiStringsFrench
         ["Toolbar_SearchSermonsTooltip"] = "Rechercher des sermons par titre, code, expression ou numéro de paragraphe",
         ["Toolbar_FontSizeTooltip"] = "Taille du texte de projection",
         ["Toolbar_DecreaseTextTooltip"] = "Réduire la taille du texte",
-        ["Toolbar_FitTextTooltip"] = "Ajuster le texte à l'écran",
+        ["Toolbar_FitTextTooltip"] = "Ajustement automatique du texte à l'écran",
         ["Toolbar_IncreaseTextTooltip"] = "Augmenter la taille du texte",
-        ["Toolbar_Fit"] = "Ajuster",
+        ["Toolbar_Fit"] = "Auto",
 
         // ---- Navigation / bibliothèque ----
         ["Nav_Library"] = "Bibliothèque",

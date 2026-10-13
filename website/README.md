@@ -24,7 +24,7 @@ npm run dev
 
 Open http://localhost:3000
 
-The Download button saves `MessageFlowMediaSetup.exe` from this website (`/MessageFlowMediaSetup.exe`). The installer is too large for Git, so production serves that same path from Vercel Blob (or a local copy in `public/` while you run `npm run dev`).
+Every Download button opens the `MessageFlowMediaSetup.exe` asset from the latest public GitHub Release. The installer is not served by this website or Vercel Blob.
 
 Product screenshots and the compressed demo video live in `public/media/`.
 
@@ -61,7 +61,7 @@ Then in Vercel: **Project → Settings → Domains**
 
 The app itself is already live with a valid cert at https://messageflow-media.vercel.app. SSL on `.tech` cannot be issued until those DNS records match.
 
-The Windows installer is too large for Git. Production still downloads from this website at `/MessageFlowMediaSetup.exe`. Keep a local copy in `public/` for `npm run dev`.
+The Windows installer is too large for Git. Attach only `MessageFlowMediaSetup.exe` to each public GitHub Release; the website automatically uses the latest release asset.
 
 ## Feedback & Support
 
