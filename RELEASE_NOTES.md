@@ -1,3 +1,30 @@
+# MessageFlow Media 1.0.8
+
+Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
+
+1.0.6 and 1.0.7 were never published; 1.0.8 is the first public release after 1.0.5 and includes their changes.
+
+## Fixes in 1.0.8
+
+- **Song lines no longer run together.** Songs whose PowerPoint slides break lines with Shift+Enter were imported as one long line, which is how a Kiswahili hymn reached the projector with all its phrases stuck together. Every PPTX reader now keeps those breaks, and 648 song sections in the bundled library (496 Kiswahili, 152 English) have their original line breaks back. Only whitespace changed: each section was verified character for character against its source slide.
+- **Bible verses and song slides project reliably.** The projection window could raise an error on every Bible verse and song lyric slide (a zero header size was applied). Fixed and covered by tests.
+- **A saved favorite or history item that is no longer in the library is never replaced by another paragraph.** Before, the previously selected paragraph could be projected in its place. Now nothing is projected and the status bar explains why.
+- **Small high-DPI projectors.** The projection window could be taller than a 1280x720 screen at 150% scaling and lose its bottom lines. It now always matches the screen.
+- **A+ / A- / Auto.** A+ stops at the largest size that fits (and is disabled there), A- stops at the smallest readable size, each press is 5%, and Auto returns to the best fit. Pressing A+ at the limit no longer makes the next A- presses look dead.
+- **Never unreadable, never cut.** Text that cannot fit at the readable minimum is split into "1 of 2", "2 of 2" screens at sentence boundaries with the exact original words. A split inside a very long sentence no longer glues its last word to the next sentence.
+- **Faster paragraph switching** for very long paragraphs, and an instant return to recently projected items.
+- **Songs show only their own slide text** on the projector, with no extra generated title.
+- **Safe install location.** The installer now defaults to a local folder (`%LOCALAPPDATA%\Programs\MessageFlowMedia`) instead of Documents, which OneDrive often synchronizes. OneDrive can make the large library slow to open; the installer warns when a OneDrive folder is chosen.
+- **Errors never close the app.** An unexpected error shows one short message on the operator screen and is logged; the app and the projection keep running.
+- **Every control has a tooltip** in English, French, and Kiswahili, with its keyboard shortcut.
+- **Light theme contrast** raised to at least 4.5:1 for every text and background pair (projection 7:1 or more). The dark theme is unchanged.
+
+## Download
+
+Installer: [GitHub release v1.0.8](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8)
+
+---
+
 # MessageFlow Media 1.0.7
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.

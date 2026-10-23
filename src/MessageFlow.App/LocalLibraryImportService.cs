@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using MessageFlow.Core.ContentSources;
 using MessageFlow.Core.Sermons;
 using MessageFlow.Core.Songs;
+using MessageFlow.Core.Text;
 using MessageFlow.Data;
 using MessageFlow.Importer;
 using MessageFlow.Search;
@@ -324,7 +325,6 @@ public sealed class LocalLibraryImportService
     private static List<PreparedSongSection> ExtractPptxSections(string filePath)
     {
         using var archive = ZipFile.OpenRead(filePath);
-        XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
         return archive.Entries
             .Where(entry => entry.FullName.StartsWith("ppt/slides/slide", StringComparison.OrdinalIgnoreCase) &&
                             entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
@@ -333,10 +333,7 @@ public sealed class LocalLibraryImportService
             {
                 using var stream = entry.Open();
                 var document = XDocument.Load(stream);
-                var lines = document.Descendants(drawing + "p")
-                    .Select(paragraph => string.Concat(paragraph.Descendants(drawing + "t").Select(text => text.Value)))
-                    .Where(line => !string.IsNullOrWhiteSpace(line))
-                    .ToList();
+                var lines = PresentationParagraphText.GetSlideLines(document);
                 return new PreparedSongSection("Slide", $"Slide {index + 1}", string.Join(Environment.NewLine, lines));
             })
             .Where(section => !string.IsNullOrWhiteSpace(section.Text))

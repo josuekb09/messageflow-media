@@ -45,9 +45,9 @@ public static class UiStringsEnglish
         // ---- Top toolbar ----
         ["Toolbar_SearchSermonsTooltip"] = "Search sermons by title, code, phrase, or paragraph number",
         ["Toolbar_FontSizeTooltip"] = "Projection font size",
-        ["Toolbar_DecreaseTextTooltip"] = "Decrease text size",
-        ["Toolbar_FitTextTooltip"] = "Auto-fit text to projection screen",
-        ["Toolbar_IncreaseTextTooltip"] = "Increase text size",
+        ["Toolbar_DecreaseTextTooltip"] = "Make the projected text 5% smaller (Ctrl+-). Stops at the smallest readable size.",
+        ["Toolbar_FitTextTooltip"] = "Return to the automatic best fit for the projection screen (Ctrl+0)",
+        ["Toolbar_IncreaseTextTooltip"] = "Make the projected text 5% larger (Ctrl++). Stops at the largest size that fits the screen.",
         ["Toolbar_Fit"] = "Auto",
 
         // ---- Navigation / library ----
@@ -496,6 +496,30 @@ public static class UiStringsEnglish
         ["Msg_StartupFailedTitle"] = "MessageFlow Startup Error",
         ["Msg_DataFolderNotWritable"] = "MessageFlow can't save data to its usual folder right now.{0}{0}This can happen if the folder needs permission, or if a connected drive was disconnected.{0}{0}Try restarting MessageFlow, or ask whoever installed it to check that the location below allows saving (write access):{0}{0}{1}",
         ["Msg_DataFolderNotWritableTitle"] = "MessageFlow can't save data",
-        ["Msg_AlreadyRunning"] = "MessageFlow is already running."
+        ["Msg_AlreadyRunning"] = "MessageFlow is already running.",
+
+        // ---- Tooltips for every operator control ----
+        ["Tip_Project"] = "Show the selected item on the projection screen (Ctrl+P)",
+        ["Tip_Copy"] = "Copy the selected text to the clipboard (Ctrl+C)",
+        ["Tip_PreviousPage"] = "Show the previous continuation screen of this text (Left arrow)",
+        ["Tip_NextPage"] = "Show the next continuation screen of this text (Right arrow)",
+        ["Tip_PreviousItem"] = "Select the previous paragraph, verse or song section. If the current one is on screen, the screen follows (Left arrow).",
+        ["Tip_NextItem"] = "Select the next paragraph, verse or song section. If the current one is on screen, the screen follows (Right arrow).",
+        ["Tip_ToggleFavorite"] = "Add the selected item to Favorites, or remove it",
+        ["Tip_PreviousMatch"] = "Go to the previous match in this sermon (Shift+Enter)",
+        ["Tip_NextMatch"] = "Go to the next match in this sermon (Enter)",
+        ["Tip_ClearFind"] = "Clear the search inside this sermon (Esc)",
+        ["Tip_ProjectFavorite"] = "Show this favorite on the projection screen",
+        ["Tip_RemoveFavorite"] = "Remove this item from Favorites",
+        ["Tip_CopyFavorite"] = "Copy this verse to the clipboard",
+        ["Tip_ClearHistory"] = "Delete the whole projection history (asks for confirmation)",
+        ["Tip_ProjectHistory"] = "Show this item on the projection screen again",
+        ["Tip_AllSources"] = "Show sermons and publications from every source",
+        ["Tip_BranhamSource"] = "Show only Brother Branham sermons",
+        ["Tip_FrankSource"] = "Show only Brother Frank publications",
+
+        // ---- Tooltips for every operator control ----
+        ["Tip_YearFilter"] = "Show only sermons preached in the chosen year",
+        ["Tip_BibleTranslation"] = "Choose the Bible translation to search and project"
     };
 }

@@ -3,16 +3,26 @@
 ## Current Version
 
 ```text
-v1.0.7
+v1.0.8
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.7
+MessageFlow Media v1.0.8
 ```
 
-## Included In v1.0.7
+## Included In v1.0.8
+
+- Song line breaks restored (PPTX Shift+Enter breaks) for 648 sections; checked against every source slide
+- Projection crash on Bible verses and song slides fixed
+- Missing favorites/history items are never replaced by another paragraph on screen
+- A+ / A- / Auto limited to the largest fitting and smallest readable sizes
+- Default install folder moved out of OneDrive-synced Documents
+- Recoverable error handling, tooltips on every control, light-theme contrast fixes
+- Automated tests (tests/MessageFlow.Tests) and a real-window projection fit verification
+
+## Included In v1.0.7 (never published; part of v1.0.8)
 
 - Fast startup (< 3s main window display, non-blocking background initialization, no "Not Responding" freeze)
 - Universal projection auto-fit across all content types (sermons, Bible, songs) with safe margins and zero overflow across 720p, 1080p, and 4K displays

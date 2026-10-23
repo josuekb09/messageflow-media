@@ -44,9 +44,9 @@ public static class UiStringsSwahili
         // ---- Top toolbar ----
         ["Toolbar_SearchSermonsTooltip"] = "Tafuta mahubiri kwa kichwa, msimbo, kifungu, au namba ya ibara",
         ["Toolbar_FontSizeTooltip"] = "Ukubwa wa maandishi ya onyesho",
-        ["Toolbar_DecreaseTextTooltip"] = "Punguza ukubwa wa maandishi",
-        ["Toolbar_FitTextTooltip"] = "Linganisha maandishi na skrini kiotomatiki",
-        ["Toolbar_IncreaseTextTooltip"] = "Ongeza ukubwa wa maandishi",
+        ["Toolbar_DecreaseTextTooltip"] = "Punguza maandishi yanayoonyeshwa kwa 5% (Ctrl+-). Inasimama kwenye ukubwa mdogo zaidi unaosomeka.",
+        ["Toolbar_FitTextTooltip"] = "Rudi kwenye ulinganisho wa kiotomatiki na skrini ya kuonyesha (Ctrl+0)",
+        ["Toolbar_IncreaseTextTooltip"] = "Ongeza maandishi yanayoonyeshwa kwa 5% (Ctrl++). Inasimama kwenye ukubwa mkubwa zaidi unaotosha skrini.",
         ["Toolbar_Fit"] = "Auto",
 
         // ---- Navigation / library ----
@@ -227,7 +227,31 @@ public static class UiStringsSwahili
         ["Font_ExtraLarge"] = "Kubwa sana",
         ["Confirm_ClearHistory"] = "Ungependa kufuta historia yote ya onyesho? Hii haitafuta mahubiri, aya za Biblia, vipendwa, wala vyanzo.",
         ["Confirm_ClearHistoryTitle"] = "Futa historia",
-        ["ImportBible_SuggestedFile"] = "Folda inayopendekezwa: Documents\\Bible"
+        ["ImportBible_SuggestedFile"] = "Folda inayopendekezwa: Documents\\Bible",
+
+        // ---- Tooltips for every operator control ----
+        ["Tip_Project"] = "Onyesha kipengee kilichochaguliwa kwenye skrini ya kuonyesha (Ctrl+P)",
+        ["Tip_Copy"] = "Nakili maandishi yaliyochaguliwa (Ctrl+C)",
+        ["Tip_PreviousPage"] = "Onyesha skrini iliyotangulia ya maandishi haya (mshale wa kushoto)",
+        ["Tip_NextPage"] = "Onyesha skrini inayofuata ya maandishi haya (mshale wa kulia)",
+        ["Tip_PreviousItem"] = "Chagua aya, mstari au ubeti uliotangulia. Ikiwa wa sasa uko kwenye skrini, skrini inafuata (mshale wa kushoto).",
+        ["Tip_NextItem"] = "Chagua aya, mstari au ubeti unaofuata. Ikiwa wa sasa uko kwenye skrini, skrini inafuata (mshale wa kulia).",
+        ["Tip_ToggleFavorite"] = "Ongeza kipengee kilichochaguliwa kwenye vipendwa, au kiondoe",
+        ["Tip_PreviousMatch"] = "Nenda kwenye tokeo lililotangulia katika hubiri hili (Shift+Enter)",
+        ["Tip_NextMatch"] = "Nenda kwenye tokeo linalofuata katika hubiri hili (Enter)",
+        ["Tip_ClearFind"] = "Futa utafutaji ndani ya hubiri hili (Esc)",
+        ["Tip_ProjectFavorite"] = "Onyesha kipendwa hiki kwenye skrini ya kuonyesha",
+        ["Tip_RemoveFavorite"] = "Ondoa kipengee hiki kwenye vipendwa",
+        ["Tip_CopyFavorite"] = "Nakili mstari huu",
+        ["Tip_ClearHistory"] = "Futa historia yote ya maonyesho (inaomba uthibitisho)",
+        ["Tip_ProjectHistory"] = "Onyesha tena kipengee hiki kwenye skrini ya kuonyesha",
+        ["Tip_AllSources"] = "Onyesha mahubiri na machapisho ya vyanzo vyote",
+        ["Tip_BranhamSource"] = "Onyesha mahubiri ya ndugu Branham peke yake",
+        ["Tip_FrankSource"] = "Onyesha machapisho ya ndugu Frank peke yake",
+
+        // ---- Tooltips for every operator control ----
+        ["Tip_YearFilter"] = "Onyesha mahubiri ya mwaka uliochaguliwa peke yake",
+        ["Tip_BibleTranslation"] = "Chagua tafsiri ya Biblia ya kutafuta na kuonyesha"
     };
 
     public static IReadOnlyDictionary<string, string> Values { get; } = Build();

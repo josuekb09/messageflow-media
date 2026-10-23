@@ -45,9 +45,9 @@ public static class UiStringsFrench
         // ---- Barre d'outils ----
         ["Toolbar_SearchSermonsTooltip"] = "Rechercher des sermons par titre, code, expression ou numéro de paragraphe",
         ["Toolbar_FontSizeTooltip"] = "Taille du texte de projection",
-        ["Toolbar_DecreaseTextTooltip"] = "Réduire la taille du texte",
-        ["Toolbar_FitTextTooltip"] = "Ajustement automatique du texte à l'écran",
-        ["Toolbar_IncreaseTextTooltip"] = "Augmenter la taille du texte",
+        ["Toolbar_DecreaseTextTooltip"] = "Réduire le texte projeté de 5 % (Ctrl+-). S'arrête à la plus petite taille lisible.",
+        ["Toolbar_FitTextTooltip"] = "Revenir à l'ajustement automatique à l'écran de projection (Ctrl+0)",
+        ["Toolbar_IncreaseTextTooltip"] = "Agrandir le texte projeté de 5 % (Ctrl++). S'arrête à la plus grande taille qui tient à l'écran.",
         ["Toolbar_Fit"] = "Auto",
 
         // ---- Navigation / bibliothèque ----
@@ -496,6 +496,30 @@ public static class UiStringsFrench
         ["Msg_StartupFailedTitle"] = "Erreur de démarrage MessageFlow",
         ["Msg_DataFolderNotWritable"] = "MessageFlow ne peut pas enregistrer de données dans son dossier habituel pour le moment.{0}{0}Cela peut arriver si le dossier demande une autorisation, ou si un disque connecté a été débranché.{0}{0}Essayez de redémarrer MessageFlow, ou demandez à la personne qui l'a installé de vérifier que l'emplacement ci-dessous autorise l'enregistrement (accès en écriture) :{0}{0}{1}",
         ["Msg_DataFolderNotWritableTitle"] = "MessageFlow ne peut pas enregistrer",
-        ["Msg_AlreadyRunning"] = "MessageFlow est déjà en cours d'exécution."
+        ["Msg_AlreadyRunning"] = "MessageFlow est déjà en cours d'exécution.",
+
+        // ---- Tooltips for every operator control ----
+        ["Tip_Project"] = "Afficher l'élément sélectionné sur l'écran de projection (Ctrl+P)",
+        ["Tip_Copy"] = "Copier le texte sélectionné dans le presse-papiers (Ctrl+C)",
+        ["Tip_PreviousPage"] = "Afficher l'écran précédent de ce texte (flèche gauche)",
+        ["Tip_NextPage"] = "Afficher l'écran suivant de ce texte (flèche droite)",
+        ["Tip_PreviousItem"] = "Sélectionner le paragraphe, le verset ou la strophe précédente. Si l'élément actuel est projeté, l'écran suit (flèche gauche).",
+        ["Tip_NextItem"] = "Sélectionner le paragraphe, le verset ou la strophe suivante. Si l'élément actuel est projeté, l'écran suit (flèche droite).",
+        ["Tip_ToggleFavorite"] = "Ajouter l'élément sélectionné aux favoris, ou l'en retirer",
+        ["Tip_PreviousMatch"] = "Aller au résultat précédent dans cette prédication (Maj+Entrée)",
+        ["Tip_NextMatch"] = "Aller au résultat suivant dans cette prédication (Entrée)",
+        ["Tip_ClearFind"] = "Effacer la recherche dans cette prédication (Échap)",
+        ["Tip_ProjectFavorite"] = "Afficher ce favori sur l'écran de projection",
+        ["Tip_RemoveFavorite"] = "Retirer cet élément des favoris",
+        ["Tip_CopyFavorite"] = "Copier ce verset dans le presse-papiers",
+        ["Tip_ClearHistory"] = "Effacer tout l'historique de projection (demande confirmation)",
+        ["Tip_ProjectHistory"] = "Afficher de nouveau cet élément sur l'écran de projection",
+        ["Tip_AllSources"] = "Afficher les prédications et publications de toutes les sources",
+        ["Tip_BranhamSource"] = "Afficher uniquement les prédications de frère Branham",
+        ["Tip_FrankSource"] = "Afficher uniquement les publications de frère Frank",
+
+        // ---- Tooltips for every operator control ----
+        ["Tip_YearFilter"] = "Afficher uniquement les prédications de l'année choisie",
+        ["Tip_BibleTranslation"] = "Choisir la traduction de la Bible à rechercher et à projeter"
     };
 }

@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using MessageFlow.Core.Text;
 using MessageFlow.Search;
 
 namespace ImportSwahiliPptxSongs;
@@ -88,13 +89,7 @@ internal static partial class SwahiliPptxParser
 
             using var stream = entry.Open();
             var document = XDocument.Load(stream);
-            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-            var lines = document
-                .Descendants(a + "p")
-                .Select(JoinRunText)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .ToList();
-            slides.Add(lines);
+            slides.Add(PresentationParagraphText.GetSlideLines(document, JoinRunText));
         }
 
         return slides;
@@ -186,13 +181,11 @@ internal static partial class SwahiliPptxParser
         return match.Success && int.TryParse(match.Groups["number"].Value, out var number) ? number : int.MaxValue;
     }
 
-    private static string JoinRunText(XElement paragraph)
+    private static string JoinRunText(IReadOnlyList<string> runs)
     {
-        XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
         var builder = new StringBuilder();
-        foreach (var run in paragraph.Descendants(a + "t"))
+        foreach (var part in runs)
         {
-            var part = run.Value ?? string.Empty;
             if (part.Length == 0)
             {
                 continue;

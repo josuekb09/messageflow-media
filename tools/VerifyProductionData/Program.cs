@@ -2,7 +2,11 @@ using MessageFlow.Data;
 using MessageFlow.Search;
 using Microsoft.Data.Sqlite;
 
-var databasePath = MessageFlowDatabase.DefaultDatabasePath;
+// --database <path> checks a specific file, such as the snapshot bundled into the installer.
+var databaseOption = Array.FindIndex(args, arg => string.Equals(arg, "--database", StringComparison.OrdinalIgnoreCase));
+var databasePath = databaseOption >= 0 && databaseOption + 1 < args.Length
+    ? args[databaseOption + 1]
+    : MessageFlowDatabase.DefaultDatabasePath;
 var checks = new List<CheckResult>();
 
 if (!File.Exists(databasePath))

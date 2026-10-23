@@ -528,17 +528,20 @@
                                                          GroupName="LibraryFilterPills"
                                                          IsChecked="{Binding IsAllSourcesSelected, Mode=OneWay}"
                                                          Command="{Binding SelectAllSourcesCommand}"
+                                                         ToolTip="{loc:Tr Tip_AllSources}"
                                                          Style="{StaticResource AuthorFilterPillStyle}" />
                                             <RadioButton Content="{loc:Tr Author_Branham}"
                                                          GroupName="LibraryFilterPills"
                                                          IsChecked="{Binding IsBranhamSourceSelected, Mode=OneWay}"
                                                          Command="{Binding SelectBranhamSourceCommand}"
+                                                         ToolTip="{loc:Tr Tip_BranhamSource}"
                                                          Visibility="{Binding HasBranhamLibraryForCurrentLanguage, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                          Style="{StaticResource AuthorFilterPillStyle}" />
                                             <RadioButton Content="{loc:Tr Author_Frank}"
                                                          GroupName="LibraryFilterPills"
                                                          IsChecked="{Binding IsFrankSourceSelected, Mode=OneWay}"
                                                          Command="{Binding SelectFrankSourceCommand}"
+                                                         ToolTip="{loc:Tr Tip_FrankSource}"
                                                          Visibility="{Binding HasFrankLibraryForCurrentLanguage, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                          Style="{StaticResource AuthorFilterPillStyle}" />
                                         </UniformGrid>
@@ -553,6 +556,7 @@
                                                    FontWeight="SemiBold"
                                                    Foreground="{DynamicResource SecondaryTextBrush}" />
                                         <ComboBox ItemsSource="{Binding YearFilters}"
+                                                  ToolTip="{loc:Tr Tip_YearFilter}"
                                                   SelectedItem="{Binding SelectedYear}"
                                                   DisplayMemberPath="Label"
                                                   TextSearch.TextPath="Label"
@@ -691,6 +695,7 @@
                                                LastChildFill="True">
                                         <ComboBox DockPanel.Dock="Right"
                                                   ItemsSource="{Binding BibleTranslations}"
+                                                  ToolTip="{loc:Tr Tip_BibleTranslation}"
                                                   SelectedItem="{Binding SelectedBibleTranslation}"
                                                   DisplayMemberPath="DisplayName"
                                                   TextSearch.TextPath="DisplayName"
@@ -1070,6 +1075,7 @@
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.ProjectFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                        ToolTip="{loc:Tr Tip_ProjectFavorite}"
                                                                         CommandParameter="{Binding}" />
                                                                 <Button Content="{loc:Tr Fav_Remove}"
                                                                         Margin="0,8,0,0"
@@ -1077,6 +1083,7 @@
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.RemoveFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                        ToolTip="{loc:Tr Tip_RemoveFavorite}"
                                                                         CommandParameter="{Binding}" />
                                                             </StackPanel>
                                                         </Grid>
@@ -1167,6 +1174,7 @@
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.ProjectBibleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                        ToolTip="{loc:Tr Tip_ProjectFavorite}"
                                                                         CommandParameter="{Binding}" />
                                                                 <Button Content="{loc:Tr Common_Copy}"
                                                                         Margin="0,8,0,0"
@@ -1174,6 +1182,7 @@
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.CopyBibleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                        ToolTip="{loc:Tr Tip_CopyFavorite}"
                                                                         CommandParameter="{Binding}" />
                                                                 <Button Content="{loc:Tr Fav_Remove}"
                                                                         Margin="0,8,0,0"
@@ -1181,6 +1190,7 @@
                                                                         Padding="10,6"
                                                                         FontSize="12"
                                                                         Command="{Binding DataContext.RemoveBibleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                                        ToolTip="{loc:Tr Tip_RemoveFavorite}"
                                                                         CommandParameter="{Binding}" />
                                                             </StackPanel>
                                                         </Grid>
@@ -1230,6 +1240,7 @@
                                                DockPanel.Dock="Left" />
                                     <Button Content="{loc:Tr History_Clear}"
                                             Command="{Binding ClearHistoryCommand}"
+                                            ToolTip="{loc:Tr Tip_ClearHistory}"
                                             MinHeight="38"
                                             Padding="12,7"
                                             FontSize="13"
@@ -1288,6 +1299,7 @@
                                                             Padding="10,6"
                                                             FontSize="12"
                                                             Command="{Binding DataContext.ProjectHistoryCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                            ToolTip="{loc:Tr Tip_ProjectHistory}"
                                                             CommandParameter="{Binding}" />
                                                 </Grid>
                                             </Border>
@@ -1714,16 +1726,19 @@
                                 </Grid.ColumnDefinitions>
                                 <Button Grid.Column="0"
                                         Command="{Binding PreviousSermonWithinMatchCommand}"
+                                        ToolTip="{loc:Tr Tip_PreviousMatch}"
                                         Style="{StaticResource RightPanelButtonStyle}">
                                     <TextBlock Text="{loc:Tr Sermon_PreviousMatch}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="2"
                                         Command="{Binding NextSermonWithinMatchCommand}"
+                                        ToolTip="{loc:Tr Tip_NextMatch}"
                                         Style="{StaticResource RightPanelButtonStyle}">
                                     <TextBlock Text="{loc:Tr Sermon_NextMatch}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="4"
                                         Command="{Binding ClearSermonWithinSearchCommand}"
+                                        ToolTip="{loc:Tr Tip_ClearFind}"
                                         Style="{StaticResource RightPanelButtonStyle}">
                                     <TextBlock Text="{loc:Tr Common_Clear}" TextAlignment="Center" TextWrapping="Wrap" />
                                 </Button>
@@ -1764,6 +1779,7 @@
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0"
                                     Command="{Binding ProjectCommand}"
+                                    ToolTip="{loc:Tr Tip_Project}"
                                     Style="{StaticResource RightPanelButtonStyle}">
                                 <TextBlock Text="{loc:Tr Common_Project}"
                                            TextAlignment="Center"
@@ -1771,6 +1787,7 @@
                             </Button>
                             <Button Grid.Column="2"
                                     Command="{Binding CopyCommand}"
+                                    ToolTip="{loc:Tr Tip_Copy}"
                                     Style="{StaticResource RightPanelButtonStyle}">
                                 <TextBlock Text="{loc:Tr Common_Copy}"
                                            TextAlignment="Center"
@@ -1806,14 +1823,16 @@
                                 </Grid.ColumnDefinitions>
                                 <Button Grid.Column="0"
                                         Style="{StaticResource RightPanelButtonStyle}"
-                                        Command="{Binding PreviousProjectionPageCommand}">
+                                        Command="{Binding PreviousProjectionPageCommand}"
+                                        ToolTip="{loc:Tr Tip_PreviousPage}">
                                     <TextBlock Text="{loc:Tr Sermon_PreviousPage}"
                                                TextAlignment="Center"
                                                TextWrapping="Wrap" />
                                 </Button>
                                 <Button Grid.Column="2"
                                         Style="{StaticResource RightPanelButtonStyle}"
-                                        Command="{Binding NextProjectionPageCommand}">
+                                        Command="{Binding NextProjectionPageCommand}"
+                                        ToolTip="{loc:Tr Tip_NextPage}">
                                     <TextBlock Text="{loc:Tr Sermon_NextPage}"
                                                TextAlignment="Center"
                                                TextWrapping="Wrap" />
@@ -1830,14 +1849,16 @@
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0"
                                     Style="{StaticResource RightPanelButtonStyle}"
-                                    Command="{Binding PreviousParagraphCommand}">
+                                    Command="{Binding PreviousParagraphCommand}"
+                                    ToolTip="{loc:Tr Tip_PreviousItem}">
                                 <TextBlock Text="{Binding PreviousButtonText}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap" />
                             </Button>
                             <Button Grid.Column="2"
                                     Style="{StaticResource RightPanelButtonStyle}"
-                                    Command="{Binding NextParagraphCommand}">
+                                    Command="{Binding NextParagraphCommand}"
+                                    ToolTip="{loc:Tr Tip_NextItem}">
                                 <TextBlock Text="{Binding NextButtonText}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap" />
@@ -1847,6 +1868,7 @@
                         <Button Margin="0,4,0,0"
                                 Style="{StaticResource RightPanelButtonStyle}"
                                 Command="{Binding ToggleFavoriteCommand}"
+                                ToolTip="{loc:Tr Tip_ToggleFavorite}"
                                 Visibility="{Binding IsFavoriteButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <TextBlock Text="{Binding FavoriteButtonText}"
                                        TextAlignment="Center"

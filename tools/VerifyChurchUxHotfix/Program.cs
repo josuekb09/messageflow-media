@@ -993,7 +993,12 @@ static string Fmt(SearchResult result)
 
 static string RequireDb()
 {
-    var path = MessageFlowDatabase.DefaultDatabasePath;
+    // --database <path> checks a specific file, such as the snapshot bundled into the installer.
+    var arguments = Environment.GetCommandLineArgs();
+    var option = Array.FindIndex(arguments, arg => string.Equals(arg, "--database", StringComparison.OrdinalIgnoreCase));
+    var path = option >= 0 && option + 1 < arguments.Length
+        ? arguments[option + 1]
+        : MessageFlowDatabase.DefaultDatabasePath;
     if (!File.Exists(path))
     {
         throw new FileNotFoundException(MessageFlowDatabase.CreateMissingDatabaseMessage(path), path);

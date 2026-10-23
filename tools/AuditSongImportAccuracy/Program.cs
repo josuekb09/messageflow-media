@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using MessageFlow.Core.Text;
 using MessageFlow.Data;
 using MessageFlow.Search;
 using Microsoft.Data.Sqlite;
@@ -305,13 +306,7 @@ static List<string> ExtractTextFromSlideXml(ZipArchiveEntry entry)
 {
     using var stream = entry.Open();
     var document = XDocument.Load(stream);
-    XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-
-    return document
-        .Descendants(a + "p")
-        .Select(paragraph => string.Concat(paragraph.Descendants(a + "t").Select(element => element.Value ?? string.Empty)).Trim())
-        .Where(value => !string.IsNullOrWhiteSpace(value))
-        .ToList();
+    return PresentationParagraphText.GetSlideLines(document);
 }
 
 static string CleanLine(string value)

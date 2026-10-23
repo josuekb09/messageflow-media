@@ -260,17 +260,30 @@ public partial class ProjectWindow : Window
         // Apply margins and header layout
         ProjectionRoot.Margin = layout.RootMargin;
 
-        TitleTextBlock.FontSize = layout.TitleFontSize;
-        TitleTextBlock.LineHeight = layout.TitleLineHeight;
-        TitleTextBlock.Text = (isTitleSlide || contentType != ProjectionContentType.Song) ? title : string.Empty;
+        // A header the layout does not show comes back with size 0, which WPF rejects as a font
+        // size; it is collapsed below, so its previous size is simply kept.
+        if (layout.TitleFontSize > 0)
+        {
+            TitleTextBlock.FontSize = layout.TitleFontSize;
+            TitleTextBlock.LineHeight = layout.TitleLineHeight;
+        }
+
+        TitleTextBlock.Text = contentType != ProjectionContentType.Song ? title : string.Empty;
         TitleTextBlock.Visibility = string.IsNullOrWhiteSpace(TitleTextBlock.Text) ? Visibility.Collapsed : Visibility.Visible;
         TitleTextBlock.FontWeight = contentType == ProjectionContentType.Sermon ? FontWeights.SemiBold : FontWeights.Bold;
 
-        ParagraphNumberTextBlock.FontSize = layout.NumberFontSize;
+        if (layout.NumberFontSize > 0)
+        {
+            ParagraphNumberTextBlock.FontSize = layout.NumberFontSize;
+        }
+
         ParagraphNumberTextBlock.Text = subtitle;
         ParagraphNumberTextBlock.Visibility = string.IsNullOrWhiteSpace(subtitle) ? Visibility.Collapsed : Visibility.Visible;
 
-        PageIndicatorTextBlock.FontSize = layout.IndicatorFontSize;
+        if (layout.IndicatorFontSize > 0)
+        {
+            PageIndicatorTextBlock.FontSize = layout.IndicatorFontSize;
+        }
 
         // Apply pages
         projectionPages.Clear();
@@ -295,6 +308,10 @@ public partial class ProjectWindow : Window
         }
 
         viewModel.ReportProjectionPageState(currentPageIndex, projectionPages.Count);
+        if (!isTestProjection)
+        {
+            viewModel.ReportProjectionFitState(layout.IsPaginated, layout.IsAtLargestFit, layout.IsAtSmallestReadable);
+        }
     }
 
     private void ShowNextProjectionPage()

@@ -59,6 +59,12 @@ public partial class App : System.Windows.Application
 
             var databasePath = MessageFlowDatabase.DefaultDatabasePath;
             LogStartupMessage($"MessageFlow database path: {databasePath}");
+            if (MessageFlowDatabase.IsInsideOneDrive(databasePath))
+            {
+                LogStartupMessage(
+                    "WARNING: the database is inside a OneDrive folder. OneDrive can keep it cloud-only or lock it " +
+                    "while syncing, which makes launch and search slow. Reinstall MessageFlow into the default local folder.");
+            }
 
             if (!File.Exists(databasePath))
             {
@@ -198,9 +204,10 @@ public partial class App : System.Windows.Application
 
         DispatcherUnhandledException += (_, args) =>
         {
+            // Handled, so a bug in one action never closes the app in front of the congregation.
             LogStartupError("Unhandled UI exception.", args.Exception);
-            ShowStartupError("MessageFlow encountered an unexpected error.", args.Exception);
             args.Handled = true;
+            ShowRecoverableError(args.Exception);
         };
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -221,10 +228,51 @@ public partial class App : System.Windows.Application
         };
     }
 
+    private bool recoverableErrorShowing;
+
+    /// <summary>
+    /// Tells the operator, on the operator screen only, that an action failed while the app and
+    /// the projection keep running. A repeating error shows one dialog at a time; the rest are
+    /// only logged.
+    /// </summary>
+    private void ShowRecoverableError(Exception exception)
+    {
+        if (recoverableErrorShowing)
+        {
+            return;
+        }
+
+        recoverableErrorShowing = true;
+        try
+        {
+            var owner = MainWindow is { IsLoaded: true, IsVisible: true } ? MainWindow : null;
+            var message =
+                $"Something went wrong, but MessageFlow is still running and the projection screen was not changed.{Environment.NewLine}{Environment.NewLine}" +
+                $"{exception.Message}{Environment.NewLine}{Environment.NewLine}" +
+                $"You can keep working. Details were saved to:{Environment.NewLine}{GetStartupLogPath()}";
+            if (owner is null)
+            {
+                MessageBox.Show(message, "MessageFlow", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else
+            {
+                MessageBox.Show(owner, message, "MessageFlow", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch
+        {
+            // The error is already logged; a failing dialog must not raise another error.
+        }
+        finally
+        {
+            recoverableErrorShowing = false;
+        }
+    }
+
     private static void ShowStartupError(string heading, Exception exception)
     {
         MessageBox.Show(
-            $"{heading}{Environment.NewLine}{Environment.NewLine}{exception.Message}{Environment.NewLine}{Environment.NewLine}Details were written to logs\\app-startup.log.",
+            $"{heading}{Environment.NewLine}{Environment.NewLine}{exception.Message}{Environment.NewLine}{Environment.NewLine}Details were written to:{Environment.NewLine}{GetStartupLogPath()}",
             "MessageFlow Startup Error",
             MessageBoxButton.OK,
             MessageBoxImage.Error);

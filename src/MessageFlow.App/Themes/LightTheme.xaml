@@ -9,8 +9,8 @@
     <SolidColorBrush x:Key="BorderBrush" Color="#D8DEE8" />
     <SolidColorBrush x:Key="PrimaryTextBrush" Color="#111827" />
     <SolidColorBrush x:Key="SecondaryTextBrush" Color="#4B5563" />
-    <SolidColorBrush x:Key="MutedTextBrush" Color="#6B7280" />
-    <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#616774" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#235EDF" />
     <SolidColorBrush x:Key="SelectionFillBrush" Color="#DBEAFE" />
     <SolidColorBrush x:Key="HoverFillBrush" Color="#EEF1F6" />
     <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#2563EB" />
@@ -19,7 +19,7 @@
     <SolidColorBrush x:Key="ButtonForegroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="GhostButtonHoverBackgroundBrush" Color="#EEF1F6" />
     <SolidColorBrush x:Key="DisabledBackgroundBrush" Color="#D8DEE8" />
-    <SolidColorBrush x:Key="DisabledTextBrush" Color="#6B7280" />
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="#5A606C" />
     <SolidColorBrush x:Key="ComboBoxItemHighlightBrush" Color="#EEF1F6" />
     <SolidColorBrush x:Key="ComboBoxItemSelectedBrush" Color="#DBEAFE" />
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#F5F7FA" />
@@ -29,8 +29,8 @@
     <SolidColorBrush x:Key="HighlightForegroundBrush" Color="#111827" />
     <SolidColorBrush x:Key="TextSelectionForegroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="ReferenceEmphasisBrush" Color="#1E3A8A" />
-    <SolidColorBrush x:Key="SuccessBrush" Color="#15803D" />
-    <SolidColorBrush x:Key="WarningBrush" Color="#B45309" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#137738" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#A74D08" />
     <SolidColorBrush x:Key="ErrorBrush" Color="#B91C1C" />
 
     <!-- Projection window tokens in light theme -->

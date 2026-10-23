@@ -2,10 +2,10 @@
 
 Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-Current public release: **v1.0.7** (October 2026).
+Current public release: **v1.0.8** (October 2026).
 
 Website: [www.messageflow.tech](https://www.messageflow.tech)  
-Download: [GitHub Releases v1.0.7](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.7)
+Download: [GitHub Releases v1.0.8](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8)
 
 ## Library in this build
 
@@ -40,7 +40,7 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 ## Install on Windows 10 / 11 (64-bit)
 
 1. Open the [v1.0.5 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.5) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
-2. Run the installer. No administrator permission is needed. Keep the suggested `Documents\MessageFlowMedia` folder or choose any folder on any drive.
+2. Run the installer. No administrator permission is needed. Keep the suggested local folder (`%LOCALAPPDATA%\Programs\MessageFlowMedia`) or choose another local folder such as `C:\MessageFlowMedia`. Avoid OneDrive-synchronized folders such as Documents; the installer warns if one is chosen.
 3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
 5. Choose English, Français, or Kiswahili. Search a sermon, verse, or hymn. Press `Ctrl+P` to project.

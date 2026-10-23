@@ -6,6 +6,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using MessageFlow.Core.Text;
 
 const string SongRoot = @"D:\SONG PRESENTATION";
 const string ChoirRoot = @"D:\SONG PRESENTATION\choir";
@@ -296,19 +297,7 @@ static IReadOnlyList<string> ExtractTextFromSlideXml(ZipArchiveEntry entry)
 {
     using var stream = entry.Open();
     var document = XDocument.Load(stream);
-    XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-    var lines = new List<string>();
-
-    foreach (var paragraph in document.Descendants(a + "p"))
-    {
-        var text = string.Concat(paragraph.Descendants(a + "t").Select(value => value.Value));
-        if (!string.IsNullOrWhiteSpace(text))
-        {
-            lines.Add(text);
-        }
-    }
-
-    return lines;
+    return PresentationParagraphText.GetSlideLines(document);
 }
 
 static ExtractionResult TryExtractWithPowerPointCom(string sourceFile)

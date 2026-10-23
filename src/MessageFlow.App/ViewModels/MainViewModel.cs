@@ -88,6 +88,8 @@ public sealed partial class MainViewModel : ObservableObject
     private SourceDiagnosticsViewModel selectedSourceDetails = SourceDiagnosticsViewModel.None;
     private ProjectionFontSizeOption? selectedProjectionFontSize;
     private int projectionFontScaleStep;
+    private bool projectionAtLargestFit;
+    private bool projectionAtSmallestReadable;
     private double projectionFontSizeAdjustment;
     private bool projectionFontSizeUsesSafeFit = true;
     private int projectionPageIndex;
@@ -214,10 +216,10 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshProjectionDisplaysCommand = new RelayCommand(RefreshProjectionDisplayOptions);
         DecreaseProjectionTextSizeCommand = new RelayCommand(
             DecreaseProjectionTextSize,
-            () => projectionFontScaleStep > MinProjectionFontScaleStep);
+            () => projectionFontScaleStep > MinProjectionFontScaleStep && !projectionAtSmallestReadable);
         IncreaseProjectionTextSizeCommand = new RelayCommand(
             IncreaseProjectionTextSize,
-            () => projectionFontScaleStep < MaxProjectionFontScaleStep);
+            () => projectionFontScaleStep < MaxProjectionFontScaleStep && !projectionAtLargestFit);
         ResetProjectionTextSizeCommand = new RelayCommand(ResetProjectionTextSize);
         PreviousProjectionPageCommand = new RelayCommand(
             RequestPreviousProjectionPage,
@@ -4804,8 +4806,10 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedParagraph = focusedSermonParagraphs[nextIndex];
         if (shouldUpdateLive)
         {
-            ActiveProjectionContent = CreateSermonSnapshot(SelectedParagraph);
-            StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
+            if (TrySetLiveProjection(CreateSermonSnapshot(SelectedParagraph)))
+            {
+                StatusText = $"Projecting Paragraph {SelectedParagraph.ParagraphNumber}.";
+            }
         }
         else
         {
@@ -4890,8 +4894,10 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedBibleVerse = existing;
             if (shouldUpdateLive)
             {
-                ActiveProjectionContent = CreateBibleSnapshot(existing);
-                StatusText = $"Projecting {existing.ReferenceDisplay} ({existing.TranslationAbbreviation}).";
+                if (TrySetLiveProjection(CreateBibleSnapshot(existing)))
+                {
+                    StatusText = $"Projecting {existing.ReferenceDisplay} ({existing.TranslationAbbreviation}).";
+                }
             }
             else
             {
@@ -4937,8 +4943,10 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedSongSection = SongSections[nextIndex];
         if (shouldUpdateLive && SelectedSong is not null)
         {
-            ActiveProjectionContent = CreateSongSnapshot(SelectedSong, SelectedSongSection);
-            StatusText = $"Projecting {SelectedSong.Title} - {SelectedSongSection.SectionLabel}.";
+            if (TrySetLiveProjection(CreateSongSnapshot(SelectedSong, SelectedSongSection)))
+            {
+                StatusText = $"Projecting {SelectedSong.Title} - {SelectedSongSection.SectionLabel}.";
+            }
         }
         else
         {
@@ -5082,6 +5090,32 @@ public sealed partial class MainViewModel : ObservableObject
     public void ClearProjectionPageState()
     {
         ReportProjectionPageState(0, 0);
+        ReportProjectionFitState(isPaginated: false, atLargestFit: false, atSmallestReadable: false);
+    }
+
+    /// <summary>
+    /// Called by the projection window after each layout so A+ and A- are only enabled while
+    /// they can still change what the congregation sees.
+    /// </summary>
+    public void ReportProjectionFitState(bool isPaginated, bool atLargestFit, bool atSmallestReadable)
+    {
+        // On a single screen the size is already capped at the largest fit, so a positive step
+        // does nothing; keeping it would make the next A- presses look dead.
+        if (!isPaginated && atLargestFit && projectionFontScaleStep > 0)
+        {
+            projectionFontScaleStep = 0;
+            ApplyFontScaleChange();
+        }
+
+        if (projectionAtLargestFit == atLargestFit && projectionAtSmallestReadable == atSmallestReadable)
+        {
+            return;
+        }
+
+        projectionAtLargestFit = atLargestFit;
+        projectionAtSmallestReadable = atSmallestReadable;
+        DecreaseProjectionTextSizeCommand.RaiseCanExecuteChanged();
+        IncreaseProjectionTextSizeCommand.RaiseCanExecuteChanged();
     }
 
     public ProjectionDisplayTarget ResolveProjectionDisplayTarget()
@@ -5113,7 +5147,14 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        await SelectSavedParagraphAsync(savedParagraph.ParagraphId);
+        // Only the saved paragraph itself may reach the screen. When it can no longer be loaded,
+        // the previous selection must not be projected in its place.
+        if (!await SelectSavedParagraphAsync(savedParagraph.ParagraphId) ||
+            SelectedParagraph?.ParagraphId != savedParagraph.ParagraphId)
+        {
+            return;
+        }
+
         await ProjectCurrentSelectionAsync(recordHistory: true);
     }
 
@@ -5265,6 +5306,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         var paragraph = SelectedParagraph;
         var snapshot = CreateSermonSnapshot(paragraph);
+        if (!TrySetLiveProjection(snapshot))
+        {
+            return;
+        }
 
         if (recordHistory)
         {
@@ -5276,7 +5321,6 @@ public sealed partial class MainViewModel : ObservableObject
             StatusText = $"Projecting Paragraph {paragraph.ParagraphNumber}.";
         }
 
-        ActiveProjectionContent = snapshot;
         ProjectRequested?.Invoke();
     }
 
@@ -5291,8 +5335,12 @@ public sealed partial class MainViewModel : ObservableObject
         var verse = SelectedBibleVerse;
         var snapshot = CreateBibleSnapshot(verse);
 
+        if (!TrySetLiveProjection(snapshot))
+        {
+            return Task.CompletedTask;
+        }
+
         StatusText = $"Projecting {verse.ReferenceDisplay} ({verse.TranslationAbbreviation}).";
-        ActiveProjectionContent = snapshot;
         ProjectRequested?.Invoke();
         return Task.CompletedTask;
     }
@@ -5309,8 +5357,12 @@ public sealed partial class MainViewModel : ObservableObject
         var section = SelectedSongSection;
         var snapshot = CreateSongSnapshot(song, section);
 
+        if (!TrySetLiveProjection(snapshot))
+        {
+            return Task.CompletedTask;
+        }
+
         StatusText = $"Projecting {song.Title} - {section.SectionLabel}.";
-        ActiveProjectionContent = snapshot;
         ProjectRequested?.Invoke();
         return Task.CompletedTask;
     }
@@ -5320,7 +5372,7 @@ public sealed partial class MainViewModel : ObservableObject
         return new ProjectedContentSnapshot(
             ProjectionContentType.Sermon,
             paragraph.SermonTitle,
-            $"Paragraph {paragraph.ParagraphNumber}",
+            Loc.F("Sermon_ParagraphLabel", paragraph.ParagraphNumber),
             paragraph.FullParagraphText)
         {
             SourceId = paragraph.SermonId,
@@ -5331,6 +5383,23 @@ public sealed partial class MainViewModel : ObservableObject
             SourceKey = paragraph.SermonCode,
             MetadataText = paragraph.MetadataLine
         };
+    }
+
+    /// <summary>
+    /// The only way content reaches the projection screen. Content without text is refused:
+    /// the screen keeps what it shows and the operator reads why in the status bar.
+    /// </summary>
+    private bool TrySetLiveProjection(ProjectedContentSnapshot snapshot)
+    {
+        if (string.IsNullOrWhiteSpace(snapshot.BodyText))
+        {
+            App.LogStartupMessage($"Projection refused: '{snapshot.Title}' {snapshot.Subtitle} has no text in the library.");
+            StatusText = $"Nothing was projected: \"{snapshot.Title}\" {snapshot.Subtitle} has no text in the library. The screen was not changed.";
+            return false;
+        }
+
+        ActiveProjectionContent = snapshot;
+        return true;
     }
 
     private static ProjectedContentSnapshot CreateBibleSnapshot(BibleVerseResultViewModel verse)
@@ -5473,23 +5542,26 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private async Task SelectSavedParagraphAsync(int paragraphId)
+    private async Task<bool> SelectSavedParagraphAsync(int paragraphId)
     {
         try
         {
             var paragraph = await LoadParagraphAsync(paragraphId);
             if (paragraph is null)
             {
-                StatusText = "Saved paragraph could not be found.";
-                return;
+                StatusText = "This saved paragraph is no longer in the library. Nothing was projected; the screen was not changed.";
+                return false;
             }
 
             SetResults([paragraph], paragraph.ParagraphId);
             StatusText = $"Selected Paragraph {paragraph.ParagraphNumber}.";
+            return true;
         }
         catch (Exception ex)
         {
-            StatusText = $"Could not select saved paragraph: {ex.Message}";
+            App.LogStartupError("Saved paragraph could not be loaded.", ex);
+            StatusText = $"This saved paragraph could not be loaded: {ex.Message}. Nothing was projected; the screen was not changed.";
+            return false;
         }
     }
 
@@ -6464,6 +6536,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void DecreaseProjectionTextSize()
     {
+        if (projectionAtSmallestReadable)
+        {
+            StatusText = "Projection text is already at the smallest readable size.";
+            return;
+        }
+
         if (projectionFontScaleStep > MinProjectionFontScaleStep)
         {
             projectionFontScaleStep--;
@@ -6474,6 +6552,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void IncreaseProjectionTextSize()
     {
+        if (projectionAtLargestFit)
+        {
+            StatusText = "Projection text is already at the largest size that fits the screen.";
+            return;
+        }
+
         if (projectionFontScaleStep < MaxProjectionFontScaleStep)
         {
             projectionFontScaleStep++;

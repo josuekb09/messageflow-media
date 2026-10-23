@@ -94,6 +94,34 @@ public static class MessageFlowDatabase
         }.ToString();
     }
 
+    /// <summary>
+    /// True when <paramref name="path"/> is inside a OneDrive-synced folder. OneDrive can leave a
+    /// large database cloud-only (downloaded on first open) or lock it while syncing.
+    /// </summary>
+    public static bool IsInsideOneDrive(string path)
+    {
+        try
+        {
+            var fullPath = Path.GetFullPath(path);
+            foreach (var variable in new[] { "OneDrive", "OneDriveCommercial", "OneDriveConsumer" })
+            {
+                var root = Environment.GetEnvironmentVariable(variable);
+                if (!string.IsNullOrWhiteSpace(root) &&
+                    fullPath.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return fullPath.Contains($"{Path.DirectorySeparatorChar}OneDrive{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                   fullPath.Contains($"{Path.DirectorySeparatorChar}OneDrive - ", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static void EnsureDatabaseDirectory(string databasePath)
     {
         var directory = Path.GetDirectoryName(databasePath);

@@ -8,7 +8,7 @@
 ;   ISCC.exe messageflow.iss
 
 #define MyAppName "MessageFlow Media"
-#define MyAppVersion "1.0.7"
+#define MyAppVersion "1.0.8"
 #define MyAppPublisher "MessageFlow Media"
 #define MyAppExeName "MessageFlow.App.exe"
 
@@ -46,7 +46,10 @@ VersionInfoCompany={#MyAppPublisher}
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription=MessageFlow Media installer
 VersionInfoCopyright=Copyright (c) 2026 MessageFlow Media project author. Distributed free of charge. Not for sale.
-DefaultDirName={userdocs}\MessageFlowMedia
+; Per-user and never synced by OneDrive. Documents is often redirected into OneDrive, and
+; OneDrive can turn the 2+ GB database into a cloud-only placeholder or lock it while syncing,
+; which froze MessageFlow at launch.
+DefaultDirName={localappdata}\Programs\MessageFlowMedia
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableDirPage=no
@@ -85,3 +88,37 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch MessageFlow Media"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function IsOneDrivePath(const Path: String): Boolean;
+var
+  Lower: String;
+begin
+  Lower := Lowercase(AddBackslash(Path));
+  Result := (Pos('\onedrive\', Lower) > 0) or (Pos('\onedrive - ', Lower) > 0);
+  if not Result and (GetEnv('OneDrive') <> '') then
+    Result := Pos(Lowercase(AddBackslash(GetEnv('OneDrive'))), Lower) = 1;
+  if not Result and (GetEnv('OneDriveCommercial') <> '') then
+    Result := Pos(Lowercase(AddBackslash(GetEnv('OneDriveCommercial'))), Lower) = 1;
+  if not Result and (GetEnv('OneDriveConsumer') <> '') then
+    Result := Pos(Lowercase(AddBackslash(GetEnv('OneDriveConsumer'))), Lower) = 1;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  SafeDir: String;
+begin
+  Result := True;
+  if (CurPageID = wpSelectDir) and IsOneDrivePath(WizardDirValue) then
+  begin
+    SafeDir := ExpandConstant('{localappdata}\Programs\MessageFlowMedia');
+    if MsgBox('The selected folder is synchronized by OneDrive:' + #13#10#13#10 + WizardDirValue + #13#10#13#10 +
+              'OneDrive can make the large MessageFlow library slow to open or unavailable during a service.' + #13#10#13#10 +
+              'Install to this safe local folder instead?' + #13#10#13#10 + SafeDir,
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      WizardForm.DirEdit.Text := SafeDir;
+      Result := False;
+    end;
+  end;
+end;

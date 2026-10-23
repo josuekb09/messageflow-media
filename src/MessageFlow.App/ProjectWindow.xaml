@@ -5,8 +5,8 @@
         Title="{loc:Tr Projection_Title}"
         Height="720"
         Width="1100"
-        MinHeight="520"
-        MinWidth="800"
+        MinHeight="240"
+        MinWidth="320"
         WindowStartupLocation="Manual"
         WindowStyle="None"
         ResizeMode="NoResize"
@@ -30,7 +30,6 @@
 
         <TextBlock x:Name="TitleTextBlock"
                    Grid.Row="0"
-                   Text="{Binding ProjectionParagraphTitle}"
                    Foreground="{DynamicResource ProjectionTitleBrush}"
                    FontSize="30"
                    FontWeight="SemiBold"
@@ -40,7 +39,6 @@
 
         <TextBlock x:Name="ParagraphNumberTextBlock"
                    Grid.Row="1"
-                   Text="{Binding ProjectionParagraphNumber}"
                    Margin="0,4,0,12"
                    Foreground="{DynamicResource ProjectionTitleBrush}"
                    FontSize="22"

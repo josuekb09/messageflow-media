@@ -20,7 +20,10 @@ public sealed record ProjectionLayoutResult(
     bool IsPaginated,
     double StageWidth,
     double StageHeight,
-    bool IsTitleOnlySlide);
+    bool IsTitleOnlySlide,
+    double MinimumReadableFontSize = 0,
+    bool IsAtLargestFit = false,
+    bool IsAtSmallestReadable = false);
 
 /// <summary>
 /// Robust layout engine for projection screens.
@@ -34,11 +37,36 @@ public sealed record ProjectionLayoutResult(
 /// </summary>
 public static partial class ProjectionAutoFitEngine
 {
+    private readonly record struct LayoutKey(
+        ProjectionContentType ContentType,
+        string Title,
+        string Subtitle,
+        string Text,
+        double Width,
+        double Height,
+        double Scale,
+        bool IsTitleSlide);
+
     private const double EmergencyMinimumFontSize = 14;
     private const double PrecisionStep = 0.5;
     private const double SafetyBuffer = 8.0;
 
     private static readonly FontFamily DefaultFontFamily = new("Segoe UI");
+
+    private const int LayoutCacheCapacity = 64;
+
+    [ThreadStatic]
+    private static TextBlock? measuringBlock;
+
+    [ThreadStatic]
+    private static Dictionary<LayoutKey, ProjectionLayoutResult>? layoutCacheStorage;
+
+    [ThreadStatic]
+    private static Queue<LayoutKey>? layoutCacheOrderStorage;
+
+    private static Dictionary<LayoutKey, ProjectionLayoutResult> layoutCache => layoutCacheStorage ??= [];
+
+    private static Queue<LayoutKey> layoutCacheOrder => layoutCacheOrderStorage ??= new Queue<LayoutKey>();
 
     public static ProjectionLayoutResult CalculateLayout(
         ProjectionContentType contentType,
@@ -51,6 +79,35 @@ public static partial class ProjectionAutoFitEngine
         double dpiScaleY = 1.0,
         double operatorScaleMultiplier = 1.0,
         bool isTitleSlide = false)
+    {
+        // Going back to a paragraph, or re-projecting it, reuses its layout instead of measuring
+        // the text again. The layout depends only on these inputs.
+        var key = new LayoutKey(contentType, rawTitle, rawSubtitle, rawText, windowWidth, windowHeight, operatorScaleMultiplier, isTitleSlide);
+        if (layoutCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var layout = ComputeLayout(contentType, rawTitle, rawSubtitle, rawText, windowWidth, windowHeight, operatorScaleMultiplier, isTitleSlide);
+        if (layoutCacheOrder.Count >= LayoutCacheCapacity)
+        {
+            layoutCache.Remove(layoutCacheOrder.Dequeue());
+        }
+
+        layoutCache[key] = layout;
+        layoutCacheOrder.Enqueue(key);
+        return layout;
+    }
+
+    private static ProjectionLayoutResult ComputeLayout(
+        ProjectionContentType contentType,
+        string rawTitle,
+        string rawSubtitle,
+        string rawText,
+        double windowWidth,
+        double windowHeight,
+        double operatorScaleMultiplier,
+        bool isTitleSlide)
     {
         var isSong = contentType == ProjectionContentType.Song;
         var isBible = contentType == ProjectionContentType.Bible;
@@ -81,7 +138,9 @@ public static partial class ProjectionAutoFitEngine
                 IsPaginated: false,
                 StageWidth: rootWidth,
                 StageHeight: rootHeight,
-                IsTitleOnlySlide: isTitleSlide);
+                IsTitleOnlySlide: isTitleSlide,
+                IsAtLargestFit: true,
+                IsAtSmallestReadable: true);
         }
 
         // 3. Header dimensions
@@ -89,9 +148,10 @@ public static partial class ProjectionAutoFitEngine
         double titleLineHeight;
         double titleHeight = 0;
 
-        if (isSong && !isTitleSlide)
+        if (isSong)
         {
-            // Song body slides do not display the header to maximize stage area
+            // Songs show only their own slide text: the first slide already carries the title,
+            // so no generated header is added and the whole stage is left to the lyrics.
             titleFontSize = 0;
             titleLineHeight = 0;
             titleHeight = 0;
@@ -101,12 +161,6 @@ public static partial class ProjectionAutoFitEngine
             titleFontSize = Math.Clamp(rootHeight * 0.078, 30, 68);
             titleLineHeight = titleFontSize * 1.10;
             titleHeight = MeasureTextHeight(rawTitle, rootWidth, titleFontSize, titleLineHeight, FontWeights.Bold) + 12;
-        }
-        else if (isSong && isTitleSlide)
-        {
-            titleFontSize = Math.Clamp(rootHeight * 0.090, 36, 84);
-            titleLineHeight = titleFontSize * 1.15;
-            titleHeight = MeasureTextHeight(rawTitle, rootWidth, titleFontSize, titleLineHeight, FontWeights.Bold) + 16;
         }
         else
         {
@@ -166,9 +220,10 @@ public static partial class ProjectionAutoFitEngine
 
         if (singleFit >= minReadable)
         {
-            // Fits entirely on a single screen
+            // Fits entirely on a single screen. A+ can never go past the largest size that fits
+            // and A- never below the readable minimum.
             var scaled = singleFit * operatorScaleMultiplier;
-            var finalFontSize = Math.Clamp(scaled, EmergencyMinimumFontSize, singleFit);
+            var finalFontSize = Math.Clamp(scaled, minReadable, singleFit);
             var lineHeight = CalculateLineHeight(finalFontSize, contentType);
 
             return new ProjectionLayoutResult(
@@ -183,29 +238,49 @@ public static partial class ProjectionAutoFitEngine
                 IsPaginated: false,
                 StageWidth: stageWidth,
                 StageHeight: stageHeightSingle,
-                IsTitleOnlySlide: isTitleSlide);
+                IsTitleOnlySlide: isTitleSlide,
+                MinimumReadableFontSize: minReadable,
+                IsAtLargestFit: finalFontSize >= singleFit - 0.01,
+                IsAtSmallestReadable: finalFontSize <= minReadable + 0.01);
         }
 
         // 6. Text is too long for single screen: paginate at sentence boundaries
         var basePageFontSize = Math.Clamp(rootHeight * 0.058, minReadable, maxAesthetic * 0.72);
         var targetPageFontSize = Math.Clamp(basePageFontSize * operatorScaleMultiplier, minReadable, maxAesthetic);
 
-        var pages = SplitIntoCleanPages(
-            text,
-            safeStageWidth,
-            safeStageHeightPaged,
-            targetPageFontSize,
-            fontWeight,
-            textAlignment,
-            contentType);
+        // Every page is cut at the size it is shown at. When a page cannot be cut to fit (a single
+        // unbreakable run longer than the stage), cut again at a smaller size, but never below the
+        // readable minimum; only text that cannot fit even word by word goes under it.
+        var pageFontSize = targetPageFontSize;
+        List<string> pages;
+        bool pagesFit;
+        while (true)
+        {
+            pages = SplitIntoCleanPages(
+                text,
+                safeStageWidth,
+                safeStageHeightPaged,
+                pageFontSize,
+                fontWeight,
+                textAlignment,
+                contentType);
+
+            pagesFit = AllPagesFit(pages, safeStageWidth, safeStageHeightPaged, pageFontSize, fontWeight, textAlignment, contentType);
+            if (pagesFit || pageFontSize <= minReadable)
+            {
+                break;
+            }
+
+            pageFontSize = Math.Max(minReadable, Math.Floor(pageFontSize * 0.92 / PrecisionStep) * PrecisionStep);
+        }
 
         // Strict verification: ensure every page fits in the stage
-        var verifiedFontSize = FindMaxFittingFontSizeForAllPages(
+        var verifiedFontSize = pagesFit ? pageFontSize : FindMaxFittingFontSizeForAllPages(
             pages,
             safeStageWidth,
             safeStageHeightPaged,
             EmergencyMinimumFontSize,
-            targetPageFontSize,
+            pageFontSize,
             fontWeight,
             textAlignment,
             contentType);
@@ -224,7 +299,30 @@ public static partial class ProjectionAutoFitEngine
             IsPaginated: pages.Count > 1,
             StageWidth: stageWidth,
             StageHeight: stageHeightPaged,
-            IsTitleOnlySlide: isTitleSlide);
+            IsTitleOnlySlide: isTitleSlide,
+            MinimumReadableFontSize: minReadable,
+            IsAtLargestFit: targetPageFontSize >= maxAesthetic - 0.01,
+            IsAtSmallestReadable: verifiedFontSize <= minReadable + 0.01);
+    }
+
+    private static bool AllPagesFit(
+        IReadOnlyList<string> pages,
+        double maxWidth,
+        double maxHeight,
+        double fontSize,
+        FontWeight fontWeight,
+        TextAlignment alignment,
+        ProjectionContentType contentType)
+    {
+        foreach (var page in pages)
+        {
+            if (!DoesTextFit(page, maxWidth, maxHeight, fontSize, fontWeight, alignment, contentType))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static double FindMaxFittingFontSize(
@@ -271,17 +369,7 @@ public static partial class ProjectionAutoFitEngine
         TextAlignment alignment,
         ProjectionContentType contentType)
     {
-        var fitsAtTarget = true;
-        foreach (var page in pages)
-        {
-            if (!DoesTextFit(page, maxWidth, maxHeight, targetSize, fontWeight, alignment, contentType))
-            {
-                fitsAtTarget = false;
-                break;
-            }
-        }
-
-        if (fitsAtTarget)
+        if (AllPagesFit(pages, maxWidth, maxHeight, targetSize, fontWeight, alignment, contentType))
         {
             return targetSize;
         }
@@ -292,17 +380,7 @@ public static partial class ProjectionAutoFitEngine
         while (high - low > PrecisionStep)
         {
             var mid = low + ((high - low) / 2.0);
-            var allFit = true;
-            foreach (var page in pages)
-            {
-                if (!DoesTextFit(page, maxWidth, maxHeight, mid, fontWeight, alignment, contentType))
-                {
-                    allFit = false;
-                    break;
-                }
-            }
-
-            if (allFit)
+            if (AllPagesFit(pages, maxWidth, maxHeight, mid, fontWeight, alignment, contentType))
             {
                 low = mid;
             }
@@ -329,18 +407,18 @@ public static partial class ProjectionAutoFitEngine
             return false;
         }
 
-        var lineHeight = CalculateLineHeight(fontSize, contentType);
-        var tb = new TextBlock
+        // One measuring block per thread: pagination measures hundreds of candidates and a new
+        // TextBlock each time was most of the cost of switching paragraphs.
+        var tb = measuringBlock ??= new TextBlock
         {
-            Text = text,
             FontFamily = DefaultFontFamily,
-            FontWeight = fontWeight,
-            FontSize = fontSize,
-            LineHeight = lineHeight,
-            TextAlignment = alignment,
             TextWrapping = TextWrapping.Wrap
         };
-
+        tb.Text = text;
+        tb.FontWeight = fontWeight;
+        tb.FontSize = fontSize;
+        tb.LineHeight = CalculateLineHeight(fontSize, contentType);
+        tb.TextAlignment = alignment;
         tb.Measure(new Size(maxWidth, double.PositiveInfinity));
 
         return tb.DesiredSize.Width <= maxWidth && tb.DesiredSize.Height <= maxHeight;
@@ -385,7 +463,8 @@ public static partial class ProjectionAutoFitEngine
     }
 
     /// <summary>
-    /// Partitions text into pages strictly respecting sentence boundaries.
+    /// Partitions text into pages at sentence boundaries (song lines for songs), using clause and
+    /// then word boundaries only for a sentence too long for a page on its own.
     /// Preserves exact characters without alteration or omission.
     /// </summary>
     public static List<string> SplitIntoCleanPages(
@@ -401,64 +480,86 @@ public static partial class ProjectionAutoFitEngine
             ? ExtractSongUnits(text)
             : ExtractSentenceUnits(text);
 
+        bool Fits(int start, int count) =>
+            DoesTextFit(Join(units, start, count).Trim(), maxWidth, maxHeight, fontSize, fontWeight, alignment, contentType);
+
         var pages = new List<string>();
-        var currentChunk = new StringBuilder();
-
-        foreach (var unit in units)
+        var index = 0;
+        while (index < units.Count)
         {
-            var candidate = currentChunk.Length == 0 ? unit : currentChunk + unit;
-
-            if (DoesTextFit(candidate, maxWidth, maxHeight, fontSize, fontWeight, alignment, contentType))
+            if (!Fits(index, 1))
             {
-                currentChunk.Append(unit);
-            }
-            else
-            {
-                if (currentChunk.Length > 0)
+                // One unit alone is too tall or wide: replace it by its clauses (or words) and retry.
+                var pieces = SubdivideOversizedUnit(units[index]);
+                if (pieces.Count > 1)
                 {
-                    pages.Add(currentChunk.ToString().Trim());
-                    currentChunk.Clear();
+                    units.RemoveAt(index);
+                    units.InsertRange(index, pieces);
+                    continue;
                 }
 
-                // If a single unit cannot fit alone at this font size, split it into clauses or words
-                if (!DoesTextFit(unit.Trim(), maxWidth, maxHeight, fontSize, fontWeight, alignment, contentType))
+                // A single word longer than the stage: it gets a page of its own and the final
+                // font-size verification shrinks it until it fits.
+                AddPage(pages, units[index]);
+                index++;
+                continue;
+            }
+
+            // Largest run of whole units that fits: grow exponentially, then binary-search.
+            // Taller text never fits where shorter text did not, so the search is exact.
+            var fitting = 1;
+            var step = 1;
+            while (index + fitting < units.Count && Fits(index, Math.Min(units.Count - index, fitting + step)))
+            {
+                fitting = Math.Min(units.Count - index, fitting + step);
+                step *= 2;
+            }
+
+            var low = fitting;
+            var high = Math.Min(units.Count - index, fitting + step);
+            while (high - low > 1)
+            {
+                var mid = (low + high) / 2;
+                if (Fits(index, mid))
                 {
-                    var subUnits = SubdivideOversizedUnit(unit);
-                    foreach (var sub in subUnits)
-                    {
-                        var subCandidate = currentChunk.Length == 0 ? sub : currentChunk + sub;
-                        if (DoesTextFit(subCandidate, maxWidth, maxHeight, fontSize, fontWeight, alignment, contentType))
-                        {
-                            currentChunk.Append(sub);
-                        }
-                        else
-                        {
-                            if (currentChunk.Length > 0)
-                            {
-                                pages.Add(currentChunk.ToString().Trim());
-                                currentChunk.Clear();
-                            }
-                            currentChunk.Append(sub);
-                        }
-                    }
+                    low = mid;
                 }
                 else
                 {
-                    currentChunk.Append(unit);
+                    high = mid;
                 }
             }
-        }
 
-        if (currentChunk.Length > 0)
-        {
-            var finalStr = currentChunk.ToString().Trim();
-            if (!string.IsNullOrEmpty(finalStr))
-            {
-                pages.Add(finalStr);
-            }
+            AddPage(pages, Join(units, index, low));
+            index += low;
         }
 
         return pages.Count > 0 ? pages : [text];
+    }
+
+    private static string Join(List<string> units, int start, int count)
+    {
+        if (count == 1)
+        {
+            return units[start];
+        }
+
+        var builder = new StringBuilder();
+        for (var i = start; i < start + count; i++)
+        {
+            builder.Append(units[i]);
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AddPage(List<string> pages, string page)
+    {
+        var trimmed = page.Trim();
+        if (trimmed.Length > 0)
+        {
+            pages.Add(trimmed);
+        }
     }
 
     /// <summary>
@@ -512,7 +613,8 @@ public static partial class ProjectionAutoFitEngine
     }
 
     /// <summary>
-    /// Subdivides an oversized sentence into clause-level units (semicolons, colons, dashes, commas).
+    /// Subdivides an oversized sentence into clause-level units (semicolons, colons, dashes, commas),
+    /// or into words when it has no clause boundary.
     /// </summary>
     private static List<string> SubdivideOversizedUnit(string unit)
     {
@@ -541,14 +643,18 @@ public static partial class ProjectionAutoFitEngine
             }
         }
 
-        // If no clause delimiters existed (one massive uninterrupted clause), split by words
+        // If no clause delimiters existed (one massive uninterrupted clause), split by words.
+        // A clause that is still too long is subdivided again by the caller, down to words.
         if (result.Count <= 1)
         {
             result.Clear();
+            var trailing = unit[unit.TrimEnd().Length..];
             var words = unit.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             for (var i = 0; i < words.Length; i++)
             {
-                result.Add(words[i] + (i < words.Length - 1 ? " " : string.Empty));
+                // The last word keeps the unit's own trailing space or line break, so it is not
+                // glued to the first word of the next unit.
+                result.Add(i < words.Length - 1 ? words[i] + " " : words[i].TrimEnd() + trailing);
             }
         }
 
