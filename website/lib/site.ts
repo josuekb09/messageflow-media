@@ -1,3 +1,5 @@
+const githubReleaseTag = "v1.0.8";
+
 export const site = {
   name: "MessageFlow Media",
   tagline: "Sermon, Bible, and song projection for churches",
@@ -8,12 +10,12 @@ export const site = {
   releaseDate: "October 2026",
   platform: "Windows 10 / 11",
   exeName: "MessageFlow.App.exe",
-  githubReleaseTag: "v1.0.8",
+  githubReleaseTag,
   // The installer is deliberately served by GitHub Releases, not by the
-  // website. `latest` keeps every Download for Windows button on the newest
-  // published installer without a website redeploy.
-  downloadHref:
-    "https://github.com/josuekb09/messageflow-media/releases/latest/download/MessageFlowMediaSetup.exe",
+  // website. The link is pinned to this release so the button always serves
+  // the installer whose size and SHA-256 are shown here; bump the tag, size,
+  // and hash together for the next release.
+  downloadHref: `https://github.com/josuekb09/messageflow-media/releases/download/${githubReleaseTag}/MessageFlowMediaSetup.exe`,
   downloadFileName: "MessageFlowMediaSetup.exe",
   installerSize: "~587 MB",
   installerSha256:
