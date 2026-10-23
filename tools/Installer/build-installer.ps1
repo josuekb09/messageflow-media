@@ -63,6 +63,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "SQLite snapshot failed."
 }
 
+Write-Host "Removing favorites and projection history from the snapshot..."
+& $pythonCmd (Join-Path $scriptDir "clear-user-state.py") $snapshotDb
+if ($LASTEXITCODE -ne 0) {
+    throw "Clearing user state from the snapshot failed."
+}
+
 Write-Host "Checking snapshot integrity (repairs index-only defects)..."
 & $pythonCmd $integrityScript $snapshotDb
 if ($LASTEXITCODE -ne 0) {
