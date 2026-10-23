@@ -103,15 +103,17 @@ function GetDriveType(lpRootPathName: String): UINT;
   the library; otherwise the per-user local folder on the system drive. }
 function DefaultInstallDir(Param: String): String;
 var
-  Letter: Char;
+  Index: Integer;
+  Letter: String;
   Root, SystemDrive: String;
   FreeMB, TotalMB, BestFreeMB: Cardinal;
 begin
   Result := ExpandConstant('{localappdata}\Programs\MessageFlowMedia');
   SystemDrive := Uppercase(ExtractFileDrive(ExpandConstant('{win}')));
   BestFreeMB := 0;
-  for Letter := 'C' to 'Z' do
+  for Index := Ord('C') to Ord('Z') do
   begin
+    Letter := Chr(Index);
     Root := Letter + ':\';
     if (Uppercase(Letter + ':') <> SystemDrive) and DirExists(Root) and
        ((GetDriveType(Root) = DRIVE_FIXED) or (GetDriveType(Root) = DRIVE_REMOVABLE)) and
