@@ -2,7 +2,7 @@
 
 import { DownloadButton } from "@/components/download-button";
 import { useI18n } from "@/components/language-provider";
-import { interpolate, localizedSize } from "@/lib/i18n";
+import { interpolate, localizedMonth, localizedSize } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 export function DownloadCenter() {
@@ -21,7 +21,7 @@ export function DownloadCenter() {
               <span className="text-line">·</span>
               <span>v{site.version}</span>
               <span className="text-line">·</span>
-              <span>{site.releaseDate}</span>
+              <span>{localizedMonth(locale, site.releaseMonth)}</span>
               <span className="text-line">·</span>
               <span>{site.platform}</span>
             </p>
@@ -79,7 +79,7 @@ function DownloadSafety() {
 }
 
 export function DownloadHero() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return (
     <div className="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
@@ -89,7 +89,7 @@ export function DownloadHero() {
       <p className="mt-3 max-w-xl text-ink-secondary">
         {interpolate(t.download.pageSubtitle, {
           version: site.version,
-          date: site.releaseDate,
+          date: localizedMonth(locale, site.releaseMonth),
         })}
       </p>
     </div>

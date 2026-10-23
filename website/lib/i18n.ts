@@ -63,10 +63,24 @@ export type Dictionary = {
     darkLabel: string;
     lightLabel: string;
   };
+  whatsNew: {
+    title: string;
+    items: { title: string; body: string }[];
+  };
   features: {
     title: string;
     lead: string;
-    items: { title: string; body: string; detail: string }[];
+    items: { title: string; body: string }[];
+    table: {
+      caption: string;
+      columns: { en: string; fr: string; sw: string };
+      branham: string;
+      frank: string;
+      englishOnly: string;
+      bible: string;
+      songs: string;
+      notAvailable: string;
+    };
   };
   install: {
     title: string;
@@ -130,7 +144,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "Version {version} · Free for churches · Windows 10 / 11",
       title: "Find the sermon, verse, or song. Put it on the screen.",
       subtitle:
-        "MessageFlow Media is free Windows software for church media teams. Search Brother Branham's sermons, Brother Frank's publications, the Bible, and songbooks, then project the paragraph or verse on the second screen. It works offline, in English, French, and Kiswahili.",
+        "MessageFlow Media is free Windows software for church media teams. Search Brother Branham's sermons, Brother Frank's publications (in English), the Bible, and songbooks, then project the paragraph or verse on the second screen. It works offline, in English, French, and Kiswahili.",
       secondaryCta: "See the interface",
     },
     download: {
@@ -147,7 +161,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Open the download menu (arrow icon). Select the file → Keep → Keep anyway. Or download again with Microsoft Edge. Then open the .exe from your Downloads folder.",
       windowsTitle: "Windows says “Windows protected your PC”",
       windowsBody:
-        "Click More info, then Run anyway. Allow the app if User Account Control asks. Publisher will show as MessageFlow Media.",
+        "Click More info, then Run anyway. Allow the app if User Account Control asks. The publisher shows as “Unknown publisher” because the installer is not signed yet.",
       hashLabel: "SHA-256 (optional check)",
       notMalware:
         "The file is the official installer from www.messageflow.tech. It contains sermons, Bibles, and songs for offline church use.",
@@ -158,6 +172,27 @@ export const dictionaries: Record<Locale, Dictionary> = {
       darkLabel: "Dark theme",
       lightLabel: "Light theme",
     },
+    whatsNew: {
+      title: "What's new in {version}",
+      items: [
+        {
+          title: "Instant startup",
+          body: "The app opens in seconds and no longer freezes while it starts.",
+        },
+        {
+          title: "Text always fits the screen",
+          body: "Every song section, verse, and paragraph is sized for the projector on its own. No word is ever cut.",
+        },
+        {
+          title: "Swahili line breaks fixed",
+          body: "Hymn lines appear on the projector exactly as on their slides, instead of running together.",
+        },
+        {
+          title: "New light theme",
+          body: "A clean white-and-blue light theme for bright rooms. Dark stays the default.",
+        },
+      ],
+    },
     features: {
       title: "What's in the library",
       lead: "Installed once, then available without internet.",
@@ -165,20 +200,26 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           title: "Sermons and publications",
           body: "Search by title, sermon code, year, phrase, or paragraph number, then project a single paragraph.",
-          detail:
-            "English: 1,203 Brother Branham sermons and 85 Brother Frank publications. French: 384. Kiswahili: 622.",
         },
         {
           title: "The Bible",
           body: "Type a reference such as John 3:16, or a keyword. Move verse by verse with the arrow keys.",
-          detail: "King James Version · Louis Segond 1910 · Biblia Takatifu (SWHULB)",
         },
         {
           title: "Songs",
           body: "Find a song by its title or a line of the lyrics, then project it verse by verse, with the chorus where it belongs.",
-          detail: "357 English · 499 French · 281 Kiswahili",
         },
       ],
+      table: {
+        caption: "Content by language",
+        columns: { en: "English", fr: "French", sw: "Kiswahili" },
+        branham: "Brother Branham sermons",
+        frank: "Brother Frank publications",
+        englishOnly: "English only",
+        bible: "Bible translation",
+        songs: "Songs",
+        notAvailable: "Not available",
+      },
     },
     install: {
       title: "From download to projection",
@@ -192,7 +233,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Install",
-          body: "Run the installer. If Windows says it protected your PC, choose More info, then Run anyway. Pick a drive with at least {space} free: the app and library take {installed}.",
+          body: "Run the installer. If Windows says it protected your PC, choose More info, then Run anyway. That warning is normal for a free app that is not signed with a paid certificate; the installer is safe. Pick a drive with at least {space} free: the app and library take {installed}.",
         },
         {
           n: "03",
@@ -265,7 +306,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "Version {version} · Gratuit pour les églises · Windows 10 / 11",
       title: "Trouvez la prédication, le verset ou le cantique. Projetez-le.",
       subtitle:
-        "MessageFlow Media est un logiciel Windows gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank, la Bible et les recueils de cantiques, puis projetez le paragraphe ou le verset sur le second écran. Il fonctionne hors ligne, en anglais, en français et en kiswahili.",
+        "MessageFlow Media est un logiciel Windows gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank (en anglais), la Bible et les recueils de cantiques, puis projetez le paragraphe ou le verset sur le second écran. Il fonctionne hors ligne, en anglais, en français et en kiswahili.",
       secondaryCta: "Voir l'interface",
     },
     download: {
@@ -282,7 +323,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Ouvrez le menu Téléchargements (flèche). Choisissez le fichier → Conserver → Conserver quand même. Ou retéléchargez avec Microsoft Edge. Puis ouvrez le .exe depuis le dossier Téléchargements.",
       windowsTitle: "Windows affiche « Windows a protégé votre PC »",
       windowsBody:
-        "Cliquez sur Plus d'infos, puis Exécuter quand même. Autorisez l'app si le Contrôle de compte d'utilisateur le demande. L'éditeur s'affiche comme MessageFlow Media.",
+        "Cliquez sur Plus d'infos, puis Exécuter quand même. Autorisez l'app si le Contrôle de compte d'utilisateur le demande. L'éditeur s'affiche comme « Éditeur inconnu », car l'installateur n'est pas encore signé.",
       hashLabel: "SHA-256 (vérification facultative)",
       notMalware:
         "Ce fichier est l'installateur officiel de www.messageflow.tech. Il contient prédications, Bibles et cantiques pour un usage hors ligne à l'église.",
@@ -293,6 +334,27 @@ export const dictionaries: Record<Locale, Dictionary> = {
       darkLabel: "Thème sombre",
       lightLabel: "Thème clair",
     },
+    whatsNew: {
+      title: "Nouveautés de la version {version}",
+      items: [
+        {
+          title: "Démarrage instantané",
+          body: "L'application s'ouvre en quelques secondes et ne se fige plus au démarrage.",
+        },
+        {
+          title: "Le texte tient toujours à l'écran",
+          body: "Chaque couplet, verset et paragraphe est dimensionné pour le projecteur, écran par écran. Aucun mot n'est jamais coupé.",
+        },
+        {
+          title: "Retours à la ligne en kiswahili corrigés",
+          body: "Les lignes des cantiques s'affichent au projecteur exactement comme sur leurs diapositives, au lieu de se suivre sans retour.",
+        },
+        {
+          title: "Nouveau thème clair",
+          body: "Un thème clair blanc et bleu, net, pour les salles lumineuses. Le thème sombre reste celui par défaut.",
+        },
+      ],
+    },
     features: {
       title: "Ce que contient la bibliothèque",
       lead: "Installée une fois, puis disponible sans Internet.",
@@ -300,20 +362,26 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           title: "Prédications et publications",
           body: "Recherchez par titre, code de prédication, année, expression ou numéro de paragraphe, puis projetez un seul paragraphe.",
-          detail:
-            "Anglais : 1 203 prédications de frère Branham et 85 publications de frère Frank. Français : 384. Kiswahili : 622.",
         },
         {
           title: "La Bible",
           body: "Tapez une référence comme Jean 3:16, ou un mot-clé. Avancez verset par verset avec les flèches.",
-          detail: "King James Version · Louis Segond 1910 · Biblia Takatifu (SWHULB)",
         },
         {
           title: "Cantiques",
           body: "Trouvez un cantique par son titre ou une ligne des paroles, puis projetez-le couplet par couplet, avec le refrain au bon endroit.",
-          detail: "357 en anglais · 499 en français · 281 en kiswahili",
         },
       ],
+      table: {
+        caption: "Contenu par langue",
+        columns: { en: "Anglais", fr: "Français", sw: "Kiswahili" },
+        branham: "Prédications de frère Branham",
+        frank: "Publications de frère Frank",
+        englishOnly: "en anglais uniquement",
+        bible: "Traduction de la Bible",
+        songs: "Cantiques",
+        notAvailable: "Non disponible",
+      },
     },
     install: {
       title: "Du téléchargement à la projection",
@@ -327,7 +395,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Installer",
-          body: "Lancez l'installateur. Si Windows indique qu'il a protégé votre PC, choisissez Plus d'infos, puis Exécuter quand même. Choisissez un disque avec au moins {space} libres : l'application et la bibliothèque occupent {installed}.",
+          body: "Lancez l'installateur. Si Windows indique qu'il a protégé votre PC, choisissez Plus d'infos, puis Exécuter quand même. Cet avertissement est normal pour une application gratuite qui n'est pas signée avec un certificat payant ; l'installateur est sûr. Choisissez un disque avec au moins {space} libres : l'application et la bibliothèque occupent {installed}.",
         },
         {
           n: "03",
@@ -400,7 +468,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       eyebrow: "Toleo {version} · Bure kwa makanisa · Windows 10 / 11",
       title: "Pata hubiri, mstari au wimbo. Uonyeshe kwenye skrini.",
       subtitle:
-        "MessageFlow Media ni programu ya Windows ya bure kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank, Biblia na vitabu vya nyimbo, kisha onyesha aya au mstari kwenye skrini ya pili. Inafanya kazi bila intaneti, kwa Kiingereza, Kifaransa na Kiswahili.",
+        "MessageFlow Media ni programu ya Windows ya bure kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank (kwa Kiingereza), Biblia na vitabu vya nyimbo, kisha onyesha aya au mstari kwenye skrini ya pili. Inafanya kazi bila intaneti, kwa Kiingereza, Kifaransa na Kiswahili.",
       secondaryCta: "Tazama kiolesura",
     },
     download: {
@@ -417,7 +485,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Fungua menyu ya Vipakuliwa (mshale). Chagua faili → Keep → Keep anyway. Au pakua tena kwa Microsoft Edge. Kisha fungua .exe kutoka kwenye folda ya Downloads.",
       windowsTitle: "Windows inasema “Windows protected your PC”",
       windowsBody:
-        "Bonyeza More info, kisha Run anyway. Ruhusu programu ikiwa User Account Control inauliza. Mchapishaji ataonekana kama MessageFlow Media.",
+        "Bonyeza More info, kisha Run anyway. Ruhusu programu ikiwa User Account Control inauliza. Mchapishaji ataonekana kama “Unknown publisher” kwa sababu setup bado haijatiwa saini.",
       hashLabel: "SHA-256 (hiari)",
       notMalware:
         "Faili hii ni setup rasmi kutoka www.messageflow.tech. Ina mahubiri, Biblia, na nyimbo kwa matumizi ya kanisa nje ya mtandao.",
@@ -428,6 +496,27 @@ export const dictionaries: Record<Locale, Dictionary> = {
       darkLabel: "Mandhari meusi",
       lightLabel: "Mandhari meupe",
     },
+    whatsNew: {
+      title: "Mapya katika toleo {version}",
+      items: [
+        {
+          title: "Inafunguka papo hapo",
+          body: "Programu inafunguka kwa sekunde chache na haigandi tena inapoanza.",
+        },
+        {
+          title: "Maandishi yanatoshea skrini kila wakati",
+          body: "Kila sehemu ya wimbo, mstari na aya inapimwa kwa ajili ya projekta, skrini moja baada ya nyingine. Hakuna neno linalokatwa.",
+        },
+        {
+          title: "Mistari ya nyimbo za Kiswahili imerekebishwa",
+          body: "Mistari ya nyimbo inaonekana kwenye projekta sawasawa na kwenye slaidi zake, badala ya kuungana pamoja.",
+        },
+        {
+          title: "Mandhari meupe mapya",
+          body: "Mandhari meupe na buluu, safi, kwa kumbi zenye mwanga. Mandhari meusi yanabaki kuwa ya kawaida.",
+        },
+      ],
+    },
     features: {
       title: "Kilichomo kwenye maktaba",
       lead: "Sakinisha mara moja, kisha tumia bila intaneti.",
@@ -435,20 +524,26 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           title: "Mahubiri na machapisho",
           body: "Tafuta kwa kichwa, msimbo wa hubiri, mwaka, maneno au namba ya aya, kisha onyesha aya moja.",
-          detail:
-            "Kiingereza: mahubiri 1,203 ya Ndugu Branham na machapisho 85 ya Ndugu Frank. Kifaransa: 384. Kiswahili: 622.",
         },
         {
           title: "Biblia",
           body: "Andika rejea kama Yohana 3:16, au neno kuu. Songa mstari kwa mstari kwa vitufe vya mishale.",
-          detail: "King James Version · Louis Segond 1910 · Biblia Takatifu (SWHULB)",
         },
         {
           title: "Nyimbo",
           body: "Tafuta wimbo kwa kichwa chake au mstari wa maneno yake, kisha uonyeshe ubeti kwa ubeti, pamoja na kiitikio mahali pake.",
-          detail: "Kiingereza 357 · Kifaransa 499 · Kiswahili 281",
         },
       ],
+      table: {
+        caption: "Maudhui kwa lugha",
+        columns: { en: "Kiingereza", fr: "Kifaransa", sw: "Kiswahili" },
+        branham: "Mahubiri ya Ndugu Branham",
+        frank: "Machapisho ya Ndugu Frank",
+        englishOnly: "kwa Kiingereza pekee",
+        bible: "Tafsiri ya Biblia",
+        songs: "Nyimbo",
+        notAvailable: "Haipatikani",
+      },
     },
     install: {
       title: "Kutoka kupakua hadi kuonyesha",
@@ -462,7 +557,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Sakinisha",
-          body: "Endesha setup. Ikiwa Windows inasema imelinda kompyuta yako, chagua More info, kisha Run anyway. Chagua diski yenye nafasi ya angalau {space}: programu na maktaba zinachukua {installed}.",
+          body: "Endesha setup. Ikiwa Windows inasema imelinda kompyuta yako, chagua More info, kisha Run anyway. Onyo hili ni la kawaida kwa programu ya bure ambayo haijatiwa saini kwa cheti cha kulipia; setup ni salama. Chagua diski yenye nafasi ya angalau {space}: programu na maktaba zinachukua {installed}.",
         },
         {
           n: "03",
@@ -534,4 +629,14 @@ export function localizedSize(locale: Locale, size: string) {
       ? size.replace(/\bMB\b/, "Mo").replace(/\bGB\b/, "Go").replace(/(\d)\.(\d)/, "$1,$2")
       : size;
   return units.replace(/ /g, " ");
+}
+
+/** "2026-10" as "October 2026", "octobre 2026", or "Oktoba 2026". */
+export function localizedMonth(locale: Locale, month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Intl.DateTimeFormat(localeHtmlLang[locale], {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
 }

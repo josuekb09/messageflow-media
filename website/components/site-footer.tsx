@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { useI18n } from "@/components/language-provider";
+import { localizedMonth } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 export function SiteFooter() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return (
     <footer className="border-t border-line bg-white">
@@ -61,7 +62,7 @@ export function SiteFooter() {
             </p>
             <ul className="mt-4 space-y-2.5 text-ink-muted">
               <li>v{site.version}</li>
-              <li>{site.releaseDate}</li>
+              <li>{localizedMonth(locale, site.releaseMonth)}</li>
               <li>{site.platform}</li>
             </ul>
           </div>

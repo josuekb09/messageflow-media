@@ -8,6 +8,8 @@ export const site = {
   url: "https://www.messageflow.tech",
   version: "1.0.8",
   releaseDate: "October 2026",
+  // Same date as releaseDate, for month names in French and Kiswahili.
+  releaseMonth: "2026-10",
   platform: "Windows 10 / 11",
   exeName: "MessageFlow.App.exe",
   githubReleaseTag,
@@ -24,6 +26,18 @@ export const site = {
   requiredFreeSpace: "2 GB",
   installerSha256:
     "163B4141CBDC7AB1166D601562575CEA1165C06B1AA288B4A191154A1861B395",
+  // Counts in the bundled 1.0.8 database. Brother Frank publications exist in
+  // English only; the French and Kiswahili sermons are all Brother Branham.
+  library: {
+    branham: { en: 1203, fr: 384, sw: 622 },
+    frank: { en: 85 },
+    bibles: {
+      en: "King James Version (KJV)",
+      fr: "Louis Segond 1910 (LSG)",
+      sw: "Biblia Takatifu (SWHULB)",
+    },
+    songs: { en: 357, fr: 499, sw: 281 },
+  },
   supportEmail: "kabuyatambwe03@gmail.com",
   ccEmail: "Paulinkabeya@gmail.com",
 } as const;
