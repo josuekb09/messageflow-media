@@ -14,7 +14,7 @@ Church operator and projection software for Windows. Search and project sermons,
 - **Never unreadable, never cut.** Text that cannot fit at the readable minimum is split into "1 of 2", "2 of 2" screens at sentence boundaries with the exact original words. A split inside a very long sentence no longer glues its last word to the next sentence.
 - **Faster paragraph switching** for very long paragraphs, and an instant return to recently projected items.
 - **Songs show only their own slide text** on the projector, with no extra generated title.
-- **Safe install location.** The installer now defaults to a local folder (`%LOCALAPPDATA%\Programs\MessageFlowMedia`) instead of Documents, which OneDrive often synchronizes. OneDrive can make the large library slow to open; the installer warns when a OneDrive folder is chosen.
+- **Safe install location.** The installer now suggests `MessageFlowMedia` on the local data drive with the most free space (for example `E:\MessageFlowMedia`), instead of Documents, which OneDrive often synchronizes. Settings and logs stay inside the install folder. OneDrive can make the large library slow to open; the installer warns when a OneDrive folder is chosen.
 - **Errors never close the app.** An unexpected error shows one short message on the operator screen and is logged; the app and the projection keep running.
 - **Every control has a tooltip** in English, French, and Kiswahili, with its keyboard shortcut.
 - **Light theme contrast** raised to at least 4.5:1 for every text and background pair (projection 7:1 or more). The dark theme is unchanged.

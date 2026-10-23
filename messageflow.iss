@@ -46,10 +46,11 @@ VersionInfoCompany={#MyAppPublisher}
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription=MessageFlow Media installer
 VersionInfoCopyright=Copyright (c) 2026 MessageFlow Media project author. Distributed free of charge. Not for sale.
-; Per-user and never synced by OneDrive. Documents is often redirected into OneDrive, and
-; OneDrive can turn the 2+ GB database into a cloud-only placeholder or lock it while syncing,
-; which froze MessageFlow at launch.
-DefaultDirName={localappdata}\Programs\MessageFlowMedia
+; The library is over 2 GB, so the suggested folder is on the local data drive with the most
+; free space (often E: on church PCs whose C: is nearly full), never in Documents: Documents is
+; often redirected into OneDrive, which can keep the database cloud-only or lock it while syncing
+; and froze MessageFlow at launch. See DefaultInstallDir below.
+DefaultDirName={code:DefaultInstallDir}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableDirPage=no
@@ -90,6 +91,39 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch MessageFlow Media"; Flags: nowait postinstall skipifsilent
 
 [Code]
+const
+  DRIVE_REMOVABLE = 2;
+  DRIVE_FIXED = 3;
+  MinimumFreeMB = 5120;
+
+function GetDriveType(lpRootPathName: String): UINT;
+  external 'GetDriveTypeW@kernel32.dll stdcall';
+
+{ Non-system local drive (internal or external SSD) with the most free space, if it has room for
+  the library; otherwise the per-user local folder on the system drive. }
+function DefaultInstallDir(Param: String): String;
+var
+  Letter: Char;
+  Root, SystemDrive: String;
+  FreeMB, TotalMB, BestFreeMB: Cardinal;
+begin
+  Result := ExpandConstant('{localappdata}\Programs\MessageFlowMedia');
+  SystemDrive := Uppercase(ExtractFileDrive(ExpandConstant('{win}')));
+  BestFreeMB := 0;
+  for Letter := 'C' to 'Z' do
+  begin
+    Root := Letter + ':\';
+    if (Uppercase(Letter + ':') <> SystemDrive) and DirExists(Root) and
+       ((GetDriveType(Root) = DRIVE_FIXED) or (GetDriveType(Root) = DRIVE_REMOVABLE)) and
+       GetSpaceOnDisk(Root, True, FreeMB, TotalMB) and
+       (FreeMB >= MinimumFreeMB) and (FreeMB > BestFreeMB) then
+    begin
+      BestFreeMB := FreeMB;
+      Result := Root + 'MessageFlowMedia';
+    end;
+  end;
+end;
+
 function IsOneDrivePath(const Path: String): Boolean;
 var
   Lower: String;
@@ -111,7 +145,7 @@ begin
   Result := True;
   if (CurPageID = wpSelectDir) and IsOneDrivePath(WizardDirValue) then
   begin
-    SafeDir := ExpandConstant('{localappdata}\Programs\MessageFlowMedia');
+    SafeDir := DefaultInstallDir('');
     if MsgBox('The selected folder is synchronized by OneDrive:' + #13#10#13#10 + WizardDirValue + #13#10#13#10 +
               'OneDrive can make the large MessageFlow library slow to open or unavailable during a service.' + #13#10#13#10 +
               'Install to this safe local folder instead?' + #13#10#13#10 + SafeDir,
