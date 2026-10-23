@@ -19,6 +19,9 @@ export const site = {
     "https://github.com/josuekb09/messageflow-media/releases/latest/download/MessageFlowMediaSetup.exe",
   downloadFileName: "MessageFlowMediaSetup.exe",
   installerSize: "~587 MB",
+  // dist\publish for 1.0.8: 1,840,606,729 bytes (app 0.2 GB + library 1.5 GB).
+  installedSize: "~1.7 GB",
+  requiredFreeSpace: "2 GB",
   installerSha256:
     "163B4141CBDC7AB1166D601562575CEA1165C06B1AA288B4A191154A1861B395",
   supportEmail: "kabuyatambwe03@gmail.com",

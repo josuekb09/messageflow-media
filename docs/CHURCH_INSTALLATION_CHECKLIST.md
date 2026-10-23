@@ -3,7 +3,7 @@
 ## Install
 
 1. Copy the approved installer or complete release folder to the church computer.
-2. Run `MessageFlowMediaSetup.exe` and follow the prompts. Administrator permission is not required: by default it installs for the current Windows user only. On the folder page, keep the suggested folder (`MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia`) or choose another local folder with at least 3 GB free, such as the church media SSD. Do not choose a folder synchronized by OneDrive (often Documents or Desktop): the installer warns if you do. An administrator may instead choose to install for all users.
+2. Run `MessageFlowMediaSetup.exe` and follow the prompts. Administrator permission is not required: by default it installs for the current Windows user only. On the folder page, keep the suggested folder (`MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia`) or choose another local folder with at least 2 GB free (the app and library take about 1.7 GB), such as the church media SSD. Do not choose a folder synchronized by OneDrive (often Documents or Desktop): the installer warns if you do. An administrator may instead choose to install for all users.
 3. Launch MessageFlow Media from the desktop shortcut or Start menu.
 4. Confirm Bible, Songs, and Sermons appear before the service.
 

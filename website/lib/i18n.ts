@@ -192,7 +192,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Install",
-          body: "Run the installer. If Windows says it protected your PC, choose More info, then Run anyway. Pick a drive with room for the library.",
+          body: "Run the installer. If Windows says it protected your PC, choose More info, then Run anyway. Pick a drive with at least {space} free: the app and library take {installed}.",
         },
         {
           n: "03",
@@ -327,7 +327,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Installer",
-          body: "Lancez l'installateur. Si Windows indique qu'il a protégé votre PC, choisissez Plus d'infos, puis Exécuter quand même. Choisissez un disque avec assez d'espace pour la bibliothèque.",
+          body: "Lancez l'installateur. Si Windows indique qu'il a protégé votre PC, choisissez Plus d'infos, puis Exécuter quand même. Choisissez un disque avec au moins {space} libres : l'application et la bibliothèque occupent {installed}.",
         },
         {
           n: "03",
@@ -462,7 +462,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "02",
           title: "Sakinisha",
-          body: "Endesha setup. Ikiwa Windows inasema imelinda kompyuta yako, chagua More info, kisha Run anyway. Chagua diski yenye nafasi ya kutosha kwa maktaba.",
+          body: "Endesha setup. Ikiwa Windows inasema imelinda kompyuta yako, chagua More info, kisha Run anyway. Chagua diski yenye nafasi ya angalau {space}: programu na maktaba zinachukua {installed}.",
         },
         {
           n: "03",
@@ -529,6 +529,9 @@ export function interpolate(template: string, values: Record<string, string>) {
  * non-breaking space so "598" and "MB" never wrap onto separate lines.
  */
 export function localizedSize(locale: Locale, size: string) {
-  const units = locale === "fr" ? size.replace(/\bMB\b/, "Mo") : size;
+  const units =
+    locale === "fr"
+      ? size.replace(/\bMB\b/, "Mo").replace(/\bGB\b/, "Go").replace(/(\d)\.(\d)/, "$1,$2")
+      : size;
   return units.replace(/ /g, " ");
 }

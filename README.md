@@ -2,10 +2,27 @@
 
 Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-Current public release: **v1.0.8** (October 2026).
+Current public release: **v1.0.8** (October 2026). Free for church use, not for sale.
 
 Website: [www.messageflow.tech](https://www.messageflow.tech)  
-Download: [GitHub Releases v1.0.8](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8)
+Download: [GitHub Releases v1.0.8](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8)  
+Report a problem: [www.messageflow.tech/feedback](https://www.messageflow.tech/feedback)
+
+## What's new in 1.0.8
+
+- **Instant startup.** The app no longer freezes while it opens: the main window appears in about 1–2.5 seconds and search is ready in 2–4 seconds.
+- **Projected text always fits the screen.** Every song section, verse, and paragraph is sized for the projector on its own, so A-/A+ on one screen no longer shrinks the next, and no word is ever cut.
+- **Swahili line-break fix.** Hymn lines appear on the projector exactly as on their PowerPoint slides, instead of running together.
+- **New light theme** in clean white and blue. Dark remains the default.
+
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for every change.
+
+## Requirements
+
+- Windows 10 or 11, 64-bit
+- At least 2 GB free on the install drive (the app and library take about 1.7 GB), plus about 0.6 GB for the downloaded installer
+- A projector or TV connected as a second display
+- Internet only to download. After installation the app works 100% offline: no account, no sign-in, no data sent anywhere.
 
 ## Library in this build
 
@@ -24,9 +41,11 @@ French hymns that have a refrain use **verse → chorus → verse → chorus**.
 - Song search and projection with verse/chorus sections
 - Favorites and projection history
 - Dual-screen projection (operator chrome vs congregation screen)
-- Optional light theme (warm white and gold); dark remains the default
+- Projected text fits each screen automatically, with A- / A+ / Auto for manual size
+- Optional light theme (white and blue); dark remains the default
+- Interface in English, French, and Kiswahili
 - Keyboard shortcuts: `Ctrl+F` search, `Ctrl+P` project, arrow keys to move
-- Offline use after installation — no account, no ads, no subscription
+- 100% offline after installation: no account, no ads, no subscription
 
 ## Free church use
 
@@ -39,20 +58,26 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 
 ## Install on Windows 10 / 11 (64-bit)
 
-1. Open the [v1.0.5 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.5) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
-2. Run the installer. No administrator permission is needed. The installer suggests `MessageFlowMedia` on the local data drive with the most free space (for example `E:\MessageFlowMedia`; `%LOCALAPPDATA%\Programs\MessageFlowMedia` on a PC with only C:). The library needs about 2.5 GB. Avoid OneDrive-synchronized folders such as Documents; the installer warns if one is chosen.
-3. Connect the projector or TV. Press `Win+P` and choose **Extend**.
+1. Open the [v1.0.8 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
+   - Size: about 587 MB (615,471,332 bytes)
+   - SHA-256: `163B4141CBDC7AB1166D601562575CEA1165C06B1AA288B4A191154A1861B395`. To check it, run `Get-FileHash .\MessageFlowMediaSetup.exe` in PowerShell.
+2. Run the installer. No administrator permission is needed. If Windows says it protected your PC, choose **More info**, then **Run anyway**.
+3. Keep the suggested folder or choose another local folder with at least 2 GB free. The installer suggests `MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia` (`%LOCALAPPDATA%\Programs\MessageFlowMedia` on a PC with only C:). Avoid OneDrive-synchronized folders such as Documents; the installer warns if one is chosen.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
 5. Choose English, Français, or Kiswahili. Search a sermon, verse, or hymn. Press `Ctrl+P` to project.
 
 The installer is attached to GitHub Releases (or kept in `dist\` locally). It is not committed to git.
 
-## Use with a projector or TV
+## Connect a projector or TV
 
-1. Connect the display to the Windows computer.
-2. Press `Win+P` and choose `Extend`.
-3. Open MessageFlow Media.
-4. Confirm the projector shows only the projection window, not the operator controls.
+1. Connect the projector or TV to the computer (HDMI or the church display system).
+2. Press `Win+P` and choose **Extend**, not Duplicate.
+3. Open MessageFlow Media and project something with `Ctrl+P`.
+4. Confirm the projector shows only the projection window, while the operator controls stay on the computer screen.
+
+## Report a problem
+
+Use the form at [www.messageflow.tech/feedback](https://www.messageflow.tech/feedback) for bugs, questions, and feature requests. If something went wrong at startup, include `logs\app-startup.log` from the install folder.
 
 ## Build from source
 
@@ -80,7 +105,7 @@ Vercel: `vercel.json` cannot set `rootDirectory` (not in the official schema). O
 MessageFlow/
   src/           WPF app, core, data, search, importer
   tools/         Songbook importers, audits, installer scripts
-  website/       Next.js site (white-and-blue SaaS theme)
+  website/       Next.js site (black, white, and gold)
   docs/          Release, store, and content notices
   database/      Local production SQLite location (not in git)
 ```

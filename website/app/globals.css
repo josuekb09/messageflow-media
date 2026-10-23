@@ -6,8 +6,9 @@
 }
 
 /*
- * Black, white, and gray, with one accent: the gold of the app's badge mark
- * (AccentBrush in src/MessageFlow.App/Themes/LightTheme.xaml). Gold is kept for the
+ * Black, white, and gray, with one accent: the gold of the app's "M" badge mark,
+ * which stays gold in both app themes (the app's light theme itself is white and
+ * blue, with a #235EDF accent). Gold is kept for the
  * logo, the primary download button, and a few highlights. Text on a gold button is
  * ink rather than white, because white on #B8791E is below 4.5:1 contrast.
  */

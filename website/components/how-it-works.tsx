@@ -6,7 +6,11 @@ import { site } from "@/lib/site";
 
 export function HowItWorks() {
   const { t, locale } = useI18n();
-  const size = localizedSize(locale, site.installerSize);
+  const sizes = {
+    size: localizedSize(locale, site.installerSize),
+    space: localizedSize(locale, site.requiredFreeSpace),
+    installed: localizedSize(locale, site.installedSize),
+  };
 
   return (
     <section id="install" className="scroll-mt-16 border-t border-line bg-surface">
@@ -28,7 +32,7 @@ export function HowItWorks() {
               </p>
               <h3 className="mt-4 text-lg font-medium text-ink">{step.title}</h3>
               <p className="mt-2 text-[15px] leading-7 text-ink-secondary">
-                {interpolate(step.body, { size })}
+                {interpolate(step.body, sizes)}
               </p>
             </li>
           ))}
