@@ -202,6 +202,15 @@ var syntheticWorstCases = new List<(string Title, string Subtitle, string Text)>
 };
 
 // ============================================================================
+// SONG REPORT: section-by-section first display, as the operator moves through a song
+// ============================================================================
+var songReportOption = GetOption(args, "--song-report");
+if (songReportOption is not null)
+{
+    return await RunSongReportAsync(songReportOption);
+}
+
+// ============================================================================
 // PART 4: RUNNING FULL AUTO-FIT PROJECTION ENGINE VERIFICATION
 // ============================================================================
 Console.WriteLine("\n[4/4] Executing Zero-Overflow Auto-Fit Verification Across Matrix...");
@@ -214,6 +223,7 @@ var unreadableFailures = 0;
 var textFailures = 0;
 var operatorFailures = 0;
 var windowFailures = 0;
+var wordCutFailures = 0;
 var windowChecks = 0;
 var slowestLayoutMs = 0.0;
 var slowestLayoutLabel = string.Empty;
@@ -237,7 +247,6 @@ var staThread = new Thread(() =>
         Topmost = false
     };
     var activeContentProperty = typeof(MainViewModel).GetProperty(nameof(MainViewModel.ActiveProjectionContent))!;
-    var updateLayout = typeof(ProjectWindow).GetMethod("UpdateProjectionLayout", BindingFlags.Instance | BindingFlags.NonPublic)!;
     var showNextPage = typeof(ProjectWindow).GetMethod("ShowNextProjectionPage", BindingFlags.Instance | BindingFlags.NonPublic)!;
     var pagesField = typeof(ProjectWindow).GetField("projectionPages", BindingFlags.Instance | BindingFlags.NonPublic)!;
     var root = (Grid)window.FindName("ProjectionRoot");
@@ -245,17 +254,6 @@ var staThread = new Thread(() =>
     var body = (TextBlock)window.FindName("ParagraphTextBlock");
     var indicator = (TextBlock)window.FindName("PageIndicatorTextBlock");
     window.Show();
-
-    // Each resize posts window messages; without a message loop the queue overflows
-    // (Win32 error 1816) after a few thousand checks.
-    static void PumpDispatcher()
-    {
-        var frame = new System.Windows.Threading.DispatcherFrame();
-        System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
-            System.Windows.Threading.DispatcherPriority.Background,
-            new Action(() => frame.Continue = false));
-        System.Windows.Threading.Dispatcher.PushFrame(frame);
-    }
 
     void Fail(ref int counter, string message)
     {
@@ -272,14 +270,10 @@ var staThread = new Thread(() =>
         ProjectedContentSnapshot snapshot,
         string label)
     {
-        window.Width = screen.Width;
-        window.Height = screen.Height;
         // Clearing first makes the window start at page 1, as it does for each new projection.
         activeContentProperty.SetValue(viewModel, null);
         activeContentProperty.SetValue(viewModel, snapshot);
-        window.UpdateLayout();
-        updateLayout.Invoke(window, null);
-        window.UpdateLayout();
+        LayOutAt(window, root, screen.Width, screen.Height);
 
         // Walk every continuation page the operator can reach with the arrow keys.
         var pageCount = Math.Max(1, ((List<string>)pagesField.GetValue(window)!).Count);
@@ -288,22 +282,30 @@ var staThread = new Thread(() =>
             if (page > 0)
             {
                 showNextPage.Invoke(window, null);
-                window.UpdateLayout();
+                ArrangeAt(root, screen.Width, screen.Height);
             }
 
             totalTests++;
             windowChecks++;
             var bodyFits = body.DesiredSize.Height <= stage.ActualHeight + 0.5 &&
                            body.DesiredSize.Width <= stage.ActualWidth + 0.5;
-            var rowsFit = root.DesiredSize.Height <= window.ActualHeight + 0.5 &&
-                          window.ActualHeight <= screen.Height + 0.5 &&
-                          window.ActualWidth <= screen.Width + 0.5;
+            var rowsFit = root.DesiredSize.Height <= screen.Height + 0.5 &&
+                          root.DesiredSize.Width <= screen.Width + 0.5;
             if (!bodyFits || !rowsFit)
             {
                 Fail(ref windowFailures,
                     $"FAIL [{label}] REAL WINDOW OVERFLOW on {screen.Name}, page {page + 1}/{pageCount}: " +
                     $"text {body.DesiredSize.Width:0}x{body.DesiredSize.Height:0} in stage {stage.ActualWidth:0}x{stage.ActualHeight:0}, " +
-                    $"root {root.DesiredSize.Height:0} in window {window.ActualWidth:0}x{window.ActualHeight:0} on screen {screen.Width:0}x{screen.Height:0}.");
+                    $"root {root.DesiredSize.Width:0}x{root.DesiredSize.Height:0} on screen {screen.Width:0}x{screen.Height:0}.");
+            }
+
+            // First display: every word of this screen must be whole on its line, measured
+            // independently of the engine, at the size the window actually uses.
+            var widestWord = WidestWordAt100(((List<string>)pagesField.GetValue(window)!)[page], body.FontWeight) * body.FontSize / 100;
+            if (widestWord > stage.ActualWidth + 0.5)
+            {
+                Fail(ref wordCutFailures,
+                    $"FAIL [{label}] WORD CUT on first display on {screen.Name}, page {page + 1}/{pageCount}: widest word {widestWord:0} px > stage {stage.ActualWidth:0} px at {body.FontSize:0.#} px.");
             }
 
             if (pageCount > 1 && indicator.Text != $"{page + 1} of {pageCount}")
@@ -511,6 +513,7 @@ Console.WriteLine($"Total Test Assertions:                 {totalTests:N0}");
 Console.WriteLine($"Continuation Pages Generated:          {pagedCount:N0}");
 Console.WriteLine($"Overflow failures (engine):            {overflowFailures:N0}");
 Console.WriteLine($"Overflow failures (real window):       {windowFailures:N0}");
+Console.WriteLine($"Words cut on first display:            {wordCutFailures:N0}");
 Console.WriteLine($"Unreadable (below minimum) failures:   {unreadableFailures:N0}");
 Console.WriteLine($"Text changed / lines merged failures:  {textFailures:N0}");
 Console.WriteLine($"A+ / A- / Auto failures:               {operatorFailures:N0}");
@@ -568,6 +571,200 @@ async Task<List<(string Title, string Section, string Text, bool IsTitleSlide)>>
     }
 
     return items;
+}
+
+// Prints every section of the chosen songs (and the most uneven English songs) as it is first
+// shown: auto-fit size, whether the widest word fits the stage unbroken, whether the real window
+// overflows, and which size the operator gets after pressing A- on section 1 and moving on.
+async Task<int> RunSongReportAsync(string songIdList)
+{
+    var requestedIds = songIdList.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+    var unevenIds = new List<int>();
+    await using (var cmd = connection.CreateCommand())
+    {
+        cmd.CommandText =
+            """
+            SELECT s."Id"
+            FROM "Songs" s JOIN "SongSections" ss ON ss."SongId" = s."Id"
+            WHERE s."IsActive" = 1 AND s."Language" = 'en'
+            GROUP BY s."Id"
+            HAVING COUNT(*) >= 3
+            ORDER BY CAST(MAX(LENGTH(ss."Text")) AS REAL) / MAX(1, MIN(LENGTH(ss."Text"))) DESC
+            LIMIT 5;
+            """;
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            unevenIds.Add(reader.GetInt32(0));
+        }
+    }
+
+    var songs = new List<(int Id, string Title, List<(string Label, string Text, bool IsTitleSlide)> Sections)>();
+    foreach (var id in requestedIds.Concat(unevenIds).Distinct())
+    {
+        var sections = new List<(string, string, bool)>();
+        var title = string.Empty;
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT s."Title", ss."SectionLabel", ss."Text", ss."SectionOrder"
+            FROM "Songs" s JOIN "SongSections" ss ON ss."SongId" = s."Id"
+            WHERE s."Id" = $id ORDER BY ss."SectionOrder";
+            """;
+        cmd.Parameters.AddWithValue("$id", id);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            title = reader.GetString(0);
+            sections.Add((reader.GetString(1), reader.GetString(2), reader.GetInt32(3) <= 1));
+        }
+
+        songs.Add((id, title, sections));
+    }
+
+    var reportScreens = new[] { (1280.0, 720.0, "1280x720"), (1920.0, 1080.0, "1920x1080"), (3840.0, 2160.0, "3840x2160") };
+    var problems = 0;
+    Exception? crash = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var provider = new ServiceCollection()
+                .AddDbContext<MessageFlowDbContext>(options => options.UseSqlite(connectionString))
+                .BuildServiceProvider();
+            var viewModel = new MainViewModel(provider.GetRequiredService<IServiceScopeFactory>());
+            var window = new ProjectWindow(viewModel) { Left = -20000, Top = -20000, ShowActivated = false, Topmost = false };
+            var activeContent = typeof(MainViewModel).GetProperty(nameof(MainViewModel.ActiveProjectionContent))!;
+            var stage = (Grid)window.FindName("ParagraphStage");
+            var body = (TextBlock)window.FindName("ParagraphTextBlock");
+            var reportRoot = (Grid)window.FindName("ProjectionRoot");
+            var size = (Width: 1280.0, Height: 720.0);
+            window.Show();
+
+            void Show(ProjectedContentSnapshot snapshot)
+            {
+                activeContent.SetValue(viewModel, snapshot);
+                LayOutAt(window, reportRoot, size.Width, size.Height);
+            }
+
+            foreach (var (id, title, sections) in songs)
+            {
+                Console.WriteLine($"\nSong #{id} '{title}' ({sections.Count} sections)");
+                foreach (var (width, height, name) in reportScreens)
+                {
+                    size = (width, height);
+                    for (var i = 0; i < sections.Count; i++)
+                    {
+                        var (label, text, isTitleSlide) = sections[i];
+                        Show(new ProjectedContentSnapshot(ProjectionContentType.Song, title, label, text) { IsTitleSlide = isTitleSlide, ItemId = i });
+                        var widest = WidestWordAt100(text, FontWeights.Bold) * body.FontSize / 100;
+                        var wordFits = widest <= stage.ActualWidth + 0.5;
+                        var bodyFits = body.DesiredSize.Height <= stage.ActualHeight + 0.5 && body.DesiredSize.Width <= stage.ActualWidth + 0.5;
+                        var ok = wordFits && bodyFits;
+                        if (!ok)
+                        {
+                            problems++;
+                        }
+
+                        Console.WriteLine(
+                            $"  {name,-10} (stage {stage.ActualWidth:0}x{stage.ActualHeight:0}) section {i + 1,2} ({text.Length,3} chars): font {body.FontSize,5:0.0}  widest word {widest,6:0}/{stage.ActualWidth,5:0} px  " +
+                            $"{(ok ? "OK" : wordFits ? "OVERFLOW" : "WORD CUT")}");
+                        PumpDispatcher();
+                    }
+                }
+
+                // The operator's case: A- on the first section, then Next.
+                if (sections.Count >= 2)
+                {
+                    size = (1920, 1080);
+                    Show(new ProjectedContentSnapshot(ProjectionContentType.Song, title, sections[0].Label, sections[0].Text) { IsTitleSlide = sections[0].IsTitleSlide, ItemId = 0 });
+                    for (var press = 0; press < 3; press++)
+                    {
+                        viewModel.DecreaseProjectionTextSizeCommand.Execute(null);
+                        LayOutAt(window, reportRoot, size.Width, size.Height);
+                    }
+
+                    var afterMinus = body.FontSize;
+                    Show(new ProjectedContentSnapshot(ProjectionContentType.Song, title, sections[1].Label, sections[1].Text) { ItemId = 1 });
+                    var auto = ProjectionAutoFitEngine.CalculateLayout(ProjectionContentType.Song, title, sections[1].Label, sections[1].Text, 1920, 1080);
+                    var inherited = Math.Abs(body.FontSize - auto.FontSize) > 0.5;
+                    if (inherited)
+                    {
+                        problems++;
+                    }
+
+                    Console.WriteLine(
+                        $"  A- x3 on section 1 ({afterMinus:0.0}px), then Next: section 2 shown at {body.FontSize:0.0}px, its auto-fit is {auto.FontSize:0.0}px, " +
+                        $"multiplier carried = {viewModel.ProjectionFontScaleMultiplier:0.00} -> {(inherited ? "INHERITED SIZE" : "OK")}");
+                    viewModel.ResetProjectionTextSizeCommand.Execute(null);
+                }
+            }
+
+            window.Close();
+        }
+        catch (Exception ex)
+        {
+            crash = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+
+    if (crash is not null)
+    {
+        Console.WriteLine($"Report crashed: {crash}");
+        return 2;
+    }
+
+    Console.WriteLine($"\nSong report: {problems} problem(s).");
+    return problems == 0 ? 0 : 1;
+}
+
+// The projection window's own layout code and content tree at an exact projector size. A real
+// window cannot be made larger than the monitor of the machine running the check, so the size is
+// given to the layout code and the content is measured and arranged at that size directly.
+static void LayOutAt(ProjectWindow window, FrameworkElement root, double width, double height)
+{
+    window.UpdateProjectionLayout(width, height);
+    ArrangeAt(root, width, height);
+}
+
+static void ArrangeAt(FrameworkElement root, double width, double height)
+{
+    root.Measure(new Size(width, height));
+    root.Arrange(new Rect(0, 0, width, height));
+}
+
+static void PumpDispatcher()
+{
+    var frame = new System.Windows.Threading.DispatcherFrame();
+    System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+        System.Windows.Threading.DispatcherPriority.Background,
+        new Action(() => frame.Continue = false));
+    System.Windows.Threading.Dispatcher.PushFrame(frame);
+}
+
+// Width, at 100 px, of the widest whitespace-separated word laid out on one line, measured
+// independently of the engine: a word wider than the stage can only be shown broken in two.
+static double WidestWordAt100(string text, FontWeight weight)
+{
+    var widest = 0.0;
+    foreach (var word in Regex.Split(text, @"\s+").Where(word => word.Length > 0).Distinct())
+    {
+        var block = new TextBlock
+        {
+            Text = word,
+            FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+            FontWeight = weight,
+            FontSize = 100,
+            TextWrapping = TextWrapping.NoWrap
+        };
+        block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        widest = Math.Max(widest, block.DesiredSize.Width);
+    }
+
+    return widest;
 }
 
 static bool SameWords(string original, IReadOnlyList<string> pages)

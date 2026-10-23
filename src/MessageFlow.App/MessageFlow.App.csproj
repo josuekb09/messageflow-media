@@ -33,6 +33,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="VerifyLibraryProjectionFit" />
+    <InternalsVisibleTo Include="MessageFlow.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Assets\Brand\messageflow-app-icon-1024.png" />
     <Resource Include="Assets\Brand\messageflow-mark-256.png" />
   </ItemGroup>

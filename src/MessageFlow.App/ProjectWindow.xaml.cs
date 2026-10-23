@@ -22,6 +22,7 @@ public partial class ProjectWindow : Window
     private readonly List<string> projectionPages = [];
     private bool isFullscreen;
     private bool updateQueued;
+    private int pendingFirstWord = -1;
     private int currentPageIndex;
     private double restoreLeft;
     private double restoreTop;
@@ -196,10 +197,15 @@ public partial class ProjectWindow : Window
         }), DispatcherPriority.Loaded);
     }
 
-    private void UpdateProjectionLayout()
+    private void UpdateProjectionLayout() =>
+        UpdateProjectionLayout(ActualWidth > 50 ? ActualWidth : Width, ActualHeight > 50 ? ActualHeight : Height);
+
+    /// <summary>
+    /// Lays the projection out for a window of the given size, in device-independent units. The
+    /// window passes its own size; the fit verifier passes projector sizes larger than its monitor.
+    /// </summary>
+    internal void UpdateProjectionLayout(double winWidth, double winHeight)
     {
-        var winWidth = ActualWidth > 50 ? ActualWidth : Width;
-        var winHeight = ActualHeight > 50 ? ActualHeight : Height;
 
         if (winWidth <= 100 || winHeight <= 100)
         {
@@ -288,6 +294,12 @@ public partial class ProjectWindow : Window
         // Apply pages
         projectionPages.Clear();
         projectionPages.AddRange(layout.Pages);
+        if (pendingFirstWord >= 0)
+        {
+            currentPageIndex = PageContainingWord(pendingFirstWord);
+            pendingFirstWord = -1;
+        }
+
         currentPageIndex = Math.Clamp(currentPageIndex, 0, projectionPages.Count - 1);
 
         ParagraphTextBlock.FontSize = layout.FontSize;
@@ -321,6 +333,12 @@ public partial class ProjectWindow : Window
             return;
         }
 
+        if (projectionPages.Count > 1 && currentPageIndex < projectionPages.Count - 1 &&
+            TryShowPageAtAutoSize(currentPageIndex + 1))
+        {
+            return;
+        }
+
         if (projectionPages.Count > 1 && currentPageIndex < projectionPages.Count - 1)
         {
             currentPageIndex++;
@@ -330,9 +348,30 @@ public partial class ProjectWindow : Window
         }
     }
 
+    private int PageContainingWord(int wordIndex)
+    {
+        var wordsBefore = 0;
+        for (var i = 0; i < projectionPages.Count; i++)
+        {
+            wordsBefore += projectionPages[i].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (wordIndex < wordsBefore)
+            {
+                return i;
+            }
+        }
+
+        return projectionPages.Count - 1;
+    }
+
     private void ShowPreviousProjectionPage()
     {
         if (isTestProjection)
+        {
+            return;
+        }
+
+        if (projectionPages.Count > 1 && currentPageIndex > 0 &&
+            TryShowPageAtAutoSize(currentPageIndex - 1))
         {
             return;
         }
@@ -344,6 +383,26 @@ public partial class ProjectWindow : Window
             PageIndicatorTextBlock.Text = $"{currentPageIndex + 1} of {projectionPages.Count}";
             viewModel.ReportProjectionPageState(currentPageIndex, projectionPages.Count);
         }
+    }
+
+    /// <summary>
+    /// When the operator changed the size with A- or A+, the next or previous page goes back to the
+    /// auto-fit size. The pages are cut again at that size, so the page shown is the one that
+    /// begins with the first word of the page the operator asked for.
+    /// </summary>
+    private bool TryShowPageAtAutoSize(int requestedPageIndex)
+    {
+        var firstWord = projectionPages
+            .Take(requestedPageIndex)
+            .Sum(page => page.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length);
+        if (!viewModel.ResetProjectionTextSizeForNewScreen())
+        {
+            return false;
+        }
+
+        pendingFirstWord = firstWord;
+        UpdateProjectionLayout();
+        return true;
     }
 
     private void ToggleFullscreen()

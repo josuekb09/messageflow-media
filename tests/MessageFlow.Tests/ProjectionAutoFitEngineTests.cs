@@ -101,4 +101,23 @@ public class ProjectionAutoFitEngineTests
             Assert.True(verse.TitleFontSize > 0);
         });
     }
+
+    [Fact]
+    public void A_word_wider_than_the_screen_is_shrunk_until_it_fits_whole()
+    {
+        Sta.Run(() =>
+        {
+            // Typed without spaces in the source slide; WPF would break it in two at the auto size.
+            const string section = "TheMightyGodisJesus HeisthePrinceofpeace Jesus,EternalFatherTheRighteousKingisHe";
+            foreach (var (width, height) in new[] { (1280.0, 720.0), (1920.0, 1080.0), (3840.0, 2160.0) })
+            {
+                var layout = ProjectionAutoFitEngine.CalculateLayout(ProjectionContentType.Song, "Song", "Slide 2", section, width, height);
+                foreach (var page in layout.Pages)
+                {
+                    var widest = ProjectionAutoFitEngine.WidestWordWidth(page, System.Windows.FontWeights.Bold, layout.FontSize);
+                    Assert.True(widest <= layout.StageWidth, $"{widest} > {layout.StageWidth} at {width}x{height}");
+                }
+            }
+        });
+    }
 }

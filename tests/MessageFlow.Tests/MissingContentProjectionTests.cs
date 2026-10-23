@@ -108,4 +108,22 @@ public sealed class MissingContentProjectionTests : IDisposable
         (Task)typeof(MainViewModel)
             .GetMethod("ProjectCurrentSongSelectionAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(viewModel, null)!;
+
+    [Fact]
+    public void A_minus_on_one_section_does_not_carry_over_to_the_next_section()
+    {
+        Sta.Run(() =>
+        {
+            var viewModel = CreateViewModel();
+            SetLive(viewModel, new ProjectedContentSnapshot(ProjectionContentType.Song, "144. O HAPPY DAY", "Slide 1", "144. O HAPPY DAY") { ItemId = 1 });
+            viewModel.DecreaseProjectionTextSizeCommand.Execute(null);
+            viewModel.DecreaseProjectionTextSizeCommand.Execute(null);
+            Assert.True(viewModel.ProjectionFontScaleMultiplier < 1.0);
+
+            SetLive(viewModel, new ProjectedContentSnapshot(ProjectionContentType.Song, "144. O HAPPY DAY", "Slide 2", "O happy day that fixed my choice") { ItemId = 2 });
+
+            Assert.Equal(1.0, viewModel.ProjectionFontScaleMultiplier);
+            Assert.True(viewModel.IsProjectionFontAuto);
+        });
+    }
 }

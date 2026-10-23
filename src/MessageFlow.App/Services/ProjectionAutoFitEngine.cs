@@ -54,6 +54,52 @@ public static partial class ProjectionAutoFitEngine
     private static readonly FontFamily DefaultFontFamily = new("Segoe UI");
 
     private const int LayoutCacheCapacity = 64;
+    private const double MinimumWordFitFontSize = 8;
+    private const int WordWidthCacheCapacity = 20000;
+
+    [ThreadStatic]
+    private static Dictionary<(string Word, int Weight), double>? wordWidthsAt100;
+
+    [ThreadStatic]
+    private static TextBlock? wordMeasuringBlock;
+
+    /// <summary>
+    /// Width of the widest whitespace-separated word of <paramref name="text"/> laid out on one
+    /// line at <paramref name="fontSize"/>. Glyph widths scale with the size, so each word is
+    /// measured once at 100 and cached.
+    /// </summary>
+    public static double WidestWordWidth(string text, FontWeight fontWeight, double fontSize)
+    {
+        var cache = wordWidthsAt100 ??= [];
+        if (cache.Count > WordWidthCacheCapacity)
+        {
+            cache.Clear();
+        }
+
+        var weight = fontWeight.ToOpenTypeWeight();
+        var widest = 0.0;
+        foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!cache.TryGetValue((word, weight), out var width))
+            {
+                var block = wordMeasuringBlock ??= new TextBlock
+                {
+                    FontFamily = DefaultFontFamily,
+                    FontSize = 100,
+                    TextWrapping = TextWrapping.NoWrap
+                };
+                block.Text = word;
+                block.FontWeight = fontWeight;
+                block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                width = block.DesiredSize.Width;
+                cache[(word, weight)] = width;
+            }
+
+            widest = Math.Max(widest, width);
+        }
+
+        return widest * fontSize / 100;
+    }
 
     [ThreadStatic]
     private static TextBlock? measuringBlock;
@@ -194,8 +240,17 @@ public static partial class ProjectionAutoFitEngine
         var stageHeightPaged = Math.Max(50, rootHeight - titleHeight - numberHeight - indicatorHeight);
         var safeStageHeightPaged = Math.Max(50, stageHeightPaged - SafetyBuffer);
 
-        // 4. Readability boundaries
-        var minReadable = Math.Clamp(rootHeight * 0.042, 24, 85);
+        // 4. Readability boundaries. A word wider than the stage would be broken in two by WPF,
+        // so when even the readable minimum is too large for the longest word, the minimum
+        // becomes the largest size at which that word fits whole.
+        var fontWeightForWords = isBible || isSong ? FontWeights.Bold : FontWeights.SemiBold;
+        var widestWordAt100 = WidestWordWidth(text, fontWeightForWords, 100);
+        var wordLimitedSize = widestWordAt100 > 0
+            ? Math.Floor(safeStageWidth * 100 / widestWordAt100 / PrecisionStep) * PrecisionStep
+            : double.MaxValue;
+        var minReadable = Math.Max(
+            MinimumWordFitFontSize,
+            Math.Min(Math.Clamp(rootHeight * 0.042, 24, 85), wordLimitedSize));
         var maxAesthetic = isSong && isTitleSlide
             ? Math.Clamp(rootHeight * 0.14, 54, 180)
             : isBible
@@ -279,7 +334,7 @@ public static partial class ProjectionAutoFitEngine
             pages,
             safeStageWidth,
             safeStageHeightPaged,
-            EmergencyMinimumFontSize,
+            Math.Min(EmergencyMinimumFontSize, minReadable),
             pageFontSize,
             fontWeight,
             textAlignment,
@@ -421,7 +476,11 @@ public static partial class ProjectionAutoFitEngine
         tb.TextAlignment = alignment;
         tb.Measure(new Size(maxWidth, double.PositiveInfinity));
 
-        return tb.DesiredSize.Width <= maxWidth && tb.DesiredSize.Height <= maxHeight;
+        // A word wider than the line is still "inside" the wrapped block, broken in two;
+        // only text whose every word fits whole on a line counts as fitting.
+        return tb.DesiredSize.Width <= maxWidth &&
+               tb.DesiredSize.Height <= maxHeight &&
+               WidestWordWidth(text, fontWeight, fontSize) <= maxWidth;
     }
 
     private static double MeasureTextHeight(

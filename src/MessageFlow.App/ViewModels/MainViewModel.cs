@@ -1281,10 +1281,11 @@ public sealed partial class MainViewModel : ObservableObject
         get => activeProjectionContent;
         private set
         {
-            var contentTypeChanged = activeProjectionContent?.ContentType != value?.ContentType;
             if (SetProperty(ref activeProjectionContent, value))
             {
-                if (contentTypeChanged && projectionFontScaleStep != 0)
+                // Every new screen starts at its own auto-fit size: an A- or A+ made for the
+                // previous section, verse or paragraph never carries over to the next one.
+                if (projectionFontScaleStep != 0)
                 {
                     projectionFontScaleStep = 0;
                     projectionFontSizeAdjustment = 0;
@@ -5085,6 +5086,22 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(ProjectionPageIndicatorText));
             RaiseProjectionPageCommandStates();
         }
+    }
+
+    /// <summary>
+    /// Called before the projection window shows another continuation page of the same text, so
+    /// that page also starts at the auto-fit size. Returns true when an A- or A+ was undone.
+    /// </summary>
+    public bool ResetProjectionTextSizeForNewScreen()
+    {
+        if (projectionFontScaleStep == 0)
+        {
+            return false;
+        }
+
+        projectionFontScaleStep = 0;
+        ApplyFontScaleChange();
+        return true;
     }
 
     public void ClearProjectionPageState()
