@@ -22,13 +22,10 @@ public static class UiLanguagePreference
                 return AppLanguages.FromCode(File.ReadAllText(SettingsPath).Trim());
             }
 
-            var legacyPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "MessageFlow",
-                "ui-language.txt");
-            return File.Exists(legacyPath)
-                ? AppLanguages.FromCode(File.ReadAllText(legacyPath).Trim())
-                : AppLanguages.Default;
+            // A fresh install opens in English. The old %LOCALAPPDATA%\MessageFlow\ui-language.txt
+            // of an earlier version is deliberately not read: on a reused PC it opened a new
+            // install in whatever language someone last picked there.
+            return AppLanguages.Default;
         }
         catch
         {
