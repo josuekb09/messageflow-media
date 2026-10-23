@@ -17,8 +17,6 @@ export function DownloadCenter() {
               {t.download.heading}
             </h2>
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-secondary">
-              <span className="break-all">{site.downloadFileName}</span>
-              <span className="text-line">·</span>
               <span>v{site.version}</span>
               <span className="text-line">·</span>
               <span>{localizedMonth(locale, site.releaseMonth)}</span>
@@ -51,29 +49,11 @@ function DownloadSafety() {
         {t.download.safetyTitle}
       </h3>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-secondary">
-        {t.download.safetyLead}
+        {t.download.windowsBody}
       </p>
-      <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-muted">
-        {t.download.notMalware}
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-secondary">
+        {t.download.browserBody}
       </p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-line bg-surface p-4 sm:p-5">
-          <p className="font-semibold text-ink">{t.download.chromeTitle}</p>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t.download.chromeBody}
-          </p>
-        </div>
-        <div className="rounded-xl border border-line bg-surface p-4 sm:p-5">
-          <p className="font-semibold text-ink">{t.download.windowsTitle}</p>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t.download.windowsBody}
-          </p>
-        </div>
-      </div>
-      <p className="mt-6 text-[13px] font-medium text-ink">{t.download.hashLabel}</p>
-      <code className="mt-2 block break-all rounded-lg border border-line bg-surface px-3 py-2 font-mono text-[12px] leading-5 text-ink-secondary">
-        {site.installerSha256}
-      </code>
     </div>
   );
 }

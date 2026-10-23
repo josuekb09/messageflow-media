@@ -9,7 +9,6 @@ export function HowItWorks() {
   const sizes = {
     size: localizedSize(locale, site.installerSize),
     space: localizedSize(locale, site.requiredFreeSpace),
-    installed: localizedSize(locale, site.installedSize),
   };
 
   return (

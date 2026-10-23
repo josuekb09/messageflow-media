@@ -49,13 +49,8 @@ export type Dictionary = {
     pageSubtitle: string;
     note: string;
     safetyTitle: string;
-    safetyLead: string;
-    chromeTitle: string;
-    chromeBody: string;
-    windowsTitle: string;
     windowsBody: string;
-    hashLabel: string;
-    notMalware: string;
+    browserBody: string;
   };
   product: {
     title: string;
@@ -130,7 +125,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
   en: {
     nav: {
       features: "Library",
-      product: "Interface",
+      product: "The app",
       install: "Install",
       download: "Download for Windows",
       feedback: "Support",
@@ -145,26 +140,17 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Find the sermon, verse, or song. Put it on the screen.",
       subtitle:
         "MessageFlow Media is free Windows software for church media teams. Search Brother Branham's sermons, Brother Frank's publications (in English), the Bible, and songbooks, then project the paragraph or verse on the second screen. It works offline, in English, French, and Kiswahili.",
-      secondaryCta: "See the interface",
+      secondaryCta: "See the app",
     },
     download: {
       button: "Download for Windows",
       heading: "Ready for Sunday morning",
       pageTitle: "Download for Windows",
       pageSubtitle: "Version {version}, released {date}. Windows 10 / 11.",
-      note: "Downloads MessageFlowMediaSetup.exe ({size}). Install on Windows 10 or 11 (64-bit), then press Win+P and choose Extend before you project.",
-      safetyTitle: "If Chrome or Windows blocks the file",
-      safetyLead:
-        "MessageFlow Media is free church software. The installer is not signed with a paid Microsoft certificate yet, so some PCs warn on a first download. That is a Windows/Chrome reputation check, not a virus.",
-      chromeTitle: "Chrome says “Virus detected”",
-      chromeBody:
-        "Open the download menu (arrow icon). Select the file → Keep → Keep anyway. Or download again with Microsoft Edge. Then open the .exe from your Downloads folder.",
-      windowsTitle: "Windows says “Windows protected your PC”",
-      windowsBody:
-        "Click More info, then Run anyway. Allow the app if User Account Control asks. The publisher shows as “Unknown publisher” because the installer is not signed yet.",
-      hashLabel: "SHA-256 (optional check)",
-      notMalware:
-        "The file is the official installer from www.messageflow.tech. It contains sermons, Bibles, and songs for offline church use.",
+      note: "About {size}, for Windows 10 and 11. Free, with no account needed.",
+      safetyTitle: "A quick tip",
+      windowsBody: "If Windows shows a blue warning, click “More info”, then “Run anyway”.",
+      browserBody: "If your browser asks whether to keep the file, choose “Keep”.",
     },
     product: {
       title: "One operator screen, in dark or light",
@@ -176,20 +162,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "What's new in {version}",
       items: [
         {
-          title: "Instant startup",
-          body: "The app opens in seconds and no longer freezes while it starts.",
+          title: "Opens instantly",
+          body: "MessageFlow is ready to use a moment after you open it.",
         },
         {
-          title: "Text always fits the screen",
-          body: "Every song section, verse, and paragraph is sized for the projector on its own. No word is ever cut.",
+          title: "Projected text always fits the screen",
+          body: "Every verse, song, and paragraph fits neatly on the projector. No word is ever cut off.",
         },
         {
-          title: "Swahili line breaks fixed",
-          body: "Hymn lines appear on the projector exactly as on their slides, instead of running together.",
+          title: "Correct line breaks in Swahili songs",
+          body: "Each line of a Swahili song now appears on its own line, just as it is sung.",
         },
         {
-          title: "New light theme",
-          body: "A clean white-and-blue light theme for bright rooms. Dark stays the default.",
+          title: "New clean light theme",
+          body: "A fresh white-and-blue look for bright rooms. The dark look is still there too.",
         },
       ],
     },
@@ -228,12 +214,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "01",
           title: "Download",
-          body: "Download MessageFlowMediaSetup.exe ({size}) for Windows 10 or 11, 64-bit.",
+          body: "Click Download for Windows. The file is about {size} and works on Windows 10 and 11.",
         },
         {
           n: "02",
           title: "Install",
-          body: "Run the installer. If Windows says it protected your PC, choose More info, then Run anyway. That warning is normal for a free app that is not signed with a paid certificate; the installer is safe. Pick a drive with at least {space} free: the app and library take {installed}.",
+          body: "Open the downloaded file and follow the steps. If Windows shows a blue warning, click “More info”, then “Run anyway”. Needs about {space} of free space.",
         },
         {
           n: "03",
@@ -257,11 +243,11 @@ export const dictionaries: Record<Locale, Dictionary> = {
     feedback: {
       title: "Feedback & support",
       pageSubtitle:
-        "Send a comment, feature request, or bug report. We read every message.",
+        "Share a comment, an idea, or a problem. We read every message.",
       lead: "The Windows app stays offline. Use this form to reach the MessageFlow team.",
       calloutTitle: "Questions or ideas?",
       calloutBody:
-        "Send feedback from this site — comments, feature requests, or bug reports. The Windows app itself stays fully offline.",
+        "Send us a comment, an idea, or tell us about a problem. We are happy to help.",
       calloutCta: "Open the form",
       nameLabel: "Name",
       nameOptional: "(optional)",
@@ -271,8 +257,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       categoryLabel: "Category",
       categories: {
         comment: "Comment",
-        feature: "Feature request",
-        bug: "Bug report",
+        feature: "Idea",
+        bug: "Problem",
       },
       messageLabel: "Message",
       messagePlaceholder: "How can we help?",
@@ -283,7 +269,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       successDetail:
         "Thank you for your feedback. We will get back to you if a reply is needed.",
       error: "Something went wrong. Please try again in a moment.",
-      errorConfig: "Feedback is not configured yet. Please try again later.",
+      errorConfig: "Messages can’t be sent right now. Please try again later.",
       errorValidation: "Please check the highlighted fields.",
       emailInvalid: "Enter a valid email address.",
       messageRequired: "Enter a message.",
@@ -292,7 +278,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
   fr: {
     nav: {
       features: "Bibliothèque",
-      product: "Interface",
+      product: "L'application",
       install: "Installation",
       download: "Télécharger pour Windows",
       feedback: "Assistance",
@@ -307,26 +293,17 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Trouvez la prédication, le verset ou le cantique. Projetez-le.",
       subtitle:
         "MessageFlow Media est un logiciel Windows gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank (en anglais), la Bible et les recueils de cantiques, puis projetez le paragraphe ou le verset sur le second écran. Il fonctionne hors ligne, en anglais, en français et en kiswahili.",
-      secondaryCta: "Voir l'interface",
+      secondaryCta: "Voir l'application",
     },
     download: {
       button: "Télécharger pour Windows",
       heading: "Prêt pour le dimanche matin",
       pageTitle: "Télécharger pour Windows",
       pageSubtitle: "Version {version}, publiée en {date}. Windows 10 / 11.",
-      note: "Télécharge MessageFlowMediaSetup.exe ({size}). Installez-le sous Windows 10 ou 11 (64 bits), puis appuyez sur Win+P et choisissez Étendre avant de projeter.",
-      safetyTitle: "Si Chrome ou Windows bloque le fichier",
-      safetyLead:
-        "MessageFlow Media est un logiciel d'église gratuit. L'installateur n'est pas encore signé avec un certificat Microsoft payant, donc certains PC affichent un avertissement au premier téléchargement. Ce n'est pas un virus : c'est un contrôle de réputation Windows/Chrome.",
-      chromeTitle: "Chrome affiche « Virus detected »",
-      chromeBody:
-        "Ouvrez le menu Téléchargements (flèche). Choisissez le fichier → Conserver → Conserver quand même. Ou retéléchargez avec Microsoft Edge. Puis ouvrez le .exe depuis le dossier Téléchargements.",
-      windowsTitle: "Windows affiche « Windows a protégé votre PC »",
-      windowsBody:
-        "Cliquez sur Plus d'infos, puis Exécuter quand même. Autorisez l'app si le Contrôle de compte d'utilisateur le demande. L'éditeur s'affiche comme « Éditeur inconnu », car l'installateur n'est pas encore signé.",
-      hashLabel: "SHA-256 (vérification facultative)",
-      notMalware:
-        "Ce fichier est l'installateur officiel de www.messageflow.tech. Il contient prédications, Bibles et cantiques pour un usage hors ligne à l'église.",
+      note: "Environ {size}, pour Windows 10 et 11. Gratuit, sans compte.",
+      safetyTitle: "Petit conseil",
+      windowsBody: "Si Windows affiche un avertissement bleu, cliquez sur « Informations complémentaires », puis « Exécuter quand même ».",
+      browserBody: "Si votre navigateur demande s'il faut conserver le fichier, choisissez « Conserver ».",
     },
     product: {
       title: "Un seul écran opérateur, en sombre ou en clair",
@@ -338,20 +315,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Nouveautés de la version {version}",
       items: [
         {
-          title: "Démarrage instantané",
-          body: "L'application s'ouvre en quelques secondes et ne se fige plus au démarrage.",
+          title: "S'ouvre instantanément",
+          body: "MessageFlow est prêt à l'emploi un instant après l'ouverture.",
         },
         {
-          title: "Le texte tient toujours à l'écran",
-          body: "Chaque couplet, verset et paragraphe est dimensionné pour le projecteur, écran par écran. Aucun mot n'est jamais coupé.",
+          title: "Le texte projeté tient toujours à l'écran",
+          body: "Chaque verset, cantique et paragraphe s'affiche proprement au projecteur. Aucun mot n'est coupé.",
         },
         {
-          title: "Retours à la ligne en kiswahili corrigés",
-          body: "Les lignes des cantiques s'affichent au projecteur exactement comme sur leurs diapositives, au lieu de se suivre sans retour.",
+          title: "Des retours à la ligne corrects dans les cantiques en kiswahili",
+          body: "Chaque ligne d'un cantique en kiswahili s'affiche désormais sur sa propre ligne, comme on la chante.",
         },
         {
-          title: "Nouveau thème clair",
-          body: "Un thème clair blanc et bleu, net, pour les salles lumineuses. Le thème sombre reste celui par défaut.",
+          title: "Nouveau thème clair et épuré",
+          body: "Un nouveau look blanc et bleu pour les salles lumineuses. Le thème sombre est toujours là.",
         },
       ],
     },
@@ -390,12 +367,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "01",
           title: "Télécharger",
-          body: "Téléchargez MessageFlowMediaSetup.exe ({size}) pour Windows 10 ou 11, 64 bits.",
+          body: "Cliquez sur Télécharger pour Windows. Le fichier fait environ {size} et fonctionne sous Windows 10 et 11.",
         },
         {
           n: "02",
           title: "Installer",
-          body: "Lancez l'installateur. Si Windows indique qu'il a protégé votre PC, choisissez Plus d'infos, puis Exécuter quand même. Cet avertissement est normal pour une application gratuite qui n'est pas signée avec un certificat payant ; l'installateur est sûr. Choisissez un disque avec au moins {space} libres : l'application et la bibliothèque occupent {installed}.",
+          body: "Ouvrez le fichier téléchargé et suivez les étapes. Si Windows affiche un avertissement bleu, cliquez sur « Informations complémentaires », puis « Exécuter quand même ». Prévoyez environ {space} d'espace libre.",
         },
         {
           n: "03",
@@ -419,11 +396,11 @@ export const dictionaries: Record<Locale, Dictionary> = {
     feedback: {
       title: "Avis et assistance",
       pageSubtitle:
-        "Envoyez un commentaire, une demande de fonctionnalité ou un signalement de bug. Nous lisons chaque message.",
+        "Partagez un commentaire, une idée ou un problème. Nous lisons chaque message.",
       lead: "L'application Windows reste hors ligne. Utilisez ce formulaire pour contacter l'équipe MessageFlow.",
       calloutTitle: "Une question ou une idée ?",
       calloutBody:
-        "Envoyez un avis depuis ce site — commentaires, demandes de fonctionnalités ou signalements de bugs. L'application Windows reste entièrement hors ligne.",
+        "Envoyez-nous un commentaire, une idée, ou signalez-nous un problème. Nous sommes heureux de vous aider.",
       calloutCta: "Ouvrir le formulaire",
       nameLabel: "Nom",
       nameOptional: "(facultatif)",
@@ -433,8 +410,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       categoryLabel: "Catégorie",
       categories: {
         comment: "Commentaire",
-        feature: "Demande de fonctionnalité",
-        bug: "Signalement de bug",
+        feature: "Idée",
+        bug: "Problème",
       },
       messageLabel: "Message",
       messagePlaceholder: "Comment pouvons-nous vous aider ?",
@@ -445,7 +422,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       successDetail:
         "Merci pour votre avis. Nous vous répondrons si une réponse est nécessaire.",
       error: "Une erreur s'est produite. Veuillez réessayer dans un instant.",
-      errorConfig: "L'envoi d'avis n'est pas encore configuré. Veuillez réessayer plus tard.",
+      errorConfig: "Les messages ne peuvent pas être envoyés pour le moment. Veuillez réessayer plus tard.",
       errorValidation: "Veuillez vérifier les champs indiqués.",
       emailInvalid: "Saisissez une adresse e-mail valide.",
       messageRequired: "Saisissez un message.",
@@ -454,7 +431,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
   sw: {
     nav: {
       features: "Maktaba",
-      product: "Kiolesura",
+      product: "Programu",
       install: "Sakinisha",
       download: "Pakua kwa Windows",
       feedback: "Msaada",
@@ -469,26 +446,17 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Pata hubiri, mstari au wimbo. Uonyeshe kwenye skrini.",
       subtitle:
         "MessageFlow Media ni programu ya Windows ya bure kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank (kwa Kiingereza), Biblia na vitabu vya nyimbo, kisha onyesha aya au mstari kwenye skrini ya pili. Inafanya kazi bila intaneti, kwa Kiingereza, Kifaransa na Kiswahili.",
-      secondaryCta: "Tazama kiolesura",
+      secondaryCta: "Tazama programu",
     },
     download: {
       button: "Pakua kwa Windows",
       heading: "Tayari kwa ibada ya Jumapili",
       pageTitle: "Pakua kwa Windows",
       pageSubtitle: "Toleo {version}, lililotolewa {date}. Windows 10 / 11.",
-      note: "Inapakua MessageFlowMediaSetup.exe ({size}). Isakinishe kwenye Windows 10 au 11 (biti 64), kisha bonyeza Win+P na uchague Extend kabla ya kuonyesha.",
-      safetyTitle: "Ikiwa Chrome au Windows inazuia faili",
-      safetyLead:
-        "MessageFlow Media ni programu ya kanisa bila malipo. Setup bado haijatiwa saini kwa cheti cha Microsoft kinacholipiwa, kwa hiyo kompyuta nyingine huonyesha onyo wakati wa kupakua mara ya kwanza. Si virusi: ni ukaguzi wa sifa wa Windows/Chrome.",
-      chromeTitle: "Chrome inasema “Virus detected”",
-      chromeBody:
-        "Fungua menyu ya Vipakuliwa (mshale). Chagua faili → Keep → Keep anyway. Au pakua tena kwa Microsoft Edge. Kisha fungua .exe kutoka kwenye folda ya Downloads.",
-      windowsTitle: "Windows inasema “Windows protected your PC”",
-      windowsBody:
-        "Bonyeza More info, kisha Run anyway. Ruhusu programu ikiwa User Account Control inauliza. Mchapishaji ataonekana kama “Unknown publisher” kwa sababu setup bado haijatiwa saini.",
-      hashLabel: "SHA-256 (hiari)",
-      notMalware:
-        "Faili hii ni setup rasmi kutoka www.messageflow.tech. Ina mahubiri, Biblia, na nyimbo kwa matumizi ya kanisa nje ya mtandao.",
+      note: "Takriban {size}, kwa Windows 10 na 11. Bure, bila akaunti.",
+      safetyTitle: "Kidokezo kidogo",
+      windowsBody: "Ikiwa Windows inaonyesha onyo la buluu, bonyeza “More info”, kisha “Run anyway”.",
+      browserBody: "Ikiwa kivinjari kinauliza kama kuhifadhi faili, chagua “Keep”.",
     },
     product: {
       title: "Skrini moja ya operator, meusi au meupe",
@@ -501,19 +469,19 @@ export const dictionaries: Record<Locale, Dictionary> = {
       items: [
         {
           title: "Inafunguka papo hapo",
-          body: "Programu inafunguka kwa sekunde chache na haigandi tena inapoanza.",
+          body: "MessageFlow iko tayari kutumika mara tu unapoifungua.",
         },
         {
           title: "Maandishi yanatoshea skrini kila wakati",
-          body: "Kila sehemu ya wimbo, mstari na aya inapimwa kwa ajili ya projekta, skrini moja baada ya nyingine. Hakuna neno linalokatwa.",
+          body: "Kila mstari, wimbo na aya inaonekana vizuri kwenye projekta. Hakuna neno linalokatwa.",
         },
         {
-          title: "Mistari ya nyimbo za Kiswahili imerekebishwa",
-          body: "Mistari ya nyimbo inaonekana kwenye projekta sawasawa na kwenye slaidi zake, badala ya kuungana pamoja.",
+          title: "Mistari sahihi katika nyimbo za Kiswahili",
+          body: "Kila mstari wa wimbo wa Kiswahili sasa unaonekana peke yake, kama unavyoimbwa.",
         },
         {
-          title: "Mandhari meupe mapya",
-          body: "Mandhari meupe na buluu, safi, kwa kumbi zenye mwanga. Mandhari meusi yanabaki kuwa ya kawaida.",
+          title: "Mandhari meupe mapya na safi",
+          body: "Muonekano mpya mweupe na buluu kwa kumbi zenye mwanga. Mandhari meusi bado yapo.",
         },
       ],
     },
@@ -552,12 +520,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
         {
           n: "01",
           title: "Pakua",
-          body: "Pakua MessageFlowMediaSetup.exe ({size}) kwa Windows 10 au 11, biti 64.",
+          body: "Bonyeza Pakua kwa Windows. Faili ni takriban {size} na inafanya kazi kwenye Windows 10 na 11.",
         },
         {
           n: "02",
           title: "Sakinisha",
-          body: "Endesha setup. Ikiwa Windows inasema imelinda kompyuta yako, chagua More info, kisha Run anyway. Onyo hili ni la kawaida kwa programu ya bure ambayo haijatiwa saini kwa cheti cha kulipia; setup ni salama. Chagua diski yenye nafasi ya angalau {space}: programu na maktaba zinachukua {installed}.",
+          body: "Fungua faili uliyopakua na ufuate hatua. Ikiwa Windows inaonyesha onyo la buluu, bonyeza “More info”, kisha “Run anyway”. Inahitaji nafasi ya takriban {space}.",
         },
         {
           n: "03",
@@ -581,11 +549,11 @@ export const dictionaries: Record<Locale, Dictionary> = {
     feedback: {
       title: "Maoni na msaada",
       pageSubtitle:
-        "Tuma maoni, ombi la kipengele, au ripoti ya hitilafu. Tunasoma kila ujumbe.",
+        "Tuma maoni, wazo, au tatizo. Tunasoma kila ujumbe.",
       lead: "Programu ya Windows inabaki nje ya mtandao. Tumia fomu hii kuwasiliana na timu ya MessageFlow.",
       calloutTitle: "Una swali au wazo?",
       calloutBody:
-        "Tuma maoni kutoka kwenye tovuti hii — maoni, maombi ya vipengele, au ripoti za hitilafu. Programu ya Windows inabaki nje ya mtandao kabisa.",
+        "Tutumie maoni, wazo, au tueleze tatizo. Tunafurahi kukusaidia.",
       calloutCta: "Fungua fomu",
       nameLabel: "Jina",
       nameOptional: "(si lazima)",
@@ -595,8 +563,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       categoryLabel: "Aina",
       categories: {
         comment: "Maoni",
-        feature: "Ombi la kipengele",
-        bug: "Ripoti ya hitilafu",
+        feature: "Wazo",
+        bug: "Tatizo",
       },
       messageLabel: "Ujumbe",
       messagePlaceholder: "Tunawezaje kusaidia?",
@@ -607,7 +575,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       successDetail:
         "Asante kwa maoni yako. Tutawasiliana nawe ikiwa jibu litahitajika.",
       error: "Kumetokea hitilafu. Tafadhali jaribu tena baadaye kidogo.",
-      errorConfig: "Maoni bado hayajawekwa. Tafadhali jaribu tena baadaye.",
+      errorConfig: "Ujumbe hauwezi kutumwa kwa sasa. Tafadhali jaribu tena baadaye.",
       errorValidation: "Tafadhali kagua sehemu zilizoonyeshwa.",
       emailInvalid: "Weka anwani sahihi ya barua pepe.",
       messageRequired: "Weka ujumbe.",
