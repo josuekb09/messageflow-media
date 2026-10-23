@@ -20,7 +20,9 @@ using Microsoft.Extensions.DependencyInjection;
 //   * the pages hold exactly the original words in order, and song pages never merge lines;
 //   * A+ never exceeds the largest fitting size, A- is a 5% step, Auto restores the auto-fit size.
 //
-// Usage: VerifyLibraryProjectionFit [--database <path>] [--quick]
+// Usage: VerifyLibraryProjectionFit [--database <path>] [--quick] [--only <groups>]
+//        [--screens 1280x720,1920x1080,3840x2160] [--dpi 100,125,150] [--frank-top <n>]
+// --screens and --dpi narrow the matrix; --frank-top checks only the n longest Brother Frank paragraphs.
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.WriteLine("================================================================================");
@@ -31,6 +33,10 @@ var dbPath = GetOption(args, "--database") ?? MessageFlowDatabase.DefaultDatabas
 var quick = args.Any(arg => string.Equals(arg, "--quick", StringComparison.OrdinalIgnoreCase));
 var only = GetOption(args, "--only");
 bool Runs(string group) => only is null || only.Split(',').Contains(group, StringComparer.OrdinalIgnoreCase);
+var screensOption = GetOption(args, "--screens")?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+var dpiOption = GetOption(args, "--dpi")?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+    .Select(percent => double.Parse(percent, System.Globalization.CultureInfo.InvariantCulture) / 100.0).ToArray();
+var frankTop = int.TryParse(GetOption(args, "--frank-top"), out var frankTopValue) ? frankTopValue : (int?)null;
 if (!File.Exists(dbPath))
 {
     Console.WriteLine($"ERROR: Database not found at '{dbPath}'");
@@ -128,7 +134,12 @@ foreach (var (width, height, name) in new[]
              (3840.0, 2160.0, "3840x2160 (4K)")
          })
 {
-    foreach (var dpi in new[] { 1.0, 1.25, 1.5 })
+    if (screensOption is not null && !screensOption.Contains(name.Split(' ')[0], StringComparer.OrdinalIgnoreCase))
+    {
+        continue;
+    }
+
+    foreach (var dpi in dpiOption ?? new[] { 1.0, 1.25, 1.5 })
     {
         screenConfigs.Add((width / dpi, height / dpi, dpi, $"{name} @ {dpi * 100:0}%"));
     }
@@ -459,10 +470,15 @@ var staThread = new Thread(() =>
 
     if (Runs("frank"))
     {
-        Console.WriteLine("-> Testing All Brother Frank Publication Paragraphs...");
+        Console.WriteLine(frankTop is null
+            ? "-> Testing All Brother Frank Publication Paragraphs..."
+            : $"-> Testing Top {frankTop} Longest Brother Frank Publication Paragraphs...");
         // Every paragraph at Auto on every screen; the 100 longest also at every operator size.
         var longestFrank = frankParagraphs.OrderByDescending(item => item.Text.Length).Take(100).ToHashSet();
-        foreach (var item in frankParagraphs)
+        var frankToTest = frankTop is null
+            ? frankParagraphs
+            : frankParagraphs.OrderByDescending(item => item.Text.Length).Take(frankTop.Value).ToList();
+        foreach (var item in frankToTest)
         {
             var (title, subtitle, text) = item;
             VerifyItem(ProjectionContentType.Sermon, title, subtitle, text, false, $"Brother Frank '{title}' {subtitle}", true, !quick && longestFrank.Contains(item));

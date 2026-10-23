@@ -21,11 +21,18 @@ Nothing has been pushed yet: local `main` is ahead of `origin/main`. No tag or G
   integrity_check = ok on the shipped snapshot, shipped content identical to the working DB
   (only favorites/history emptied), song report for hymns 144 / 48 / 255 → 0 problems after the fix.
 
-## Still running when stopped (must be re-run)
+## Done on 2026-10-23 evening (installer from `bd57d5a` code)
 
-- Installer build from `bd57d5a` (was compressing; no installer exists in `dist\`).
-- Full `VerifyLibraryProjectionFit` with the new checks (had passed sermons; stopped during Bible verses).
-- Cold/warm launch timings were measured only on an older build and under load: redo them.
+- `dist\MessageFlowMediaSetup.exe`: 615,471,332 bytes, SHA-256
+  `163B4141CBDC7AB1166D601562575CEA1165C06B1AA288B4A191154A1861B395` (now in `website\lib\site.ts`).
+- Clean install into `E:\MF_Install_Test2`: opens in English, 0 favorites / Bible favorites / history.
+- Projection subset on the shipped DB (`--only sermons,bible,songs,othersongs,frank --frank-top 100
+  --screens 1280x720,1920x1080,3840x2160 --dpi 100`): 85,300 assertions, 0 failures.
+- Full matrix run passed sermons, verses and all songs at every size and DPI, then was stopped during the 9,516
+  Brother Frank paragraphs. Still to do after Sunday: the full run with no options (~2 h).
+- Launch (s, main window / search ready): cold 2.43/3.64, 1.57/2.57, 1.23/2.09; warm 1.21/1.98, 1.13/1.88, 1.17/1.95.
+- RepairSongLineBreaks `--verify` on the installed DB: 4,572/4,572 sections match their slides; 372 YESU RAFIKI
+  6/6 slides identical line for line.
 
 ## Accident to know about
 
@@ -33,10 +40,10 @@ Nothing has been pushed yet: local `main` is ahead of `origin/main`. No tag or G
   stub). Reinstall the final installer there, or delete that folder. `E:\MF_Install_Test` holds an older 1.0.8 build;
   ignore it and use `E:\MF_Install_Test2`.
 
-## Do NOT commit
+## Stray test files (removed)
 
-`src\main.py` contains a plaintext Manifest/OpenAI API key (revoke it). Also untracked and unrelated:
-`src\index.js`, `package.json`, `package-lock.json`, `node_modules\`, `scratch\`.
+`src\main.py`, `src\index.js`, `package.json`, `package-lock.json`, `node_modules\` and `scratch\` are deleted and
+now ignored by `.gitignore`. The API key from `src\main.py` was never in any commit or on the remote; it is revoked.
 
 ## Steps to resume (PowerShell, from the repo root `E:\My Projects\MessageFlow`)
 

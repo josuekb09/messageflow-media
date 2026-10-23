@@ -42,3 +42,13 @@ database/backups/
 .vscode/
 *.zip
 images/
+
+# Stray local experiments: never part of the MessageFlow solution
+node_modules/
+scratch/
+/package.json
+/package-lock.json
+/src/*.py
+/src/*.js
+.env
+.env.*
