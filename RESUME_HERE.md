@@ -13,6 +13,20 @@ State on 2026-10-24 (evening, before Sunday 25 October):
   the owner uploads it by hand to a new GitHub release `v1.0.9`, published as **Latest**. Until then the
   website says 1.0.9 but its Download button (`releases/latest/download/...`) still serves 1.0.8.
 
+## 2026-10-25: sermon pagination fix (installer rebuilt, release still a draft)
+
+- Sermon text is never shown below 6.5% of the stage height (~66 px at 1080p); longer paragraphs are cut
+  into balanced pages ("Page 2 of 4", translated). Bible and songs unchanged (0 continuation pages).
+- Commits `7558f2c`, `0057aa1` (pushed). Installer rebuilt from `0057aa1`:
+  `dist\MessageFlowMediaSetup.exe`, 547,650,186 bytes,
+  SHA-256 `F753426D93D57DFA55CDA64F97555B53F11CC47D3629925EFE9BCC678BE463E9`.
+  The README and release notes still show the previous build's size and SHA-256 (547,649,563 /
+  `AFD70ED8...`) and must be updated when this installer is uploaded.
+- GitHub release v1.0.9 is an unpublished DRAFT with no asset; the earlier upload was cancelled on purpose.
+  The owner uploads `dist\MessageFlowMediaSetup.exe` and publishes it himself.
+- Checks: `--all-sermon-pages 1920x1080` 456,851 paragraphs, 0 text or character mismatches, 0 overflow,
+  0 below the floor; fit matrix 98,854 checks, 0 failures; Bible+songs 83,508 checks, 0 pages; tests 26/26.
+
 ## What changed in the library (database is not in git)
 
 - Whole library compared with the original sources: see `docs\SOURCE_ACCURACY_AUDIT.md`.
