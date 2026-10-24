@@ -331,7 +331,7 @@ var staThread = new Thread(() =>
                     $"FAIL [{label}] WORD CUT on first display on {screen.Name}, page {page + 1}/{pageCount}: widest word {widestWord:0} px > stage {stage.ActualWidth:0} px at {body.FontSize:0.#} px.");
             }
 
-            if (pageCount > 1 && indicator.Text != $"{page + 1} of {pageCount}")
+            if (pageCount > 1 && indicator.Text != MessageFlow.Core.Localization.Localizer.Instance.Format("Projection_PageIndicator", page + 1, pageCount))
             {
                 Fail(ref windowFailures, $"FAIL [{label}] page indicator shows '{indicator.Text}' on page {page + 1} of {pageCount}.");
             }
