@@ -4,7 +4,7 @@ import { FeedbackSection } from "@/components/feedback-section";
 export const metadata: Metadata = {
   title: "Feedback",
   description:
-    "Send comments, feature requests, or bug reports for MessageFlow Media.",
+    "Send a comment, an idea, or tell us about a problem with MessageFlow Media.",
   alternates: {
     canonical: "/feedback",
   },
