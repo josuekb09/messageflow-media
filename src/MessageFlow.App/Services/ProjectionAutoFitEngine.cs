@@ -48,6 +48,11 @@ public static partial class ProjectionAutoFitEngine
         bool IsTitleSlide);
 
     private const double EmergencyMinimumFontSize = 14;
+
+    // Smallest sermon text, as a share of the stage height: about 66 px on a 1080-line projector,
+    // just above the Medium preset (62 px). Longer paragraphs are cut into pages at this size.
+    private const double SermonReadableFraction = 0.065;
+    private const int MaxPagesBalancedTogether = 6;
     private const double PrecisionStep = 0.5;
     private const double SafetyBuffer = 8.0;
 
@@ -248,16 +253,21 @@ public static partial class ProjectionAutoFitEngine
         var wordLimitedSize = widestWordAt100 > 0
             ? Math.Floor(safeStageWidth * 100 / widestWordAt100 / PrecisionStep) * PrecisionStep
             : double.MaxValue;
+        // A sermon paragraph must be readable from the back of the hall: below this size it is cut
+        // into pages instead of being shrunk. Bible verses and song sections keep their own floor.
+        var readableFloor = isSermon
+            ? Math.Clamp(rootHeight * SermonReadableFraction, 24, 130)
+            : Math.Clamp(rootHeight * 0.042, 24, 85);
         var minReadable = Math.Max(
             MinimumWordFitFontSize,
-            Math.Min(Math.Clamp(rootHeight * 0.042, 24, 85), wordLimitedSize));
+            Math.Min(readableFloor, wordLimitedSize));
         var maxAesthetic = isSong && isTitleSlide
             ? Math.Clamp(rootHeight * 0.14, 54, 180)
             : isBible
                 ? Math.Clamp(rootHeight * 0.11, 48, 160)
                 : isSong
                     ? Math.Clamp(rootHeight * 0.10, 44, 150)
-                    : Math.Clamp(rootHeight * 0.09, 44, 130);
+                    : Math.Max(minReadable, Math.Clamp(rootHeight * 0.09, 44, 130));
 
         var fontWeight = isBible || isSong ? FontWeights.Bold : FontWeights.SemiBold;
         var textAlignment = isSong ? TextAlignment.Center : TextAlignment.Left;
@@ -300,7 +310,7 @@ public static partial class ProjectionAutoFitEngine
         }
 
         // 6. Text is too long for single screen: paginate at sentence boundaries
-        var basePageFontSize = Math.Clamp(rootHeight * 0.058, minReadable, maxAesthetic * 0.72);
+        var basePageFontSize = Math.Clamp(rootHeight * 0.058, minReadable, Math.Max(minReadable, maxAesthetic * 0.72));
         var targetPageFontSize = Math.Clamp(basePageFontSize * operatorScaleMultiplier, minReadable, maxAesthetic);
 
         // Every page is cut at the size it is shown at. When a page cannot be cut to fit (a single
@@ -327,6 +337,11 @@ public static partial class ProjectionAutoFitEngine
             }
 
             pageFontSize = Math.Max(minReadable, Math.Floor(pageFontSize * 0.92 / PrecisionStep) * PrecisionStep);
+        }
+
+        if (isSermon && pagesFit && pages.Count > 1)
+        {
+            pages = BalancePages(text, pages, safeStageWidth, safeStageHeightPaged, pageFontSize, fontWeight, textAlignment, contentType);
         }
 
         // Strict verification: ensure every page fits in the stage
@@ -594,6 +609,48 @@ public static partial class ProjectionAutoFitEngine
         }
 
         return pages.Count > 0 ? pages : [text];
+    }
+
+    /// <summary>
+    /// The page cut fills every page but the last as far as it can, which can leave one or two
+    /// lines on the last page. Cutting into the same number of pages at the smallest stage height
+    /// that needs no extra page fills the pages evenly; every page still fits the real stage, and
+    /// the text is cut exactly as before (same rules, same characters). Long paragraphs keep their
+    /// full pages and balance only the last two.
+    /// </summary>
+    private static List<string> BalancePages(
+        string text,
+        List<string> pages,
+        double maxWidth,
+        double maxHeight,
+        double fontSize,
+        FontWeight fontWeight,
+        TextAlignment alignment,
+        ProjectionContentType contentType)
+    {
+        var keep = pages.Count > MaxPagesBalancedTogether ? pages.Count - 2 : 0;
+        var balancedText = keep == 0 ? text : string.Join(" ", pages.Skip(keep));
+        var count = pages.Count - keep;
+        var best = pages.Skip(keep).ToList();
+
+        var low = maxHeight / count;
+        var high = maxHeight;
+        for (var attempt = 0; attempt < 7 && high - low > 2; attempt++)
+        {
+            var height = (low + high) / 2;
+            var candidate = SplitIntoCleanPages(balancedText, maxWidth, height, fontSize, fontWeight, alignment, contentType);
+            if (candidate.Count <= count)
+            {
+                best = candidate;
+                high = height;
+            }
+            else
+            {
+                low = height;
+            }
+        }
+
+        return [.. pages.Take(keep), .. best];
     }
 
     private static string Join(List<string> units, int start, int count)

@@ -120,4 +120,50 @@ public class ProjectionAutoFitEngineTests
             }
         });
     }
+
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(1920, 1080)]
+    [InlineData(853.3, 480)] // 1280x720 at 150%
+    public void A_sermon_paragraph_too_long_for_large_text_becomes_balanced_pages_with_the_exact_text(double width, double height)
+    {
+        Sta.Run(() =>
+        {
+            // The shape of "The Children Of Israel", paragraph 1: it fitted one screen only by
+            // shrinking the text below the size readable from the back of the hall.
+            const string paragraph =
+                "...?...Thousands and thousands of people have been attending. And each night, we've had to turn some away. " +
+                "The armory and building...Anywhere from three to five thousand people away from the-from the services...And the " +
+                "Lord has been opening the eyes of blind, and deaf, and the dumb, and the lame. And it's glorious to see the Lord " +
+                "come into the meetings and to do these things. And so we're happy to be here tonight, and to see the people. " +
+                "I started Friday or Saturday morning. I was supposed to be here last night, and I just got in about a little bit ago. " +
+                "And so, eighteen hours layover. And I didn't get through till just a few moments ago.";
+            var layout = ProjectionAutoFitEngine.CalculateLayout(ProjectionContentType.Sermon, "The Children Of Israel", "Paragraph 1", paragraph, width, height);
+
+            Assert.True(layout.Pages.Count >= 2, $"{layout.Pages.Count} page(s) at {layout.FontSize}");
+            Assert.Equal(ProjectionAutoFitEngine.NormalizeProseText(paragraph), string.Join(" ", layout.Pages));
+            Assert.True(layout.FontSize >= layout.MinimumReadableFontSize - 0.01);
+            Assert.True(layout.MinimumReadableFontSize >= (height - 2 * Math.Clamp(height * 0.030, 20, 52)) * 0.065 - 0.01);
+            // Balanced: no page is less than half as long as the longest one.
+            Assert.True(layout.Pages.Min(page => page.Length) * 2 >= layout.Pages.Max(page => page.Length));
+        });
+    }
+
+    [Fact]
+    public void Bible_verses_keep_their_own_floor_and_stay_on_one_screen()
+    {
+        Sta.Run(() =>
+        {
+            // Esther 8:9, the longest verse of the KJV.
+            const string verse =
+                "Then were the king's scribes called at that time in the third month, that is, the month Sivan, on the three and twentieth day thereof; " +
+                "and it was written according to all that Mordecai commanded unto the Jews, and to the lieutenants, and the deputies and rulers of the " +
+                "provinces which are from India unto Ethiopia, an hundred twenty and seven provinces, unto every province according to the writing thereof, " +
+                "and unto every people after their language, and to the Jews according to their writing, and according to their language.";
+            var layout = ProjectionAutoFitEngine.CalculateLayout(ProjectionContentType.Bible, "Esther 8:9", string.Empty, verse, 1920, 1080);
+
+            Assert.Single(layout.Pages);
+            Assert.False(layout.IsPaginated);
+        });
+    }
 }

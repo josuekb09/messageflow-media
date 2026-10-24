@@ -215,6 +215,18 @@ var syntheticWorstCases = new List<(string Title, string Subtitle, string Text)>
 // ============================================================================
 // SONG REPORT: section-by-section first display, as the operator moves through a song
 // ============================================================================
+var paragraphOption = GetOption(args, "--paragraph");
+if (paragraphOption is not null)
+{
+    return await RunParagraphReportAsync(paragraphOption);
+}
+
+var sermonPagesOption = GetOption(args, "--all-sermon-pages");
+if (sermonPagesOption is not null)
+{
+    return await RunAllSermonPagesAsync(sermonPagesOption);
+}
+
 var songReportOption = GetOption(args, "--song-report");
 if (songReportOption is not null)
 {
@@ -592,6 +604,183 @@ async Task<List<(string Title, string Section, string Text, bool IsTitleSlide)>>
 // Prints every section of the chosen songs (and the most uneven English songs) as it is first
 // shown: auto-fit size, whether the widest word fits the stage unbroken, whether the real window
 // overflows, and which size the operator gets after pressing A- on section 1 and moving on.
+// --paragraph <sermonId>:<paragraphNumber>
+// How one sermon paragraph is cut into projection pages on common projector sizes (in DIPs).
+async Task<int> RunParagraphReportAsync(string spec)
+{
+    var parts = spec.Split(':');
+    if (parts.Length != 2 || !int.TryParse(parts[0], out var sermonId) || !int.TryParse(parts[1], out var number))
+    {
+        Console.WriteLine("Usage: --paragraph <sermonId>:<paragraphNumber>");
+        return 1;
+    }
+
+    string? title = null;
+    string? text = null;
+    await using (var cmd = connection.CreateCommand())
+    {
+        cmd.CommandText =
+            """
+            SELECT s."Title", p."Text" FROM "SermonParagraphs" p JOIN "Sermons" s ON s."Id" = p."SermonId"
+            WHERE p."SermonId" = $id AND p."ParagraphNumber" = $n;
+            """;
+        cmd.Parameters.AddWithValue("$id", sermonId);
+        cmd.Parameters.AddWithValue("$n", number);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            title = reader.GetString(0);
+            text = reader.GetString(1);
+        }
+    }
+
+    if (title is null || text is null)
+    {
+        Console.WriteLine($"Paragraph {spec} not found.");
+        return 1;
+    }
+
+    Console.WriteLine($"Sermon '{title}', Paragraph {number}: {text.Length:N0} characters.");
+    var sizes = new[]
+    {
+        (1280.0, 720.0, "1280x720 at 100%"),
+        (853.3, 480.0, "1280x720 at 150%"),
+        (1920.0, 1080.0, "1920x1080 at 100%"),
+        (1280.0, 720.0, "1920x1080 at 150%"),
+        (3840.0, 2160.0, "3840x2160 at 100%"),
+        (1920.0, 1080.0, "3840x2160 at 200%"),
+    };
+    var exact = true;
+    var thread = new Thread(() =>
+    {
+        foreach (var (width, height, name) in sizes)
+        {
+            var layout = ProjectionAutoFitEngine.CalculateLayout(
+                ProjectionContentType.Sermon, title, $"Paragraph {number}", text, width, height);
+            exact &= string.Join(" ", layout.Pages) == ProjectionAutoFitEngine.NormalizeProseText(text);
+            Console.WriteLine(
+                $"  {name,-20} pages={layout.Pages.Count} font={layout.FontSize:0.#} (readable floor {layout.MinimumReadableFontSize:0.#}) " +
+                $"page lengths=[{string.Join(", ", layout.Pages.Select(page => page.Length))}]");
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    Console.WriteLine(exact ? "PASS: the pages hold exactly the paragraph text." : "FAIL: the pages differ from the paragraph text.");
+    return exact ? 0 : 1;
+}
+
+// --all-sermon-pages <width>x<height>
+// Every sermon paragraph (Brother Branham and Brother Frank, every language): the pages joined
+// back together must be the paragraph's text exactly, every page must fit, and no page may be
+// shown below the readable floor.
+async Task<int> RunAllSermonPagesAsync(string screen)
+{
+    var size = screen.Split('x');
+    var width = double.Parse(size[0], System.Globalization.CultureInfo.InvariantCulture);
+    var height = double.Parse(size[1], System.Globalization.CultureInfo.InvariantCulture);
+    await Task.CompletedTask;
+
+    long checkedCount = 0, mismatches = 0, characterMismatches = 0, overflows = 0, belowFloor = 0, paginated = 0;
+    var pageCounts = new SortedDictionary<int, long>();
+    var byLanguage = new SortedDictionary<string, (long Checked, long Paginated)>();
+    var minimumPagedFont = double.MaxValue;
+    var examples = new List<string>();
+    var thread = new Thread(() =>
+    {
+        using var reader = new SqliteConnection(connectionString);
+        reader.Open();
+        using var cmd = reader.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT s."Title", s."Language", p."ParagraphNumber", p."Text"
+            FROM "SermonParagraphs" p JOIN "Sermons" s ON s."Id" = p."SermonId"
+            ORDER BY p."Id";
+            """;
+        using var rows = cmd.ExecuteReader();
+        while (rows.Read())
+        {
+            var title = rows.GetString(0);
+            var language = rows.IsDBNull(1) ? "en" : rows.GetString(1);
+            var number = rows.GetInt32(2);
+            var text = rows.GetString(3);
+            var layout = ProjectionAutoFitEngine.CalculateLayout(
+                ProjectionContentType.Sermon, title, $"Paragraph {number}", text, width, height);
+            checkedCount++;
+
+            var joined = string.Join(" ", layout.Pages);
+            if (joined != ProjectionAutoFitEngine.NormalizeProseText(text))
+            {
+                mismatches++;
+                if (examples.Count < 10) examples.Add($"TEXT {title} {number}");
+            }
+
+            // Independent of the normalisation: the same characters, in order, apart from whitespace.
+            if (!string.Concat(joined.Where(c => !char.IsWhiteSpace(c))).Equals(
+                    string.Concat(text.Where(c => !char.IsWhiteSpace(c))), StringComparison.Ordinal))
+            {
+                characterMismatches++;
+                if (examples.Count < 10) examples.Add($"CHARS {title} {number}");
+            }
+
+            foreach (var page in layout.Pages)
+            {
+                if (!ProjectionAutoFitEngine.DoesTextFit(page, layout.StageWidth, layout.StageHeight, layout.FontSize,
+                        FontWeights.SemiBold, TextAlignment.Left, ProjectionContentType.Sermon))
+                {
+                    overflows++;
+                    if (examples.Count < 10) examples.Add($"OVERFLOW {title} {number}");
+                    break;
+                }
+            }
+
+            if (layout.FontSize < layout.MinimumReadableFontSize - 0.01)
+            {
+                belowFloor++;
+                if (examples.Count < 10) examples.Add($"BELOW FLOOR {title} {number}: {layout.FontSize:0.#} < {layout.MinimumReadableFontSize:0.#}");
+            }
+
+            var stats = byLanguage.GetValueOrDefault(language);
+            if (layout.Pages.Count > 1)
+            {
+                paginated++;
+                minimumPagedFont = Math.Min(minimumPagedFont, layout.FontSize);
+                stats.Paginated++;
+            }
+
+            stats.Checked++;
+            byLanguage[language] = stats;
+            pageCounts[layout.Pages.Count] = pageCounts.GetValueOrDefault(layout.Pages.Count) + 1;
+            if (checkedCount % 50000 == 0)
+            {
+                Console.WriteLine($"  {checkedCount:N0} paragraphs...");
+            }
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+
+    Console.WriteLine($"Sermon paragraphs checked at {screen}: {checkedCount:N0}");
+    foreach (var (language, stats) in byLanguage)
+    {
+        Console.WriteLine($"  {language}: {stats.Checked:N0} paragraphs, {stats.Paginated:N0} on several pages");
+    }
+
+    Console.WriteLine($"Pages per paragraph: {string.Join(", ", pageCounts.Select(pair => $"{pair.Key} page(s): {pair.Value:N0}"))}");
+    Console.WriteLine($"Paginated paragraphs: {paginated:N0}; smallest font on a paginated paragraph: {(paginated > 0 ? minimumPagedFont : 0):0.#}");
+    Console.WriteLine($"Text mismatches (pages joined vs paragraph): {mismatches:N0}; character mismatches: {characterMismatches:N0}");
+    Console.WriteLine($"Pages that overflow: {overflows:N0}; paragraphs below the readable floor: {belowFloor:N0}");
+    foreach (var example in examples)
+    {
+        Console.WriteLine("  " + example);
+    }
+
+    var ok = mismatches == 0 && characterMismatches == 0 && overflows == 0 && belowFloor == 0;
+    Console.WriteLine(ok ? "PASS" : "FAIL");
+    return ok ? 0 : 1;
+}
+
 async Task<int> RunSongReportAsync(string songIdList)
 {
     var requestedIds = songIdList.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();

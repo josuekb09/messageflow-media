@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using MessageFlow.App.Services;
 using MessageFlow.App.ViewModels;
+using MessageFlow.Core.Localization;
 using Forms = System.Windows.Forms;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 
@@ -311,7 +312,7 @@ public partial class ProjectWindow : Window
         if (layout.IsPaginated && projectionPages.Count > 1)
         {
             PageIndicatorTextBlock.Visibility = Visibility.Visible;
-            PageIndicatorTextBlock.Text = $"{currentPageIndex + 1} of {projectionPages.Count}";
+            PageIndicatorTextBlock.Text = PageIndicatorText();
         }
         else
         {
@@ -343,10 +344,14 @@ public partial class ProjectWindow : Window
         {
             currentPageIndex++;
             ParagraphTextBlock.Text = projectionPages[currentPageIndex];
-            PageIndicatorTextBlock.Text = $"{currentPageIndex + 1} of {projectionPages.Count}";
+            PageIndicatorTextBlock.Text = PageIndicatorText();
             viewModel.ReportProjectionPageState(currentPageIndex, projectionPages.Count);
         }
     }
+
+    // "Page 2 of 4" in the interface language, so the congregation reads it in its own language.
+    private string PageIndicatorText() =>
+        Localizer.Instance.Format("Projection_PageIndicator", currentPageIndex + 1, projectionPages.Count);
 
     private int PageContainingWord(int wordIndex)
     {
@@ -380,7 +385,7 @@ public partial class ProjectWindow : Window
         {
             currentPageIndex--;
             ParagraphTextBlock.Text = projectionPages[currentPageIndex];
-            PageIndicatorTextBlock.Text = $"{currentPageIndex + 1} of {projectionPages.Count}";
+            PageIndicatorTextBlock.Text = PageIndicatorText();
             viewModel.ReportProjectionPageState(currentPageIndex, projectionPages.Count);
         }
     }

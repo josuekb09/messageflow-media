@@ -163,6 +163,7 @@ public static class UiStringsEnglish
         ["Admin_OpenProjectionPreviewTooltip"] = "Open a resizable local preview window",
         ["Admin_RefreshDisplays"] = "Refresh Displays",
         ["Admin_RefreshDisplaysTooltip"] = "Detect connected monitors again",
+        ["Projection_PageIndicator"] = "Page {0} of {1}",
         ["Admin_DisplaySelectorTooltip"] = "Screen that shows the projection. Auto uses the projector or TV when one is connected",
         ["Admin_BackupDatabaseTooltip"] = "Save a copy of the library, favorites and history",
         ["Admin_RestoreDatabaseTooltip"] = "Replace the library with a saved copy",

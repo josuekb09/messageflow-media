@@ -200,6 +200,7 @@ public static class UiStringsSwahili
         ["Display_StatusSecondary"] = "Skrini {0} Ya pili / Onyesho",
         ["Msg_StartupFailed"] = "MessageFlow imefunguka, lakini kuanzisha kumeshindikana.{0}{0}{1}{0}{0}Maelezo yameandikwa kwenye logs\\app-startup.log.",
         ["Msg_StartupFailedTitle"] = "Hitilafu ya kuanzisha MessageFlow",
+        ["Projection_PageIndicator"] = "Ukurasa {0} kati ya {1}",
         ["Admin_DisplaySelectorTooltip"] = "Skrini inayoonyesha onyesho. Otomatiki hutumia projekta au TV ikiwa imeunganishwa",
         ["Admin_BackupDatabaseTooltip"] = "Hifadhi nakala ya maktaba, vipendwa na historia",
         ["Admin_RestoreDatabaseTooltip"] = "Badilisha maktaba kwa nakala iliyohifadhiwa",

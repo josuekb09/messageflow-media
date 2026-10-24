@@ -163,6 +163,7 @@ public static class UiStringsFrench
         ["Admin_OpenProjectionPreviewTooltip"] = "Ouvrir une fenêtre d'aperçu local redimensionnable",
         ["Admin_RefreshDisplays"] = "Actualiser les écrans",
         ["Admin_RefreshDisplaysTooltip"] = "Détecter à nouveau les moniteurs connectés",
+        ["Projection_PageIndicator"] = "Page {0} sur {1}",
         ["Admin_DisplaySelectorTooltip"] = "Écran qui affiche la projection. Auto utilise le projecteur ou la télévision quand ils sont branchés",
         ["Admin_BackupDatabaseTooltip"] = "Enregistrer une copie de la bibliothèque, des favoris et de l'historique",
         ["Admin_RestoreDatabaseTooltip"] = "Remplacer la bibliothèque par une copie enregistrée",
