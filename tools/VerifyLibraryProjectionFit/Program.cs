@@ -163,27 +163,27 @@ Console.WriteLine("\n[3/4] Querying Worst-Case Long Texts Across Library...");
 
 var longestSermons = await QueryAsync(
     """
-    SELECT s."Title", 'Paragraph ' || p."ParagraphNumber", p."Text"
-    FROM "SermonParagraphs" p
-    JOIN "Sermons" s ON s."Id" = p."SermonId"
-    LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
-    WHERE (s."Language" = 'en' OR s."Language" IS NULL)
-      AND COALESCE(cs."DisplayName", '') NOT LIKE '%Frank%'
-    ORDER BY LENGTH(p."Text") DESC
-    LIMIT 100;
+    SELECT "Title", "Subtitle", "Text" FROM (
+        SELECT s."Title" AS "Title", 'Paragraph ' || p."ParagraphNumber" AS "Subtitle", p."Text" AS "Text",
+               ROW_NUMBER() OVER (PARTITION BY COALESCE(s."Language", 'en') ORDER BY LENGTH(p."Text") DESC) AS "Rank"
+        FROM "SermonParagraphs" p
+        JOIN "Sermons" s ON s."Id" = p."SermonId"
+        LEFT JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
+        WHERE COALESCE(cs."DisplayName", '') NOT LIKE '%Frank%')
+    WHERE "Rank" <= 100;
     """);
-Console.WriteLine($"Loaded {longestSermons.Count} longest English sermon paragraphs (Max: {longestSermons.Max(item => item.Text.Length):N0} chars).");
+Console.WriteLine($"Loaded {longestSermons.Count} longest sermon paragraphs, 100 per language (Max: {longestSermons.Max(item => item.Text.Length):N0} chars).");
 
 var longestVerses = await QueryAsync(
     """
-    SELECT b."Name" || ' ' || v."Chapter" || ':' || v."Verse", '', v."Text"
-    FROM "BibleVerses" v
-    JOIN "BibleBooks" b ON b."Id" = v."BookId"
-    WHERE v."TranslationId" = 1
-    ORDER BY LENGTH(v."Text") DESC
-    LIMIT 100;
+    SELECT "Reference", '', "Text" FROM (
+        SELECT b."Name" || ' ' || v."Chapter" || ':' || v."Verse" AS "Reference", v."Text" AS "Text",
+               ROW_NUMBER() OVER (PARTITION BY v."TranslationId" ORDER BY LENGTH(v."Text") DESC) AS "Rank"
+        FROM "BibleVerses" v
+        JOIN "BibleBooks" b ON b."Id" = v."BookId")
+    WHERE "Rank" <= 100;
     """);
-Console.WriteLine($"Loaded {longestVerses.Count} longest English Bible verses (Max: {longestVerses.Max(item => item.Text.Length):N0} chars).");
+Console.WriteLine($"Loaded {longestVerses.Count} longest Bible verses, 100 per translation (Max: {longestVerses.Max(item => item.Text.Length):N0} chars).");
 
 var englishSongs = await QuerySongsAsync("en");
 Console.WriteLine($"Loaded {englishSongs.Count} English song sections (all bundled English songs).");
@@ -434,7 +434,7 @@ var staThread = new Thread(() =>
 
     if (Runs("sermons"))
     {
-        Console.WriteLine("-> Testing Top 100 Longest English Sermon Paragraphs...");
+        Console.WriteLine("-> Testing the 100 Longest Sermon Paragraphs of Each Language...");
         foreach (var (title, subtitle, text) in longestSermons)
         {
             VerifyItem(ProjectionContentType.Sermon, title, subtitle, text, false, $"Sermon '{title}' {subtitle}", true, true);
@@ -443,7 +443,7 @@ var staThread = new Thread(() =>
 
     if (Runs("bible"))
     {
-        Console.WriteLine("-> Testing Top 100 Longest English Bible Verses...");
+        Console.WriteLine("-> Testing the 100 Longest Verses of Each Bible...");
         foreach (var (reference, _, text) in longestVerses)
         {
             VerifyItem(ProjectionContentType.Bible, reference, string.Empty, text, false, $"Bible {reference}", true, true);

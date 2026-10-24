@@ -7,6 +7,7 @@ using System.Windows.Media.Animation;
 using MessageFlow.App.Localization;
 using MessageFlow.App.Services;
 using MessageFlow.App.ViewModels;
+using Microsoft.Win32;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace MessageFlow.App;
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
     private bool? liveProjectionIsFullscreen;
     private string? liveProjectionTargetKey;
     private Rect? savedLiveProjectionWindowedBounds;
+    private int displayChangeVersion;
     private Task? backgroundDatabaseTask;
     private readonly TaskCompletionSource<Exception?> initialization = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -38,6 +40,84 @@ public partial class MainWindow : Window
         viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
         viewModel.ProjectionPreviewRequested += ShowWindowedProjectionPreview;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+        base.OnClosed(e);
+    }
+
+    /// <summary>
+    /// Raised (on a system thread) when a projector or TV is plugged in or unplugged, or a display
+    /// changes resolution. Windows settles the new layout over a moment, so the projection window is
+    /// re-placed once the changes stop.
+    /// </summary>
+    private void SystemEvents_DisplaySettingsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(async () =>
+        {
+            var version = ++displayChangeVersion;
+            await Task.Delay(TimeSpan.FromMilliseconds(1500));
+            if (version == displayChangeVersion)
+            {
+                HandleDisplayLayoutChanged();
+            }
+        });
+    }
+
+    /// <summary>
+    /// Keeps the live projection on the projector and the operator controls on the computer screen
+    /// after the display layout changed: fullscreen on the projector when one is connected, a normal
+    /// window on the operator screen when the projector was unplugged (never a borderless topmost
+    /// window covering the controls).
+    /// </summary>
+    private void HandleDisplayLayoutChanged()
+    {
+        try
+        {
+            viewModel.RefreshProjectionDisplayOptions();
+            if (projectWindow is null || liveProjectionIsFullscreen is null)
+            {
+                return;
+            }
+
+            var displayTarget = viewModel.ResolveLiveProjectionDisplayTarget();
+            var useFullscreen = ProjectionDisplayService.ShouldUseFullscreenProjection(displayTarget);
+            var targetSignature = CreateDisplayTargetSignature(displayTarget);
+            if (useFullscreen == liveProjectionIsFullscreen &&
+                string.Equals(targetSignature, liveProjectionTargetKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (useFullscreen)
+            {
+                ProjectionDisplayService.PrepareFullscreenWindow(projectWindow, displayTarget);
+                ProjectionDisplayService.MaximizeOnTarget(projectWindow, displayTarget);
+            }
+            else
+            {
+                ProjectionDisplayService.ConfigureAdaptiveWindowedProjection(
+                    projectWindow,
+                    displayTarget,
+                    preserveExistingWindowBounds: false,
+                    savedWindowedBounds: savedLiveProjectionWindowedBounds);
+            }
+
+            liveProjectionIsFullscreen = useFullscreen;
+            liveProjectionTargetKey = targetSignature;
+            Activate();
+            viewModel.ReportProjectionOpened(displayTarget, isTest: false, isAdaptiveWindowed: !useFullscreen);
+            App.LogStartupMessage(
+                $"Display layout changed; live projection moved: {(useFullscreen ? "fullscreen" : "windowed")}; " +
+                $"selected={displayTarget.DeviceName}; bounds={displayTarget.BoundsDisplay}; screens={displayTarget.ScreenCount:N0}.");
+        }
+        catch (Exception ex)
+        {
+            App.LogStartupError("Projection window could not follow the display change.", ex);
+        }
     }
 
     public void AttachBackgroundDatabaseTask(Task task)

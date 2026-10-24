@@ -3,14 +3,21 @@
 ## Current Version
 
 ```text
-v1.0.8
+v1.0.9
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.8
+MessageFlow Media v1.0.9
 ```
+
+## Included In v1.0.9
+
+- Whole library compared with the original sources (see docs/SOURCE_ACCURACY_AUDIT.md); sermon paragraphs re-cut on the printed numbers, glued page heads removed, lost em dashes and spaces restored, songs and French hymns corrected from their sources, two KJV verses completed
+- Projection window follows a projector plugged in or unplugged during projection
+- Importer keeps an em dash that ends a PDF line
+- ApplySourceCorrections tool and SourceAccuracyAudit scripts
 
 ## Included In v1.0.8
 

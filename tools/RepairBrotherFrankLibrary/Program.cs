@@ -418,7 +418,7 @@ static async Task VerifyProtectedBaselinesAsync(SqliteConnection connection)
         """SELECT COUNT(1) FROM "Songs" WHERE "IsActive" = 1 AND "Language" = 'en';""");
 
     Report("Branham English documents", branhamDocuments, 1_203);
-    Report("Branham English paragraphs", branhamParagraphs, 210_061);
+    Report("Branham English paragraphs", branhamParagraphs, 210_073);
     Report("Bible verses", bibleVerses, 93_373);
     Report("Bible books", bibleBooks, 66);
     Report("English songs", englishSongs, 357);

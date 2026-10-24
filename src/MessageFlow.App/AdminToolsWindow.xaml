@@ -33,7 +33,7 @@
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section1}" FontSize="18" FontWeight="SemiBold" />
                         <TextBlock Text="{loc:Tr Admin_Section1Detail}" Margin="0,7,0,16" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
-                        <ComboBox ItemsSource="{Binding ProjectionDisplayOptions}" SelectedItem="{Binding SelectedProjectionDisplayOption}" DisplayMemberPath="Label" TextSearch.TextPath="Label" MinHeight="36" VerticalContentAlignment="Center" />
+                        <ComboBox ItemsSource="{Binding ProjectionDisplayOptions}" SelectedItem="{Binding SelectedProjectionDisplayOption}" ToolTip="{loc:Tr Admin_DisplaySelectorTooltip}" DisplayMemberPath="Label" TextSearch.TextPath="Label" MinHeight="36" VerticalContentAlignment="Center" />
                         <Button Content="{loc:Tr Admin_TestProjection}" Margin="0,10,0,0" Command="{Binding TestProjectionDisplayCommand}" ToolTip="{loc:Tr Admin_TestProjectionTooltip}" />
                         <Button Content="{loc:Tr Admin_OpenProjectionPreview}" Margin="0,10,0,0" Command="{Binding OpenProjectionPreviewCommand}" ToolTip="{loc:Tr Admin_OpenProjectionPreviewTooltip}" />
                         <Button Content="{loc:Tr Admin_RefreshDisplays}" Margin="0,10,0,0" Command="{Binding RefreshProjectionDisplaysCommand}" ToolTip="{loc:Tr Admin_RefreshDisplaysTooltip}" />
@@ -65,9 +65,9 @@
                     <StackPanel>
                         <TextBlock Text="{loc:Tr Admin_Section4}" FontSize="18" FontWeight="SemiBold" />
                         <TextBlock Text="{loc:Tr Admin_Section4Detail}" Margin="0,7,0,16" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="13" TextWrapping="Wrap" />
-                        <Button Content="{loc:Tr Admin_BackupDatabase}" Command="{Binding BackupDatabaseCommand}" />
-                        <Button Content="{loc:Tr Admin_RestoreDatabase}" Margin="0,10,0,0" Command="{Binding RestoreDatabaseCommand}" />
-                        <Button Content="{loc:Tr Admin_OpenBackupFolder}" Margin="0,10,0,0" Command="{Binding OpenBackupFolderCommand}" />
+                        <Button Content="{loc:Tr Admin_BackupDatabase}" Command="{Binding BackupDatabaseCommand}" ToolTip="{loc:Tr Admin_BackupDatabaseTooltip}" />
+                        <Button Content="{loc:Tr Admin_RestoreDatabase}" Margin="0,10,0,0" Command="{Binding RestoreDatabaseCommand}" ToolTip="{loc:Tr Admin_RestoreDatabaseTooltip}" />
+                        <Button Content="{loc:Tr Admin_OpenBackupFolder}" Margin="0,10,0,0" Command="{Binding OpenBackupFolderCommand}" ToolTip="{loc:Tr Admin_OpenBackupFolderTooltip}" />
                         <Button Content="{loc:Tr Admin_VerifyProductionData}" Margin="0,10,0,0" Command="{Binding VerifyProductionDataCommand}" ToolTip="{loc:Tr Admin_VerifyProductionDataTooltip}" />
                     </StackPanel>
                 </Border>
@@ -98,7 +98,7 @@
         <Border Grid.Row="2" Margin="0,20,0,0" Padding="0,16,0,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <Button Grid.Column="1" MinWidth="110" Content="{loc:Tr Common_Close}" Click="Close_Click" />
+                <Button Grid.Column="1" MinWidth="110" Content="{loc:Tr Common_Close}" ToolTip="{loc:Tr Admin_CloseTooltip}" Click="Close_Click" />
             </Grid>
         </Border>
     </Grid>

@@ -14,7 +14,10 @@ public static partial class TextCleaner
             return string.Empty;
         }
 
-        var normalized = NormalizeCharacters(value);
+        // An em or en dash that ends a PDF line ("I—" / "I'm") joins the next word with no space,
+        // as printed ("I—I'm"). It must be joined before NormalizeCharacters turns it into "-",
+        // or the hyphenation rule below deletes it and glues the words ("II'm").
+        var normalized = NormalizeCharacters(DashLineBreakRegex().Replace(value, "$1"));
         normalized = IsPastArtifactRegex().Replace(
             normalized,
             match => char.IsUpper(match.Value[0]) ? "Is past" : "is past");
@@ -107,6 +110,9 @@ public static partial class TextCleaner
 
     [GeneratedRegex(@"-\s*(?:\r\n|\r|\n)\s*")]
     private static partial Regex HyphenLineBreakRegex();
+
+    [GeneratedRegex(@"([–—])[ \t]*(?:\r\n|\r|\n)\s*")]
+    private static partial Regex DashLineBreakRegex();
 
     [GeneratedRegex(@"\bispast\b", RegexOptions.IgnoreCase)]
     private static partial Regex IsPastArtifactRegex();

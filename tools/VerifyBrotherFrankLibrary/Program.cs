@@ -52,7 +52,8 @@ await using (var scope = services.CreateAsyncScope())
 
     var branhamParagraphs = await dbContext.SermonParagraphs
         .CountAsync(p => p.Sermon!.ContentSourceId == branhamId && p.Sermon.Language == "en");
-    checks.Add(new("Branham English paragraphs", branhamParagraphs == 210_061, $"{branhamParagraphs:N0} (expected 210,061)"));
+    // 210,073 since 2026-10-24: paragraphs follow the numbers printed in the source PDFs.
+    checks.Add(new("Branham English paragraphs", branhamParagraphs == 210_073, $"{branhamParagraphs:N0} (expected 210,073)"));
 
     var bibleVerses = await dbContext.BibleVerses.CountAsync();
     var bibleBooks = await dbContext.BibleBooks.CountAsync();

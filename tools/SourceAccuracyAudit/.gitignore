@@ -1,0 +1,6 @@
+tmp_align/
+vocab.pkl
+*.jsonl
+*.json
+*.txt
+__pycache__/
