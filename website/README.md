@@ -72,3 +72,18 @@ Default delivery is [FormSubmit](https://formsubmit.co) AJAX (`https://formsubmi
 The first live submit to a new FormSubmit inbox sends a confirmation email to that Gmail. Open it and click the confirmation link so later messages are forwarded. The `_cc` address (`Paulinkabeya@gmail.com`) also needs a one-time confirmation. Check spam if it does not appear.
 
 [Web3Forms](https://web3forms.com) is optional. If `WEB3FORMS_ACCESS_KEY` is set (local `.env.local` or Vercel env), the route tries Web3Forms first and falls back to FormSubmit. Keep the key server-side (do not use `NEXT_PUBLIC_`). The form never blocks on a missing key.
+
+## New-version email announcements
+
+Visitors who click **Download for Windows** are offered update emails (`components/notify-dialog.tsx`). It is double opt-in: `/api/subscribe` stores the address in Supabase and sends a confirmation email through Resend; the address is only marked confirmed when the person presses the button on `/subscribe/confirm`. Every email has an unsubscribe link (`/unsubscribe`, plus Gmail/Outlook one-click), and unsubscribing deletes the address.
+
+When a release is published as a full release, `.github/workflows/announce-release.yml` calls `/api/announce`. The website asks GitHub which release is latest (never a draft or pre-release), claims the tag in `release_announcements`, and reserves each recipient in `release_deliveries` before sending, so the same version is never emailed twice, even if the workflow is re-run. The email uses the release notes' `## What's new` section, or `## Highlights` if there is none; other sections (checksums, sizes, test notes) are never sent.
+
+Setup:
+
+1. Run `supabase/schema.sql` once in the Supabase SQL Editor (safe to re-run).
+2. Set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `RESEND_API_KEY`, `RESEND_FROM`, and `ANNOUNCE_SECRET` on Vercel (Production) and in `.env.local` for local runs. See `.env.example`.
+3. Add the same `ANNOUNCE_SECRET` as a GitHub repository secret (Settings → Secrets and variables → Actions).
+4. Verify the sending domain in Resend; its DNS records go in the domains.co.za panel.
+
+To preview an announcement without sending it to anyone else: Actions → **Announce release by email** → Run workflow, with a tag and `preview_to`. Run it with only a tag to announce (or retry) that release for real.

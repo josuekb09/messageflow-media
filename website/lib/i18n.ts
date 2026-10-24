@@ -119,6 +119,44 @@ export type Dictionary = {
     emailInvalid: string;
     messageRequired: string;
   };
+  notify: {
+    downloadStarted: string;
+    title: string;
+    body: string;
+    accept: string;
+    decline: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    submit: string;
+    submitting: string;
+    privacy: string;
+    emailInvalid: string;
+    error: string;
+    successTitle: string;
+    successBody: string;
+    close: string;
+  };
+  subscription: {
+    confirmTitle: string;
+    confirmBody: string;
+    confirmButton: string;
+    confirming: string;
+    confirmedTitle: string;
+    confirmedBody: string;
+    expiredTitle: string;
+    expiredBody: string;
+    invalidTitle: string;
+    invalidBody: string;
+    unsubscribeTitle: string;
+    unsubscribeBody: string;
+    unsubscribeButton: string;
+    unsubscribing: string;
+    unsubscribedTitle: string;
+    unsubscribedBody: string;
+    unsubscribeInvalidBody: string;
+    error: string;
+    home: string;
+  };
 };
 
 export const dictionaries: Record<Locale, Dictionary> = {
@@ -274,6 +312,47 @@ export const dictionaries: Record<Locale, Dictionary> = {
       emailInvalid: "Enter a valid email address.",
       messageRequired: "Enter a message.",
     },
+    notify: {
+      downloadStarted: "Your download has started.",
+      title: "Want to be notified when a new version is released?",
+      body: "We'll send you a short email when a new version of MessageFlow Media is ready. Nothing else.",
+      accept: "Yes, notify me",
+      decline: "No thanks",
+      emailLabel: "Your email address",
+      emailPlaceholder: "you@example.com",
+      submit: "Notify me",
+      submitting: "Sending…",
+      privacy:
+        "We only use your email to announce new versions. We never sell it, and you can unsubscribe at any time.",
+      emailInvalid: "Enter a valid email address.",
+      error: "Something went wrong. Please try again in a moment.",
+      successTitle: "Check your inbox",
+      successBody:
+        "We sent you an email. Click the button inside to confirm. If you don't see it, look in your spam folder.",
+      close: "Close",
+    },
+    subscription: {
+      confirmTitle: "Confirm your email",
+      confirmBody: "Click the button to start receiving an email when a new version is released.",
+      confirmButton: "Confirm my email",
+      confirming: "Confirming…",
+      confirmedTitle: "You're subscribed",
+      confirmedBody: "Thank you. We'll email you when a new version of MessageFlow Media is ready.",
+      expiredTitle: "This link has expired",
+      expiredBody: "Please sign up again: click Download for Windows and choose “Yes, notify me”.",
+      invalidTitle: "This link is not valid",
+      invalidBody: "It may already have been used. If you already confirmed, you're all set.",
+      unsubscribeTitle: "Unsubscribe",
+      unsubscribeBody:
+        "Click the button to stop receiving emails about new versions. Your email address will be deleted.",
+      unsubscribeButton: "Unsubscribe",
+      unsubscribing: "Unsubscribing…",
+      unsubscribedTitle: "You're unsubscribed",
+      unsubscribedBody: "Your email address has been deleted. You won't receive any more emails from us.",
+      unsubscribeInvalidBody: "This link is not valid. Please use the link from one of our emails.",
+      error: "Something went wrong. Please try again in a moment.",
+      home: "Back to the home page",
+    },
   },
   fr: {
     nav: {
@@ -427,6 +506,47 @@ export const dictionaries: Record<Locale, Dictionary> = {
       emailInvalid: "Saisissez une adresse e-mail valide.",
       messageRequired: "Saisissez un message.",
     },
+    notify: {
+      downloadStarted: "Votre téléchargement a commencé.",
+      title: "Voulez-vous être prévenu quand une nouvelle version sort ?",
+      body: "Nous vous enverrons un court e-mail quand une nouvelle version de MessageFlow Media sera prête. Rien d'autre.",
+      accept: "Oui, prévenez-moi",
+      decline: "Non merci",
+      emailLabel: "Votre adresse e-mail",
+      emailPlaceholder: "vous@exemple.com",
+      submit: "Me prévenir",
+      submitting: "Envoi…",
+      privacy:
+        "Nous utilisons votre e-mail uniquement pour annoncer les nouvelles versions. Nous ne le vendons jamais, et vous pouvez vous désabonner à tout moment.",
+      emailInvalid: "Saisissez une adresse e-mail valide.",
+      error: "Une erreur s'est produite. Veuillez réessayer dans un instant.",
+      successTitle: "Consultez votre boîte de réception",
+      successBody:
+        "Nous vous avons envoyé un e-mail. Cliquez sur le bouton qu'il contient pour confirmer. Si vous ne le voyez pas, regardez dans les courriers indésirables.",
+      close: "Fermer",
+    },
+    subscription: {
+      confirmTitle: "Confirmez votre adresse e-mail",
+      confirmBody: "Cliquez sur le bouton pour recevoir un e-mail à chaque nouvelle version.",
+      confirmButton: "Confirmer mon adresse",
+      confirming: "Confirmation…",
+      confirmedTitle: "Vous êtes inscrit",
+      confirmedBody: "Merci. Nous vous écrirons quand une nouvelle version de MessageFlow Media sera prête.",
+      expiredTitle: "Ce lien a expiré",
+      expiredBody: "Veuillez vous inscrire à nouveau : cliquez sur Télécharger pour Windows et choisissez « Oui, prévenez-moi ».",
+      invalidTitle: "Ce lien n'est pas valide",
+      invalidBody: "Il a peut-être déjà été utilisé. Si vous avez déjà confirmé, tout est en ordre.",
+      unsubscribeTitle: "Se désabonner",
+      unsubscribeBody:
+        "Cliquez sur le bouton pour ne plus recevoir d'e-mails sur les nouvelles versions. Votre adresse sera supprimée.",
+      unsubscribeButton: "Me désabonner",
+      unsubscribing: "Désabonnement…",
+      unsubscribedTitle: "Vous êtes désabonné",
+      unsubscribedBody: "Votre adresse e-mail a été supprimée. Vous ne recevrez plus d'e-mails de notre part.",
+      unsubscribeInvalidBody: "Ce lien n'est pas valide. Veuillez utiliser le lien de l'un de nos e-mails.",
+      error: "Une erreur s'est produite. Veuillez réessayer dans un instant.",
+      home: "Retour à l'accueil",
+    },
   },
   sw: {
     nav: {
@@ -579,6 +699,47 @@ export const dictionaries: Record<Locale, Dictionary> = {
       errorValidation: "Tafadhali kagua sehemu zilizoonyeshwa.",
       emailInvalid: "Weka anwani sahihi ya barua pepe.",
       messageRequired: "Weka ujumbe.",
+    },
+    notify: {
+      downloadStarted: "Upakuaji wako umeanza.",
+      title: "Ungependa kujulishwa toleo jipya linapotoka?",
+      body: "Tutakutumia barua pepe fupi toleo jipya la MessageFlow Media likiwa tayari. Hakuna kingine.",
+      accept: "Ndiyo, nijulishe",
+      decline: "Hapana, asante",
+      emailLabel: "Barua pepe yako",
+      emailPlaceholder: "wewe@mfano.com",
+      submit: "Nijulishe",
+      submitting: "Inatuma…",
+      privacy:
+        "Tunatumia barua pepe yako tu kutangaza matoleo mapya. Hatuiuzi kamwe, na unaweza kujiondoa wakati wowote.",
+      emailInvalid: "Weka anwani sahihi ya barua pepe.",
+      error: "Kumetokea hitilafu. Tafadhali jaribu tena baadaye kidogo.",
+      successTitle: "Angalia sanduku lako la barua",
+      successBody:
+        "Tumekutumia barua pepe. Bonyeza kitufe kilichomo ili kuthibitisha. Usipoiona, angalia kwenye barua taka (spam).",
+      close: "Funga",
+    },
+    subscription: {
+      confirmTitle: "Thibitisha barua pepe yako",
+      confirmBody: "Bonyeza kitufe ili uanze kupokea barua pepe toleo jipya linapotoka.",
+      confirmButton: "Thibitisha barua pepe yangu",
+      confirming: "Inathibitisha…",
+      confirmedTitle: "Umejiandikisha",
+      confirmedBody: "Asante. Tutakutumia barua pepe toleo jipya la MessageFlow Media likiwa tayari.",
+      expiredTitle: "Kiungo hiki kimeisha muda",
+      expiredBody: "Tafadhali jiandikishe tena: bonyeza Pakua kwa Windows kisha chagua “Ndiyo, nijulishe”.",
+      invalidTitle: "Kiungo hiki si sahihi",
+      invalidBody: "Huenda kimeshatumika. Ikiwa umeshathibitisha, kila kitu kiko sawa.",
+      unsubscribeTitle: "Jiondoe",
+      unsubscribeBody:
+        "Bonyeza kitufe ili uache kupokea barua pepe kuhusu matoleo mapya. Barua pepe yako itafutwa.",
+      unsubscribeButton: "Jiondoe",
+      unsubscribing: "Inaondoa…",
+      unsubscribedTitle: "Umejiondoa",
+      unsubscribedBody: "Barua pepe yako imefutwa. Hutapokea barua pepe zaidi kutoka kwetu.",
+      unsubscribeInvalidBody: "Kiungo hiki si sahihi. Tafadhali tumia kiungo kutoka kwenye mojawapo ya barua pepe zetu.",
+      error: "Kumetokea hitilafu. Tafadhali jaribu tena baadaye kidogo.",
+      home: "Rudi ukurasa wa mwanzo",
     },
   },
 };

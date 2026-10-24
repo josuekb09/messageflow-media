@@ -1,0 +1,78 @@
+# Emails confirmed subscribers when a new version is released.
+#
+# Runs when a release is published as a full release (not a draft, not a
+# pre-release), or when a pre-release is promoted to a full release. The website
+# checks the release again with GitHub and records every announced tag in
+# Supabase, so the same version is never emailed twice even if this runs again.
+#
+# Needs one repository secret: ANNOUNCE_SECRET (the same value as on Vercel).
+#
+# "Run workflow" (Actions tab) lets you send a preview of any release to one
+# address without recording anything, or retry an announcement that failed.
+name: Announce release by email
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v1.0.9"
+        required: true
+      preview_to:
+        description: "Preview only: send one test email to this address and record nothing. Leave empty to announce to all confirmed subscribers."
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: announce-release
+  cancel-in-progress: false
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.release.draft == false && github.event.release.prerelease == false)
+    timeout-minutes: 10
+    steps:
+      - name: Check that this release is marked latest
+        id: latest
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          latest="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          if [ "$latest" != "$TAG" ]; then
+            echo "Skipping: $TAG is not the latest release (latest is $latest)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send the announcement
+        if: steps.latest.outputs.skip != 'true'
+        env:
+          ANNOUNCE_SECRET: ${{ secrets.ANNOUNCE_SECRET }}
+          ANNOUNCE_URL: https://www.messageflow.tech/api/announce
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          PREVIEW_TO: ${{ inputs.preview_to }}
+        run: |
+          if [ -z "$ANNOUNCE_SECRET" ]; then
+            echo "::error::The ANNOUNCE_SECRET repository secret is not set."
+            exit 1
+          fi
+          body="$(jq -n --arg tag "$TAG" --arg preview "$PREVIEW_TO" \
+            'if $preview == "" then {tag: $tag} else {tag: $tag, preview_to: $preview} end')"
+          status="$(curl --silent --show-error --max-time 320 --output response.json --write-out '%{http_code}' \
+            -X POST "$ANNOUNCE_URL" \
+            -H "Authorization: Bearer $ANNOUNCE_SECRET" \
+            -H "Content-Type: application/json" \
+            --data "$body")"
+          echo "HTTP $status"
+          cat response.json; echo
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::The website did not send the announcement (HTTP $status). Run this workflow again with the same tag to retry; nobody will get it twice."
+            exit 1
+          fi

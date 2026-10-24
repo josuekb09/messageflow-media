@@ -13,6 +13,7 @@ export const site = {
   platform: "Windows 10 / 11",
   exeName: "MessageFlow.App.exe",
   githubReleaseTag,
+  githubRepo: "josuekb09/messageflow-media",
   // The installer is deliberately served by GitHub Releases, not by the
   // website. `latest` keeps every Download for Windows button on the newest
   // published installer without a website redeploy; update the size below
