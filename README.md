@@ -2,18 +2,21 @@
 
 Free Windows software for the church operator desk. Search and project sermons, Scripture, and hymns offline in **English**, **French**, and **Kiswahili**. The congregation sees only the projection window; the operator keeps full control on the computer.
 
-Current public release: **v1.0.8** (October 2026). Free for church use, not for sale.
+Current public release: **v1.0.9** (October 2026). Free for church use, not for sale.
 
 Website: [www.messageflow.tech](https://www.messageflow.tech)  
-Download: [GitHub Releases v1.0.8](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8)  
+Download: [GitHub Releases v1.0.9](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.9)  
 Report a problem: [www.messageflow.tech/feedback](https://www.messageflow.tech/feedback)
 
-## What's new in 1.0.8
+## What's new in 1.0.9
 
-- **Instant startup.** The app no longer freezes while it opens: the main window appears in about 1–2.5 seconds and search is ready in 2–4 seconds.
-- **Projected text always fits the screen.** Every song section, verse, and paragraph is sized for the projector on its own, so A-/A+ on one screen no longer shrinks the next, and no word is ever cut.
-- **Swahili line-break fix.** Hymn lines appear on the projector exactly as on their PowerPoint slides, instead of running together.
-- **New light theme** in clean white and blue. Dark remains the default.
+- **Paragraph numbers match the books.** Sermon paragraphs follow the numbers printed in the English, French, and Kiswahili books.
+- **Cleaner sermon text.** Page headings that had slipped into paragraphs are gone, and words that had run together read as in the book.
+- **Songs word for word.** Songs match their PowerPoint slides and the French hymn book.
+- **Projector plugged in or out during the service.** The projection moves to the right screen by itself; the operator controls stay on the computer.
+- **KJV:** Galatians 6:18 and Ephesians 6:24 have their final "Amen." back.
+
+Every sermon, song, and Bible verse was compared with its original source file: see [docs/SOURCE_ACCURACY_AUDIT.md](docs/SOURCE_ACCURACY_AUDIT.md).
 
 See [RELEASE_NOTES.md](RELEASE_NOTES.md) for every change.
 
@@ -58,9 +61,9 @@ See [NOTICE.md](NOTICE.md) and [docs/PERMISSION_AND_CONTENT_NOTICE.md](docs/PERM
 
 ## Install on Windows 10 / 11 (64-bit)
 
-1. Open the [v1.0.8 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.8) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
-   - Size: about 587 MB (615,471,332 bytes)
-   - SHA-256: `163B4141CBDC7AB1166D601562575CEA1165C06B1AA288B4A191154A1861B395`. To check it, run `Get-FileHash .\MessageFlowMediaSetup.exe` in PowerShell.
+1. Open the [v1.0.9 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.9) and download `MessageFlowMediaSetup.exe` (or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download)).
+   - Size: about 522 MB (547,649,563 bytes)
+   - SHA-256: `AFD70ED86A177D795C964E71AC743B73AEC0C2745D5F0D80D2A6C999FBDBBC91`. To check it, run `Get-FileHash .\MessageFlowMediaSetup.exe` in PowerShell.
 2. Run the installer. No administrator permission is needed. If Windows says it protected your PC, choose **More info**, then **Run anyway**.
 3. Keep the suggested folder or choose another local folder with at least 2 GB free. The installer suggests `MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia` (`%LOCALAPPDATA%\Programs\MessageFlowMedia` on a PC with only C:). Avoid OneDrive-synchronized folders such as Documents; the installer warns if one is chosen.
 4. Launch **MessageFlow Media** from the desktop shortcut or Start menu.
@@ -74,6 +77,7 @@ The installer is attached to GitHub Releases (or kept in `dist\` locally). It is
 2. Press `Win+P` and choose **Extend**, not Duplicate.
 3. Open MessageFlow Media and project something with `Ctrl+P`.
 4. Confirm the projector shows only the projection window, while the operator controls stay on the computer screen.
+5. If the projector is unplugged or plugged in during the service, MessageFlow moves the projection by itself: to the projector when it is connected, to a normal window on the computer when it is not.
 
 ## Report a problem
 

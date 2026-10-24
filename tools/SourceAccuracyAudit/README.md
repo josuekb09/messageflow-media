@@ -15,6 +15,7 @@ in the audit document. Every script reads the database named by `MF_DB` (default
 | `cmp_bible.py` | Every verse against the KJV, LSG 1910 and SWHULB source texts. |
 | `cmp_songs.py en\|sw <source folder> <out.jsonl>` | Every song section, line and line break against its PowerPoint slides. |
 | `export_songs_bible.py` | Corrections for the Bible verses and English/Kiswahili songs. |
+| `cmp_sermons.py` | First, slower word-level comparison (difflib); also provides the tokenizer used by `cmp_fr_songs2.py`. |
 | `cmp_fr_songs2.py`, `export_fr_songs.py` | French hymns against the songbook PDF, and their explicit corrections. |
 | `check_library.py` | Library-wide checks: empty text, placeholders, glued running heads, numbering gaps. |
 | `metrics.py` | Share of library words found, in order, in the source PDFs. |

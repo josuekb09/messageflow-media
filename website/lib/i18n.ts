@@ -200,20 +200,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "What's new in {version}",
       items: [
         {
-          title: "Opens instantly",
-          body: "MessageFlow is ready to use a moment after you open it.",
+          title: "Paragraph numbers match the books",
+          body: "Sermon paragraphs now have the same numbers as in the printed books, in English, French, and Swahili.",
         },
         {
-          title: "Projected text always fits the screen",
-          body: "Every verse, song, and paragraph fits neatly on the projector. No word is ever cut off.",
+          title: "Cleaner sermon text",
+          body: "Page headings that had slipped into some paragraphs are gone, and every word reads as in the book.",
         },
         {
-          title: "Correct line breaks in Swahili songs",
-          body: "Each line of a Swahili song now appears on its own line, just as it is sung.",
+          title: "Songs exactly as on the slides",
+          body: "Songs appear word for word as on their slides and in the French hymn book.",
         },
         {
-          title: "New clean light theme",
-          body: "A fresh white-and-blue look for bright rooms. The dark look is still there too.",
+          title: "Projector unplugged? No problem",
+          body: "If the projector or TV is plugged in or unplugged during the service, MessageFlow moves the projection to the right screen by itself.",
         },
       ],
     },
@@ -394,20 +394,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Nouveautés de la version {version}",
       items: [
         {
-          title: "S'ouvre instantanément",
-          body: "MessageFlow est prêt à l'emploi un instant après l'ouverture.",
+          title: "Les numéros de paragraphe sont ceux des livres",
+          body: "Les paragraphes des prédications portent maintenant les mêmes numéros que dans les livres imprimés, en anglais, en français et en kiswahili.",
         },
         {
-          title: "Le texte projeté tient toujours à l'écran",
-          body: "Chaque verset, cantique et paragraphe s'affiche proprement au projecteur. Aucun mot n'est coupé.",
+          title: "Un texte de prédication plus propre",
+          body: "Les titres de page qui s'étaient glissés dans certains paragraphes ont disparu, et chaque mot se lit comme dans le livre.",
         },
         {
-          title: "Des retours à la ligne corrects dans les cantiques en kiswahili",
-          body: "Chaque ligne d'un cantique en kiswahili s'affiche désormais sur sa propre ligne, comme on la chante.",
+          title: "Des cantiques identiques aux diapositives",
+          body: "Les cantiques s'affichent mot pour mot comme sur leurs diapositives et dans le recueil français.",
         },
         {
-          title: "Nouveau thème clair et épuré",
-          body: "Un nouveau look blanc et bleu pour les salles lumineuses. Le thème sombre est toujours là.",
+          title: "Projecteur débranché ? Aucun souci",
+          body: "Si le projecteur ou la télévision est branché ou débranché pendant le culte, MessageFlow déplace tout seul la projection sur le bon écran.",
         },
       ],
     },
@@ -588,20 +588,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Mapya katika toleo {version}",
       items: [
         {
-          title: "Inafunguka papo hapo",
-          body: "MessageFlow iko tayari kutumika mara tu unapoifungua.",
+          title: "Namba za aya ni sawa na vitabu",
+          body: "Aya za mahubiri sasa zina namba zile zile kama katika vitabu vilivyochapishwa, kwa Kiingereza, Kifaransa na Kiswahili.",
         },
         {
-          title: "Maandishi yanatoshea skrini kila wakati",
-          body: "Kila mstari, wimbo na aya inaonekana vizuri kwenye projekta. Hakuna neno linalokatwa.",
+          title: "Maandishi safi ya mahubiri",
+          body: "Vichwa vya kurasa vilivyokuwa vimeingia katika baadhi ya aya vimeondolewa, na kila neno linasomeka kama katika kitabu.",
         },
         {
-          title: "Mistari sahihi katika nyimbo za Kiswahili",
-          body: "Kila mstari wa wimbo wa Kiswahili sasa unaonekana peke yake, kama unavyoimbwa.",
+          title: "Nyimbo sawa kabisa na slaidi",
+          body: "Nyimbo zinaonekana neno kwa neno kama kwenye slaidi zake na katika kitabu cha nyimbo za Kifaransa.",
         },
         {
-          title: "Mandhari meupe mapya na safi",
-          body: "Muonekano mpya mweupe na buluu kwa kumbi zenye mwanga. Mandhari meusi bado yapo.",
+          title: "Projekta imechomolewa? Hakuna shida",
+          body: "Ikiwa projekta au TV imeunganishwa au kuchomolewa wakati wa ibada, MessageFlow inahamisha onyesho kwenye skrini sahihi yenyewe.",
         },
       ],
     },

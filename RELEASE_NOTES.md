@@ -1,3 +1,33 @@
+# MessageFlow Media 1.0.9
+
+Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
+
+## Highlights
+
+- **Paragraph numbers match the books.** Sermon paragraphs now follow the numbers printed in the books in English, French, and Kiswahili, so "paragraph 36" in the app is paragraph 36 in the book.
+- **Cleaner sermon text.** Page headings that had slipped into paragraphs ("THE SPOKEN WORD", "LILE NENO LILILONENWA", "LA PAROLE PARLÉE", the sermon title with a page number) are gone, and words that had run together ("I'mI'm", "Sothen", "fi rst") read as in the book.
+- **Songs word for word.** English and Kiswahili songs match their PowerPoint slides, spaces included, and the French hymns match the hymn book.
+- **Projector plugged in or out during the service.** If the projector or TV is connected or disconnected while you project, MessageFlow moves the projection to the right screen by itself and keeps your controls on the computer screen.
+- **Bible.** Galatians 6:18 and Ephesians 6:24 (KJV) have their final "Amen." back.
+
+## Also fixed
+
+- Importing a PDF no longer loses a dash at the end of a line.
+- The projection display selector and the backup buttons in Admin tools have tooltips, and the display names are in Kiswahili too.
+
+## Verified before release
+
+- Every sermon and publication (2,294 PDFs), song (1,137), and Bible verse (93,373) was compared with its original source file. Details: [docs/SOURCE_ACCURACY_AUDIT.md](docs/SOURCE_ACCURACY_AUDIT.md).
+- Projection checked at 1280x720, 1920x1080, and 4K: the 100 longest sermon paragraphs of each language, the 100 longest verses of each Bible, every song section, and the longest Brother Frank paragraphs. 95,641 checks, 0 overflows, 0 cut words, 0 text changes.
+
+## Download
+
+Installer: [GitHub release v1.0.9](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.9), `MessageFlowMediaSetup.exe` (547,649,563 bytes, about 522 MB).
+
+SHA-256: `AFD70ED86A177D795C964E71AC743B73AEC0C2745D5F0D80D2A6C999FBDBBC91`
+
+---
+
 # MessageFlow Media 1.0.8
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
