@@ -20,7 +20,7 @@ type Status = "idle" | "submitting" | "success" | "error";
 type ErrorCode = "validation" | "upstream" | "invalid_json";
 
 const inputClass =
-  "mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+  "mt-1.5 w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
 
 function fieldClass(invalid: boolean) {
   return `${inputClass} ${invalid ? "border-red-400" : "border-line"}`;
@@ -138,7 +138,7 @@ export function FeedbackForm() {
   if (status === "success") {
     return (
       <div
-        className="rounded-2xl border border-line bg-white p-6 sm:p-8"
+        className="rounded-2xl border border-line bg-card p-6 sm:p-8"
         role="status"
         aria-live="polite"
       >
@@ -158,7 +158,7 @@ export function FeedbackForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-2xl border border-line bg-white p-6 sm:p-8"
+      className="rounded-2xl border border-line bg-card p-6 sm:p-8"
       noValidate
     >
       <input type="hidden" name="_subject" value={FORMSUBMIT_SUBJECT} />
@@ -224,7 +224,7 @@ export function FeedbackForm() {
                 key={value}
                 className={`inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/30 ${
                   selected
-                    ? "border-ink bg-ink text-white"
+                    ? "border-ink bg-ink text-page"
                     : "border-line bg-page text-ink-secondary hover:border-ink/30 hover:text-ink"
                 }`}
               >
@@ -274,7 +274,7 @@ export function FeedbackForm() {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+        className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-brand-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
       >
         {status === "submitting" ? t.feedback.submitting : t.feedback.submit}
       </button>

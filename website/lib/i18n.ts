@@ -24,23 +24,24 @@ export function isLocale(value: string | null | undefined): value is Locale {
 }
 
 export type Dictionary = {
-  nav: {
-    features: string;
-    product: string;
-    install: string;
-    download: string;
-    feedback: string;
-  };
   header: {
     languageLabel: string;
-    menuOpen: string;
-    menuClose: string;
+    github: string;
   };
   hero: {
     eyebrow: string;
     title: string;
     subtitle: string;
+    downloadMeta: string;
     secondaryCta: string;
+  };
+  about: {
+    title: string;
+    body: string;
+  };
+  solve: {
+    title: string;
+    items: { title: string; body: string }[];
   };
   download: {
     button: string;
@@ -57,10 +58,6 @@ export type Dictionary = {
     lead: string;
     darkLabel: string;
     lightLabel: string;
-  };
-  whatsNew: {
-    title: string;
-    items: { title: string; body: string }[];
   };
   features: {
     title: string;
@@ -82,10 +79,14 @@ export type Dictionary = {
     lead: string;
     steps: { n: string; title: string; body: string }[];
   };
+  cta: {
+    title: string;
+    body: string;
+  };
   footer: {
     blurb: string;
-    product: string;
-    release: string;
+    github: string;
+    contact: string;
     copyright: string;
   };
   feedback: {
@@ -161,23 +162,16 @@ export type Dictionary = {
 
 export const dictionaries: Record<Locale, Dictionary> = {
   en: {
-    nav: {
-      features: "Library",
-      product: "The app",
-      install: "Install",
-      download: "Download for Windows",
-      feedback: "Support",
-    },
     header: {
       languageLabel: "Language",
-      menuOpen: "Open menu",
-      menuClose: "Close menu",
+      github: "GitHub",
     },
     hero: {
-      eyebrow: "Version {version} · Free for churches · Windows 10 / 11",
+      eyebrow: "Free for churches · Windows 10 & 11",
       title: "Find the sermon, verse, or song. Put it on the screen.",
       subtitle:
-        "MessageFlow Media is free Windows software for church media teams. Search Brother Branham's sermons, Brother Frank's publications (in English), the Bible, and songbooks, then project the paragraph or verse on the second screen. It works offline, in English, French, and Kiswahili.",
+        "MessageFlow Media is free projection software for church media teams. Search Brother Branham's sermons, Brother Frank's publications, the Bible, and the songbook — then project the exact paragraph or verse on the second screen, online or off.",
+      downloadMeta: "Latest version {version} · about {size}",
       secondaryCta: "See the app",
     },
     download: {
@@ -191,29 +185,30 @@ export const dictionaries: Record<Locale, Dictionary> = {
       browserBody: "If your browser asks whether to keep the file, choose “Keep”.",
     },
     product: {
-      title: "One operator screen, in dark or light",
-      lead: "The operator works on the computer. The congregation sees only the projection window. Pick the theme that suits the room.",
+      title: "One screen to operate. A clean window to project.",
+      lead: "The media team works on the computer. The congregation sees only the projection window — in the theme that suits the room.",
       darkLabel: "Dark theme",
       lightLabel: "Light theme",
     },
-    whatsNew: {
-      title: "What's new in {version}",
+    about: {
+      title: "What is MessageFlow Media?",
+      body:
+        "MessageFlow Media is a free Windows application for churches. It brings the sermons, the Bible, and the songs a congregation uses every week into one place, and puts the right passage on the projector in seconds. Everything is stored on the computer, so it keeps working even without an internet connection.",
+    },
+    solve: {
+      title: "What we solve",
       items: [
         {
-          title: "Paragraph numbers match the books",
-          body: "Sermon paragraphs now have the same numbers as in the printed books, in English, French, and Swahili.",
+          title: "Faithful to the source",
+          body: "What appears on the screen matches the printed book, word for word. Nothing is retyped during the service, and nothing is added or changed.",
         },
         {
-          title: "Cleaner sermon text",
-          body: "Page headings that had slipped into some paragraphs are gone, and every word reads as in the book.",
+          title: "Ready in seconds",
+          body: "Search by title, reference, paragraph number, or a line of a song, then project it on the second screen with one shortcut — while the service keeps moving.",
         },
         {
-          title: "Songs exactly as on the slides",
-          body: "Songs appear word for word as on their slides and in the French hymn book.",
-        },
-        {
-          title: "Projector unplugged? No problem",
-          body: "If the projector or TV is plugged in or unplugged during the service, MessageFlow moves the projection to the right screen by itself.",
+          title: "Free and offline",
+          body: "Free for every church. Installed once, it runs entirely on your computer, with no account and no internet needed afterward.",
         },
       ],
     },
@@ -271,11 +266,15 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
       ],
     },
+    cta: {
+      title: "Bring it to your church",
+      body: "MessageFlow Media is free. Download it, install it, and you're ready for the next service.",
+    },
     footer: {
       blurb:
         "Free Windows software for church media teams: sermons, the Bible, and songs, fully offline.",
-      product: "Product",
-      release: "Release",
+      github: "GitHub",
+      contact: "Contact",
       copyright: "© 2026 MessageFlow Media. All rights reserved.",
     },
     feedback: {
@@ -355,23 +354,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
   },
   fr: {
-    nav: {
-      features: "Bibliothèque",
-      product: "L'application",
-      install: "Installation",
-      download: "Télécharger pour Windows",
-      feedback: "Assistance",
-    },
     header: {
       languageLabel: "Langue",
-      menuOpen: "Ouvrir le menu",
-      menuClose: "Fermer le menu",
+      github: "GitHub",
     },
     hero: {
-      eyebrow: "Version {version} · Gratuit pour les églises · Windows 10 / 11",
+      eyebrow: "Gratuit pour les églises · Windows 10 et 11",
       title: "Trouvez la prédication, le verset ou le cantique. Projetez-le.",
       subtitle:
-        "MessageFlow Media est un logiciel Windows gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank (en anglais), la Bible et les recueils de cantiques, puis projetez le paragraphe ou le verset sur le second écran. Il fonctionne hors ligne, en anglais, en français et en kiswahili.",
+        "MessageFlow Media est un logiciel de projection gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank, la Bible et le recueil de cantiques, puis projetez le paragraphe ou le verset exact sur le second écran, avec ou sans Internet.",
+      downloadMeta: "Dernière version {version} · environ {size}",
       secondaryCta: "Voir l'application",
     },
     download: {
@@ -385,29 +377,30 @@ export const dictionaries: Record<Locale, Dictionary> = {
       browserBody: "Si votre navigateur demande s'il faut conserver le fichier, choisissez « Conserver ».",
     },
     product: {
-      title: "Un seul écran opérateur, en sombre ou en clair",
-      lead: "L'opérateur travaille sur l'ordinateur. L'assemblée ne voit que la fenêtre de projection. Choisissez le thème qui convient à la salle.",
+      title: "Un écran pour piloter. Une fenêtre nette pour projeter.",
+      lead: "L'équipe média travaille sur l'ordinateur. L'assemblée ne voit que la fenêtre de projection, dans le thème qui convient à la salle.",
       darkLabel: "Thème sombre",
       lightLabel: "Thème clair",
     },
-    whatsNew: {
-      title: "Nouveautés de la version {version}",
+    about: {
+      title: "Qu'est-ce que MessageFlow Media ?",
+      body:
+        "MessageFlow Media est une application Windows gratuite destinée aux églises. Elle réunit en un seul endroit les prédications, la Bible et les cantiques qu'une assemblée utilise chaque semaine, et affiche le bon passage au projecteur en quelques secondes. Tout est enregistré sur l'ordinateur : elle continue de fonctionner même sans connexion Internet.",
+    },
+    solve: {
+      title: "Ce que nous apportons",
       items: [
         {
-          title: "Les numéros de paragraphe sont ceux des livres",
-          body: "Les paragraphes des prédications portent maintenant les mêmes numéros que dans les livres imprimés, en anglais, en français et en kiswahili.",
+          title: "Fidèle à la source",
+          body: "Ce qui s'affiche à l'écran correspond mot pour mot au livre imprimé. Rien n'est ressaisi pendant le culte, et rien n'est ajouté ni modifié.",
         },
         {
-          title: "Un texte de prédication plus propre",
-          body: "Les titres de page qui s'étaient glissés dans certains paragraphes ont disparu, et chaque mot se lit comme dans le livre.",
+          title: "Prêt en quelques secondes",
+          body: "Recherchez par titre, référence, numéro de paragraphe ou ligne de cantique, puis projetez sur le second écran d'un seul raccourci, sans interrompre le culte.",
         },
         {
-          title: "Des cantiques identiques aux diapositives",
-          body: "Les cantiques s'affichent mot pour mot comme sur leurs diapositives et dans le recueil français.",
-        },
-        {
-          title: "Projecteur débranché ? Aucun souci",
-          body: "Si le projecteur ou la télévision est branché ou débranché pendant le culte, MessageFlow déplace tout seul la projection sur le bon écran.",
+          title: "Gratuit et hors ligne",
+          body: "Gratuit pour toutes les églises. Une fois installé, il fonctionne entièrement sur votre ordinateur, sans compte et sans Internet par la suite.",
         },
       ],
     },
@@ -465,11 +458,15 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
       ],
     },
+    cta: {
+      title: "Pour votre église",
+      body: "MessageFlow Media est gratuit. Téléchargez-le, installez-le, et vous êtes prêts pour le prochain culte.",
+    },
     footer: {
       blurb:
         "Logiciel Windows gratuit pour les équipes média des églises : prédications, Bible et cantiques, entièrement hors ligne.",
-      product: "Produit",
-      release: "Version",
+      github: "GitHub",
+      contact: "Contact",
       copyright: "© 2026 MessageFlow Media. Tous droits réservés.",
     },
     feedback: {
@@ -549,23 +546,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
   },
   sw: {
-    nav: {
-      features: "Maktaba",
-      product: "Programu",
-      install: "Sakinisha",
-      download: "Pakua kwa Windows",
-      feedback: "Msaada",
-    },
     header: {
       languageLabel: "Lugha",
-      menuOpen: "Fungua menyu",
-      menuClose: "Funga menyu",
+      github: "GitHub",
     },
     hero: {
-      eyebrow: "Toleo {version} · Bure kwa makanisa · Windows 10 / 11",
+      eyebrow: "Bure kwa makanisa · Windows 10 na 11",
       title: "Pata hubiri, mstari au wimbo. Uonyeshe kwenye skrini.",
       subtitle:
-        "MessageFlow Media ni programu ya Windows ya bure kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank (kwa Kiingereza), Biblia na vitabu vya nyimbo, kisha onyesha aya au mstari kwenye skrini ya pili. Inafanya kazi bila intaneti, kwa Kiingereza, Kifaransa na Kiswahili.",
+        "MessageFlow Media ni programu ya bure ya kuonyesha maandiko kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank, Biblia na kitabu cha nyimbo, kisha onyesha aya au mstari halisi kwenye skrini ya pili, ukiwa na intaneti au bila.",
+      downloadMeta: "Toleo jipya {version} · takriban {size}",
       secondaryCta: "Tazama programu",
     },
     download: {
@@ -579,29 +569,30 @@ export const dictionaries: Record<Locale, Dictionary> = {
       browserBody: "Ikiwa kivinjari kinauliza kama kuhifadhi faili, chagua “Keep”.",
     },
     product: {
-      title: "Skrini moja ya operator, meusi au meupe",
-      lead: "Operator anafanya kazi kwenye kompyuta. Waumini wanaona dirisha la kuonyesha pekee. Chagua mandhari inayofaa ukumbi.",
+      title: "Skrini moja ya kuendesha. Dirisha safi la kuonyesha.",
+      lead: "Timu ya media inafanya kazi kwenye kompyuta. Kusanyiko linaona dirisha la onyesho tu, katika mandhari yanayofaa ukumbi.",
       darkLabel: "Mandhari meusi",
       lightLabel: "Mandhari meupe",
     },
-    whatsNew: {
-      title: "Mapya katika toleo {version}",
+    about: {
+      title: "MessageFlow Media ni nini?",
+      body:
+        "MessageFlow Media ni programu ya Windows ya bure kwa makanisa. Inaweka pamoja mahubiri, Biblia na nyimbo ambazo kusanyiko hutumia kila wiki, na kuweka kifungu sahihi kwenye projekta kwa sekunde chache. Kila kitu kimehifadhiwa kwenye kompyuta, kwa hiyo inaendelea kufanya kazi hata bila intaneti.",
+    },
+    solve: {
+      title: "Tunachotatua",
       items: [
         {
-          title: "Namba za aya ni sawa na vitabu",
-          body: "Aya za mahubiri sasa zina namba zile zile kama katika vitabu vilivyochapishwa, kwa Kiingereza, Kifaransa na Kiswahili.",
+          title: "Aminifu kwa chanzo",
+          body: "Kinachoonekana kwenye skrini kinalingana neno kwa neno na kitabu kilichochapishwa. Hakuna kinachoandikwa upya wakati wa ibada, na hakuna kinachoongezwa wala kubadilishwa.",
         },
         {
-          title: "Maandishi safi ya mahubiri",
-          body: "Vichwa vya kurasa vilivyokuwa vimeingia katika baadhi ya aya vimeondolewa, na kila neno linasomeka kama katika kitabu.",
+          title: "Tayari kwa sekunde chache",
+          body: "Tafuta kwa kichwa, rejea, namba ya aya au mstari wa wimbo, kisha uonyeshe kwenye skrini ya pili kwa mkato mmoja wa kibodi, huku ibada ikiendelea.",
         },
         {
-          title: "Nyimbo sawa kabisa na slaidi",
-          body: "Nyimbo zinaonekana neno kwa neno kama kwenye slaidi zake na katika kitabu cha nyimbo za Kifaransa.",
-        },
-        {
-          title: "Projekta imechomolewa? Hakuna shida",
-          body: "Ikiwa projekta au TV imeunganishwa au kuchomolewa wakati wa ibada, MessageFlow inahamisha onyesho kwenye skrini sahihi yenyewe.",
+          title: "Bure na bila intaneti",
+          body: "Bure kwa kila kanisa. Ikishasakinishwa, inafanya kazi yote kwenye kompyuta yako, bila akaunti na bila intaneti baadaye.",
         },
       ],
     },
@@ -659,11 +650,15 @@ export const dictionaries: Record<Locale, Dictionary> = {
         },
       ],
     },
+    cta: {
+      title: "Ilete kanisani kwako",
+      body: "MessageFlow Media ni bure. Ipakue, isakinishe, na uko tayari kwa ibada ijayo.",
+    },
     footer: {
       blurb:
         "Programu ya Windows ya bure kwa timu za media za kanisa: mahubiri, Biblia na nyimbo, bila intaneti.",
-      product: "Bidhaa",
-      release: "Toleo",
+      github: "GitHub",
+      contact: "Wasiliana nasi",
       copyright: "© 2026 MessageFlow Media. Haki zote zimehifadhiwa.",
     },
     feedback: {

@@ -11,7 +11,7 @@ export function DownloadCenter() {
   return (
     <section id="download" className="border-t border-line bg-surface">
       <div className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
-        <div className="rounded-2xl border border-line bg-white p-5 sm:flex sm:items-center sm:justify-between sm:p-10">
+        <div className="rounded-2xl border border-line bg-card p-5 sm:flex sm:items-center sm:justify-between sm:p-10">
           <div>
             <h2 className="text-2xl font-medium text-ink sm:text-3xl">
               {t.download.heading}
@@ -43,7 +43,7 @@ function DownloadSafety() {
   return (
     <div
       id="windows-warning"
-      className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-8"
+      className="mt-6 rounded-2xl border border-line bg-card p-5 sm:p-8"
     >
       <h3 className="text-lg font-medium text-ink">
         {t.download.safetyTitle}

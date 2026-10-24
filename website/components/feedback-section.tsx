@@ -12,7 +12,7 @@ export function FeedbackSection({ variant }: { variant: "home" | "page" }) {
       id="feedback"
       className={
         variant === "page"
-          ? "bg-white"
+          ? "bg-card"
           : "border-t border-line bg-surface"
       }
     >

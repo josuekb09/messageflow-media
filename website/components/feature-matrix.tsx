@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/components/language-provider";
 import { BookIcon, CrossIcon, MusicNoteIcon } from "@/components/line-icons";
+import { SectionHeading } from "@/components/section-heading";
 import { localeHtmlLang, type Locale } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
@@ -22,15 +23,10 @@ export function FeatureMatrix() {
   ];
 
   return (
-    <section id="features" className="scroll-mt-16 bg-page">
-      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <div className="max-w-2xl">
-          <h2 className="text-balance text-3xl font-medium text-ink sm:text-4xl">
-            {t.features.title}
-          </h2>
-          <p className="mt-4 text-[15px] leading-7 text-ink-secondary sm:text-base">
-            {t.features.lead}
-          </p>
+    <section id="features" className="scroll-mt-16 border-t border-line bg-surface">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-24">
+        <div className="reveal">
+          <SectionHeading title={t.features.title} lead={t.features.lead} />
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {t.features.items.map((feature, index) => {
@@ -38,25 +34,25 @@ export function FeatureMatrix() {
             return (
               <article
                 key={feature.title}
-                className="flex flex-col rounded-xl border border-line bg-page p-6 sm:p-7"
+                className="reveal flex flex-col rounded-2xl border border-line bg-card p-6 shadow-card sm:p-8"
               >
-                <Icon className="h-7 w-7 text-ink" />
-                <h3 className="mt-6 text-xl font-medium text-ink">{feature.title}</h3>
+                <Icon className="h-7 w-7 text-brand" />
+                <h3 className="mt-6 text-[1.55rem] font-medium leading-tight text-ink">{feature.title}</h3>
                 <p className="mt-3 flex-1 text-[15px] leading-7 text-ink-secondary">{feature.body}</p>
               </article>
             );
           })}
         </div>
-        <div className="mt-10 overflow-x-auto rounded-xl border border-line">
+        <div className="reveal mt-10 overflow-x-auto rounded-2xl border border-line bg-card shadow-card">
           <table className="w-full min-w-[34rem] border-collapse text-left text-[15px]">
             <caption className="sr-only">{table.caption}</caption>
             <thead>
-              <tr className="border-b border-line bg-surface">
-                <th scope="col" className="px-5 py-3 font-medium text-ink-muted">
+              <tr className="border-b border-line">
+                <th scope="col" className="px-5 py-4 font-medium text-ink-muted">
                   <span className="sr-only">{table.caption}</span>
                 </th>
                 {languages.map((lang) => (
-                  <th key={lang} scope="col" className="px-5 py-3 font-medium text-ink">
+                  <th key={lang} scope="col" className="px-5 py-4 font-serif text-[1.15rem] font-medium text-ink">
                     {table.columns[lang]}
                   </th>
                 ))}

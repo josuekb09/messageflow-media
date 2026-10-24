@@ -46,9 +46,13 @@ export function LanguageProvider({
   useEffect(() => {
     const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
     if (isLocale(stored) && stored !== initialLocale) {
-      setLocaleState(stored);
-      persistLocale(stored);
-      return;
+      // The cookie was missing or older than the saved choice: switch after the first
+      // paint, so the server-rendered page hydrates in the cookie's language first.
+      const frame = window.requestAnimationFrame(() => {
+        setLocaleState(stored);
+        persistLocale(stored);
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
     persistLocale(initialLocale);
   }, [initialLocale]);

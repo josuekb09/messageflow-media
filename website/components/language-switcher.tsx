@@ -10,7 +10,7 @@ export function LanguageSwitcher() {
     <div
       role="group"
       aria-label={t.header.languageLabel}
-      className="inline-flex items-center rounded-lg border border-line bg-white p-0.5 text-[12px] sm:text-[13px]"
+      className="inline-flex items-center rounded-lg border border-line bg-card p-0.5 text-[12px] sm:text-[13px]"
     >
       {locales.map((code) => {
         const active = code === locale;

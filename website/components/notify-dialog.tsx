@@ -26,9 +26,9 @@ function rememberAsked() {
 }
 
 const inputClass =
-  "mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+  "mt-1.5 w-full rounded-lg border bg-card px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
 const primaryClass =
-  "inline-flex h-11 items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70";
+  "inline-flex h-11 items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-brand-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70";
 const secondaryClass =
   "inline-flex h-11 items-center justify-center rounded-lg border border-line px-5 text-[15px] font-medium text-ink-secondary hover:bg-surface hover:text-ink";
 
@@ -99,7 +99,7 @@ export function NotifyDialog({ open, onClose }: { open: boolean; onClose: () => 
         // A click on the dimmed backdrop lands on the dialog element itself.
         if (event.target === event.currentTarget) close();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-line bg-white p-0 text-ink shadow-[0_20px_50px_rgba(10,10,10,0.15)] backdrop:bg-ink/40"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-line bg-card p-0 text-ink shadow-card backdrop:bg-black/50"
     >
       <div className="relative p-6 sm:p-8">
         <button

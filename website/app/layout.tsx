@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { Fraunces, Geist } from "next/font/google";
+import { EB_Garamond, Geist } from "next/font/google";
 import { LanguageProvider } from "@/components/language-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -18,11 +18,10 @@ const geist = Geist({
   subsets: ["latin", "latin-ext"],
 });
 
-// Headings only. Variable, with the optical-size axis so large titles get the display cut.
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+// Headings only: a classic book serif, as in the printed sermons and Bibles.
+const garamond = EB_Garamond({
+  variable: "--font-garamond",
   subsets: ["latin", "latin-ext"],
-  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
@@ -53,7 +52,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf7f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#141311" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -67,7 +69,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={localeHtmlLang[initialLocale]}
-      className={`${geist.variable} ${fraunces.variable} h-full overflow-x-clip antialiased`}
+      className={`${geist.variable} ${garamond.variable} h-full overflow-x-clip antialiased`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >

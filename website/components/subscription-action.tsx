@@ -56,9 +56,9 @@ export function SubscriptionAction({ mode, token }: { mode: Mode; token: string 
   const showButton = outcome === "idle" || outcome === "working" || outcome === "error";
 
   return (
-    <section className="bg-white">
+    <section className="bg-card">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <div className="max-w-xl rounded-2xl border border-line bg-white p-6 sm:p-8" role="status">
+        <div className="max-w-xl rounded-2xl border border-line bg-card p-6 sm:p-8" role="status">
           <h1 className="text-pretty text-2xl font-medium text-ink sm:text-3xl">{title}</h1>
           <p className="mt-3 text-[15px] leading-7 text-ink-secondary">{body}</p>
           {outcome === "error" ? (
@@ -72,7 +72,7 @@ export function SubscriptionAction({ mode, token }: { mode: Mode; token: string 
                 type="button"
                 onClick={run}
                 disabled={outcome === "working"}
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-brand-ink hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {outcome === "working"
                   ? confirm

@@ -25,7 +25,7 @@ export function DownloadButton({ size = "md", className = "" }: DownloadButtonPr
         onClick={() => {
           if (!wasNotifyAsked()) setNotifyOpen(true);
         }}
-        className={`inline-flex items-center justify-center rounded-lg bg-brand font-semibold text-ink transition-colors hover:bg-brand-hover ${
+        className={`inline-flex items-center justify-center rounded-lg bg-brand font-semibold text-brand-ink shadow-sm transition-colors hover:bg-brand-hover ${
           large ? "h-12 px-6 text-[15px]" : "h-9 px-3.5 text-sm"
         } ${className}`}
       >

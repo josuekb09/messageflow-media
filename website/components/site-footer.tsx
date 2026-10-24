@@ -3,73 +3,43 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { useI18n } from "@/components/language-provider";
-import { localizedMonth } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 export function SiteFooter() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   return (
-    <footer className="border-t border-line bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-12 px-5 py-14 sm:px-8 md:flex-row md:justify-between">
+    <footer className="border-t border-line bg-page">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-8 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
             <BrandLogo className="h-7 w-7" />
-            <span className="text-sm font-semibold tracking-tight text-ink">
+            <span className="font-serif text-[18px] font-medium tracking-tight text-ink">
               {site.name}
             </span>
           </div>
-          <p className="mt-4 max-w-xs text-sm leading-6 text-ink-muted">
-            {t.footer.blurb}
-          </p>
+          <p className="mt-4 max-w-sm text-sm leading-6 text-ink-muted">{t.footer.blurb}</p>
         </div>
-        <div className="flex flex-col gap-10 text-sm sm:flex-row sm:gap-16">
-          <div>
-            <p className="text-[13px] font-medium tracking-wide text-ink">
-              {t.footer.product}
-            </p>
-            <ul className="mt-4 space-y-2.5 text-ink-muted">
-              <li>
-                <Link href="/#product" className="transition-colors hover:text-ink">
-                  {t.nav.product}
-                </Link>
-              </li>
-              <li>
-                <Link href="/#features" className="transition-colors hover:text-ink">
-                  {t.nav.features}
-                </Link>
-              </li>
-              <li>
-                <Link href="/#install" className="transition-colors hover:text-ink">
-                  {t.nav.install}
-                </Link>
-              </li>
-              <li>
-                <Link href="/download" className="transition-colors hover:text-ink">
-                  {t.nav.download}
-                </Link>
-              </li>
-              <li>
-                <Link href="/feedback" className="transition-colors hover:text-ink">
-                  {t.nav.feedback}
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-[13px] font-medium tracking-wide text-ink">
-              {t.footer.release}
-            </p>
-            <ul className="mt-4 space-y-2.5 text-ink-muted">
-              <li>v{site.version}</li>
-              <li>{localizedMonth(locale, site.releaseMonth)}</li>
-              <li>{site.platform}</li>
-            </ul>
-          </div>
-        </div>
+        <ul className="flex gap-7 text-sm font-medium text-ink-secondary">
+          <li>
+            <a
+              href={`https://github.com/${site.githubRepo}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-ink"
+            >
+              {t.footer.github}
+            </a>
+          </li>
+          <li>
+            <Link href="/feedback" className="transition-colors hover:text-ink">
+              {t.footer.contact}
+            </Link>
+          </li>
+        </ul>
       </div>
       <div className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-5 py-5 text-sm leading-6 text-ink-muted sm:px-8">
+        <p className="mx-auto max-w-6xl px-4 py-5 text-sm leading-6 text-ink-muted sm:px-8">
           {t.footer.copyright}
         </p>
       </div>
