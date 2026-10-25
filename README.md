@@ -69,8 +69,8 @@ French hymns that have a refrain are shown as **verse → chorus → verse → c
 |---|---|
 | Version | 1.0.9 |
 | File | `MessageFlowMediaSetup.exe` |
-| Size | 547,649,563 bytes (about 522 MB) |
-| SHA-256 | `AFD70ED86A177D795C964E71AC743B73AEC0C2745D5F0D80D2A6C999FBDBBC91` |
+| Size | 547,650,186 bytes (about 522 MB) |
+| SHA-256 | `F753426D93D57DFA55CDA64F97555B53F11CC47D3629925EFE9BCC678BE463E9` |
 
 To check your download, run `Get-FileHash .\MessageFlowMediaSetup.exe` in PowerShell and compare the hash. The installer is attached to GitHub Releases; it is not committed to git.
 

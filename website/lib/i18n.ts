@@ -88,6 +88,7 @@ export type Dictionary = {
     github: string;
     contact: string;
     copyright: string;
+    legal: string[];
   };
   feedback: {
     title: string;
@@ -276,6 +277,11 @@ export const dictionaries: Record<Locale, Dictionary> = {
       github: "GitHub",
       contact: "Contact",
       copyright: "© 2026 MessageFlow Media. All rights reserved.",
+      legal: [
+        "MessageFlow Media is free for church use. It is not for sale and must not be used for fundraising.",
+        "Bundled sermon, Bible, and song content is included only under permission or allowed free-use conditions. Churches should respect Voice of God Recordings and all original content owners.",
+        "MessageFlow Media is not affiliated with or endorsed by Voice of God Recordings unless explicitly stated in writing.",
+      ],
     },
     feedback: {
       title: "Feedback & support",
@@ -468,6 +474,11 @@ export const dictionaries: Record<Locale, Dictionary> = {
       github: "GitHub",
       contact: "Contact",
       copyright: "© 2026 MessageFlow Media. Tous droits réservés.",
+      legal: [
+        "MessageFlow Media est gratuit pour l'usage des églises. Il n'est pas à vendre et ne doit pas servir à des collectes de fonds.",
+        "Les prédications, la Bible et les cantiques fournis avec l'application n'y sont inclus qu'avec autorisation ou dans des conditions d'utilisation libre permises. Les églises devraient respecter Voice of God Recordings et tous les détenteurs des contenus originaux.",
+        "MessageFlow Media n'est ni affilié à Voice of God Recordings ni approuvé par lui, sauf mention écrite explicite.",
+      ],
     },
     feedback: {
       title: "Avis et assistance",
@@ -660,6 +671,11 @@ export const dictionaries: Record<Locale, Dictionary> = {
       github: "GitHub",
       contact: "Wasiliana nasi",
       copyright: "© 2026 MessageFlow Media. Haki zote zimehifadhiwa.",
+      legal: [
+        "MessageFlow Media ni bure kwa matumizi ya makanisa. Haiuzwi, na haipaswi kutumika kuchangisha fedha.",
+        "Mahubiri, Biblia na nyimbo zilizomo kwenye programu zimewekwa kwa ruhusa tu au kwa masharti ya matumizi huru yanayoruhusiwa. Makanisa yanapaswa kuheshimu Voice of God Recordings na wamiliki wote wa maudhui asilia.",
+        "MessageFlow Media haihusiani na Voice of God Recordings wala haijaidhinishwa nayo, isipokuwa ikielezwa wazi kwa maandishi.",
+      ],
     },
     feedback: {
       title: "Maoni na msaada",

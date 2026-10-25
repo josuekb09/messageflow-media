@@ -39,9 +39,14 @@ export function SiteFooter() {
         </ul>
       </div>
       <div className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-4 py-5 text-sm leading-6 text-ink-muted sm:px-8">
-          {t.footer.copyright}
-        </p>
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-8">
+          <p className="text-sm leading-6 text-ink-muted">{t.footer.copyright}</p>
+          <div className="mt-2 max-w-4xl space-y-1 text-xs leading-5 text-ink-muted">
+            {t.footer.legal.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        </div>
       </div>
     </footer>
   );
