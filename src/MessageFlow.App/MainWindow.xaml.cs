@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using MessageFlow.App.Localization;
 using MessageFlow.App.Services;
 using MessageFlow.App.ViewModels;
@@ -40,6 +41,7 @@ public partial class MainWindow : Window
         viewModel.ProjectionTestRequested += ShowProjectionTestWindow;
         viewModel.ProjectionPreviewRequested += ShowWindowedProjectionPreview;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        viewModel.BibleScrollRequested += ViewModel_BibleScrollRequested;
         SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
     }
 
@@ -160,6 +162,17 @@ public partial class MainWindow : Window
         // Keep the selected verse visible just as keyboard navigation does.
         Dispatcher.BeginInvoke(() =>
             BibleNavigationList.ScrollIntoView(viewModel.SelectedBibleNavigationItem));
+    }
+
+    private void ViewModel_BibleScrollRequested(BibleNavigationItemViewModel target)
+    {
+        // Loaded priority runs after the list has been rebuilt and measured, so the item's
+        // container exists; at Normal priority ScrollIntoView could run first and do nothing.
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            BibleNavigationList.UpdateLayout();
+            BibleNavigationList.ScrollIntoView(target);
+        });
     }
 
     /// <summary>

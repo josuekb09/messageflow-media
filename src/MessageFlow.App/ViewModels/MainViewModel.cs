@@ -3593,7 +3593,35 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
     }
 
+    /// <summary>The item the list must show after a Bible search: the requested verse, else the top.</summary>
+    internal static BibleNavigationItemViewModel? ChooseBibleScrollTarget(
+        IReadOnlyList<BibleNavigationItemViewModel> items,
+        BibleNavigationItemViewModel? selected)
+    {
+        if (selected is not null && items.Contains(selected))
+        {
+            return selected;
+        }
+
+        return items.Count > 0 ? items[0] : null;
+    }
+
+    /// <summary>Raised after the Bible list was replaced; the view scrolls to the given item once laid out.</summary>
+    public event Action<BibleNavigationItemViewModel>? BibleScrollRequested;
+
     private void ApplyBibleNavigationResult(
+        BibleNavigationResult result,
+        bool selectExactOrKeywordVerse)
+    {
+        ApplyBibleNavigationResultCore(result, selectExactOrKeywordVerse);
+        var target = ChooseBibleScrollTarget(BibleNavigationItems, SelectedBibleNavigationItem);
+        if (target is not null)
+        {
+            BibleScrollRequested?.Invoke(target);
+        }
+    }
+
+    private void ApplyBibleNavigationResultCore(
         BibleNavigationResult result,
         bool selectExactOrKeywordVerse)
     {
