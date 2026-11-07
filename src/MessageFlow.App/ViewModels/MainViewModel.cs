@@ -22,7 +22,9 @@ namespace MessageFlow.App.ViewModels;
 
 public sealed partial class MainViewModel : ObservableObject
 {
-    private const int SearchDebounceMilliseconds = 250;
+    internal const int SearchDebounceMilliseconds = 200;
+    internal const int BibleSearchDebounceMilliseconds = SearchDebounceMilliseconds;
+    internal const int SermonWithinSearchDebounceMilliseconds = SearchDebounceMilliseconds;
     /// <summary>
     /// Brother Frank library is enabled and displayed alongside Brother Branham.
     /// </summary>
@@ -335,9 +337,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ObservableCollection<BibleTranslationOption> BibleTranslations { get; } = [];
 
-    public ObservableCollection<BibleVerseResultViewModel> BibleResults { get; } = [];
+    public BulkObservableCollection<BibleVerseResultViewModel> BibleResults { get; } = [];
 
-    public ObservableCollection<BibleNavigationItemViewModel> BibleNavigationItems { get; } = [];
+    public BulkObservableCollection<BibleNavigationItemViewModel> BibleNavigationItems { get; } = [];
 
     public ObservableCollection<SongResultViewModel> SongResults { get; } = [];
 
@@ -3346,7 +3348,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             try
             {
-                await Task.Delay(180, cancellationToken);
+                await Task.Delay(BibleSearchDebounceMilliseconds, cancellationToken);
                 var operation = System.Windows.Application.Current.Dispatcher.InvokeAsync(
                     () => UpdateBibleNavigationAsync(queryText, selectExactOrKeywordVerse: false, cancellationToken, version));
 
@@ -3595,17 +3597,10 @@ public sealed partial class MainViewModel : ObservableObject
         BibleNavigationResult result,
         bool selectExactOrKeywordVerse)
     {
-        BibleResults.Clear();
-        foreach (var verse in result.Verses)
-        {
-            BibleResults.Add(verse);
-        }
-
-        BibleNavigationItems.Clear();
-        foreach (var item in result.Items)
-        {
-            BibleNavigationItems.Add(item);
-        }
+        // One Reset per list instead of Clear() plus one Add() per item: the old results stay on
+        // screen until the new ones are ready, and the UI thread rebuilds each list once.
+        BibleResults.ReplaceAll(result.Verses);
+        BibleNavigationItems.ReplaceAll(result.Items);
 
         var selectedVerseItem = result.SelectedVerseNumber is null
             ? null
@@ -4361,7 +4356,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             try
             {
-                await Task.Delay(220, cancellationToken);
+                await Task.Delay(SermonWithinSearchDebounceMilliseconds, cancellationToken);
                 var operation = System.Windows.Application.Current.Dispatcher.InvokeAsync(
                     () => ApplySermonWithinSearchAsync(queryText, version, cancellationToken));
 
