@@ -52,7 +52,7 @@
             <TextBlock x:Name="ParagraphTextBlock"
                        Foreground="{DynamicResource ProjectionTextBrush}"
                        FontWeight="SemiBold"
-                       TextAlignment="Left"
+                       TextAlignment="Center"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Stretch"
                        VerticalAlignment="Center" />

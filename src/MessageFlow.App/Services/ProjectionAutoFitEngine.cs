@@ -270,7 +270,7 @@ public static partial class ProjectionAutoFitEngine
                     : Math.Max(minReadable, Math.Clamp(rootHeight * 0.09, 44, 130));
 
         var fontWeight = isBible || isSong ? FontWeights.Bold : FontWeights.SemiBold;
-        var textAlignment = isSong ? TextAlignment.Center : TextAlignment.Left;
+        var textAlignment = TextAlignment.Center;
 
         // 5. Try single-screen fit first
         var singleFit = FindMaxFittingFontSize(

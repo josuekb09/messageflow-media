@@ -306,7 +306,7 @@ public partial class ProjectWindow : Window
         ParagraphTextBlock.FontSize = layout.FontSize;
         ParagraphTextBlock.LineHeight = layout.LineHeight;
         ParagraphTextBlock.Text = projectionPages[currentPageIndex];
-        ParagraphTextBlock.TextAlignment = contentType == ProjectionContentType.Song ? TextAlignment.Center : TextAlignment.Left;
+        ParagraphTextBlock.TextAlignment = TextAlignment.Center;
         ParagraphTextBlock.FontWeight = contentType == ProjectionContentType.Sermon ? FontWeights.SemiBold : FontWeights.Bold;
 
         if (layout.IsPaginated && projectionPages.Count > 1)
@@ -507,7 +507,7 @@ public partial class ProjectWindow : Window
         PageIndicatorTextBlock.Visibility = usesSingleScreenFit
             ? Visibility.Collapsed
             : Visibility.Visible;
-        ParagraphTextBlock.TextAlignment = usesSongLayout ? TextAlignment.Center : TextAlignment.Left;
+        ParagraphTextBlock.TextAlignment = TextAlignment.Center;
         ParagraphTextBlock.HorizontalAlignment = HorizontalAlignment.Stretch;
         ParagraphTextBlock.VerticalAlignment = VerticalAlignment.Center;
     }
