@@ -1,4 +1,4 @@
-const githubReleaseTag = "v1.0.9";
+const githubReleaseTag = "v1.0.10";
 
 export const site = {
   name: "MessageFlow Media",
@@ -6,10 +6,10 @@ export const site = {
   description:
     "Free offline Windows software for church media teams. Search and project Brother Branham's sermons, Brother Frank's publications, the Bible, and songs in English, French, and Kiswahili.",
   url: "https://www.messageflow.tech",
-  version: "1.0.9",
-  releaseDate: "October 2026",
+  version: "1.0.10",
+  releaseDate: "November 2026",
   // Same date as releaseDate, for month names in French and Kiswahili.
-  releaseMonth: "2026-10",
+  releaseMonth: "2026-11",
   platform: "Windows 10 / 11",
   exeName: "MessageFlow.App.exe",
   githubReleaseTag,
