@@ -3,14 +3,21 @@
 ## Current Version
 
 ```text
-v1.0.9
+v1.0.10
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.9
+MessageFlow Media v1.0.10
 ```
+
+## Included In v1.0.10
+
+- Bible search: 200 ms debounce (shared by all search boxes) and the result list replaced in one pass
+- Bible list scrolls to the requested verse, else to the top of the chapter or book
+- Auto fit centres sermon and Bible text horizontally (songs were already centred)
+- Real-window projection tests (ProjectionAutoFitWindowTests); 40 unit tests in total
 
 ## Included In v1.0.9
 

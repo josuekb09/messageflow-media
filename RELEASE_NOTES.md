@@ -1,3 +1,20 @@
+# MessageFlow Media 1.0.10
+
+Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
+
+## Fixes
+
+- **Bible search while you type.** The search waits 200 ms after you stop typing, and the new results replace the old ones in one step instead of the list being emptied and refilled one item at a time.
+- **The Bible list goes where you asked.** After a search, the list scrolls to the verse you asked for; if you asked for a chapter or a book, it shows the top of that chapter or book.
+- **Sermon and Bible text centred on the screen.** With Auto fit, sermon paragraphs and Bible verses are now centred horizontally on the projector, as songs already were. Only the position changes: the words, the pages, and the text size stay the same.
+
+## Verified before release
+
+- 40 automated tests pass.
+- Projection checked at 1280x720 and 1920x1080 on the 100 longest sermon paragraphs of each language and the 100 longest verses of each Bible: 39,118 checks, 0 overflows, 0 cut words, 0 text changes.
+
+---
+
 # MessageFlow Media 1.0.9
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
