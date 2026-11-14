@@ -1,4 +1,22 @@
-# Resume here: MessageFlow Media 1.0.9 release
+# Resume here: MessageFlow Media 1.0.10 release
+
+State on 2026-11-14 (details and times: `docs\RELEASE_PROGRESS.md`):
+
+- v1.0.9 was published on GitHub on 2026-10-25 with installer F753426D... (the notes below saying "draft" are older).
+- 1.0.10 = `fix/ux-search-auto` merged into main (Bible search 200 ms debounce and bulk list update, Bible scroll
+  target, Auto fit centres sermon and Bible text). Version commit `e58ca33`. Tests 40/40.
+  `VerifyLibraryProjectionFit --only sermons,bible --screens 1280x720,1920x1080`: 39,118 checks, 0 failures.
+  The songs run was stopped by low memory before any result (songs code is unchanged in this release).
+- `dist\MessageFlowMediaSetup.exe` built from `e58ca33`: 547,653,029 bytes,
+  SHA-256 `B2F9A2E1FA50F1B0234A5E8532567AEFA5FE8F34CDFF04F71B412C2C87F2BB51`.
+  The 1.0.9 installer is kept as `dist\MessageFlowMediaSetup-1.0.9.exe`.
+- Clean install left in `E:\MF_Install_Test4`: 1.0.10+e58ca33, 0 favorites/history, integrity ok.
+- GitHub release v1.0.10: DRAFT only; the owner checks projection on screen, then publishes.
+- Website version text: local branch `release-site-1.0.10`, not pushed, not merged.
+
+---
+
+# Earlier: MessageFlow Media 1.0.9 release
 
 State on 2026-10-24 (evening, before Sunday 25 October):
 

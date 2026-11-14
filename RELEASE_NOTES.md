@@ -12,6 +12,13 @@ Church operator and projection software for Windows. Search and project sermons,
 
 - 40 automated tests pass.
 - Projection checked at 1280x720 and 1920x1080 on the 100 longest sermon paragraphs of each language and the 100 longest verses of each Bible: 39,118 checks, 0 overflows, 0 cut words, 0 text changes.
+- Clean install tested on Windows 11: version 1.0.10, no favorites or history, database integrity ok.
+
+## Download
+
+Installer: [GitHub release v1.0.10](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.10), `MessageFlowMediaSetup.exe` (547,653,029 bytes, about 522 MB).
+
+SHA-256: `B2F9A2E1FA50F1B0234A5E8532567AEFA5FE8F34CDFF04F71B412C2C87F2BB51`
 
 ---
 
