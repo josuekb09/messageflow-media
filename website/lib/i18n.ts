@@ -58,6 +58,12 @@ export type Dictionary = {
     lead: string;
     darkLabel: string;
     lightLabel: string;
+    tour: {
+      label: string;
+      play: string;
+      pause: string;
+      slides: Record<"bible" | "songs" | "projection" | "light", { tab: string; caption: string; alt: string }>;
+    };
   };
   features: {
     title: string;
@@ -190,6 +196,33 @@ export const dictionaries: Record<Locale, Dictionary> = {
       lead: "The media team works on the computer. The congregation sees only the projection window — in the theme that suits the room.",
       darkLabel: "Dark theme",
       lightLabel: "Light theme",
+      tour: {
+        label: "App tour",
+        play: "Play the slideshow",
+        pause: "Pause the slideshow",
+        slides: {
+          bible: {
+            tab: "Bible",
+            caption: "Type a reference or a keyword. The list goes straight to the verse you asked for.",
+            alt: "MessageFlow Media, Bible tab: John 3:16 in the King James Version, shown in the preview with Project, Previous Verse, and Next Verse buttons.",
+          },
+          songs: {
+            tab: "Songs",
+            caption: "Open a song and move through its sections, one slide at a time.",
+            alt: "MessageFlow Media, Songs tab: the song list, the sections of the selected song, and Previous Section and Next Section buttons.",
+          },
+          projection: {
+            tab: "Projection",
+            caption: "The congregation sees only the projection window: large, centred, easy to read.",
+            alt: "The projection window: John 3:16 in large white text, centred on a black background.",
+          },
+          light: {
+            tab: "Light theme",
+            caption: "A light theme for bright rooms, with the same layout.",
+            alt: "MessageFlow Media in the light theme, Bible tab with John 3:16 selected.",
+          },
+        },
+      },
     },
     about: {
       title: "What is MessageFlow Media?",
@@ -387,6 +420,33 @@ export const dictionaries: Record<Locale, Dictionary> = {
       lead: "L'équipe média travaille sur l'ordinateur. L'assemblée ne voit que la fenêtre de projection, dans le thème qui convient à la salle.",
       darkLabel: "Thème sombre",
       lightLabel: "Thème clair",
+      tour: {
+        label: "Visite de l'application",
+        play: "Lancer le diaporama",
+        pause: "Mettre le diaporama en pause",
+        slides: {
+          bible: {
+            tab: "Bible",
+            caption: "Tapez une référence ou un mot-clé. La liste va directement au verset demandé.",
+            alt: "MessageFlow Media, onglet Bible : Jean 3:16 dans la version King James, affiché dans l'aperçu avec les boutons Projeter, Verset précédent et Verset suivant.",
+          },
+          songs: {
+            tab: "Chants",
+            caption: "Ouvrez un chant et passez d'une section à l'autre, diapositive par diapositive.",
+            alt: "MessageFlow Media, onglet Chants : la liste des chants, les sections du chant choisi, et les boutons Section précédente et Section suivante.",
+          },
+          projection: {
+            tab: "Projection",
+            caption: "L'assemblée ne voit que la fenêtre de projection : grand texte, centré, facile à lire.",
+            alt: "La fenêtre de projection : Jean 3:16 en grand texte blanc, centré sur fond noir.",
+          },
+          light: {
+            tab: "Thème clair",
+            caption: "Un thème clair pour les salles lumineuses, avec la même disposition.",
+            alt: "MessageFlow Media en thème clair, onglet Bible avec Jean 3:16 sélectionné.",
+          },
+        },
+      },
     },
     about: {
       title: "Qu'est-ce que MessageFlow Media ?",
@@ -584,6 +644,33 @@ export const dictionaries: Record<Locale, Dictionary> = {
       lead: "Timu ya media inafanya kazi kwenye kompyuta. Kusanyiko linaona dirisha la onyesho tu, katika mandhari yanayofaa ukumbi.",
       darkLabel: "Mandhari meusi",
       lightLabel: "Mandhari meupe",
+      tour: {
+        label: "Ziara ya programu",
+        play: "Endesha onyesho la slaidi",
+        pause: "Simamisha onyesho la slaidi",
+        slides: {
+          bible: {
+            tab: "Biblia",
+            caption: "Andika rejea au neno. Orodha inaenda moja kwa moja kwenye mstari ulioomba.",
+            alt: "MessageFlow Media, kichupo cha Biblia: Yohana 3:16 katika King James Version, kwenye hakikisho pamoja na vitufe vya Project, Previous Verse na Next Verse.",
+          },
+          songs: {
+            tab: "Nyimbo",
+            caption: "Fungua wimbo na upitie sehemu zake, slaidi moja baada ya nyingine.",
+            alt: "MessageFlow Media, kichupo cha Nyimbo: orodha ya nyimbo, sehemu za wimbo uliochaguliwa, na vitufe vya Previous Section na Next Section.",
+          },
+          projection: {
+            tab: "Onyesho",
+            caption: "Kusanyiko linaona dirisha la onyesho tu: herufi kubwa, katikati, rahisi kusoma.",
+            alt: "Dirisha la onyesho: Yohana 3:16 kwa herufi kubwa nyeupe, katikati ya mandharinyuma meusi.",
+          },
+          light: {
+            tab: "Mandhari meupe",
+            caption: "Mandhari meupe kwa vyumba vyenye mwanga, kwa mpangilio uleule.",
+            alt: "MessageFlow Media katika mandhari meupe, kichupo cha Biblia na Yohana 3:16 kimechaguliwa.",
+          },
+        },
+      },
     },
     about: {
       title: "MessageFlow Media ni nini?",

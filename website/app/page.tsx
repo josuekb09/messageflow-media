@@ -1,9 +1,9 @@
 import { AboutSection } from "@/components/about-section";
+import { AppTour } from "@/components/app-tour";
 import { CtaBand } from "@/components/cta-band";
 import { FeatureMatrix } from "@/components/feature-matrix";
 import { Hero } from "@/components/hero";
 import { HowItWorks } from "@/components/how-it-works";
-import { ProductShowcase } from "@/components/product-showcase";
 import { SolveSection } from "@/components/solve-section";
 
 export default function HomePage() {
@@ -12,7 +12,7 @@ export default function HomePage() {
       <Hero />
       <AboutSection />
       <SolveSection />
-      <ProductShowcase />
+      <AppTour />
       <FeatureMatrix />
       <HowItWorks />
       <CtaBand />

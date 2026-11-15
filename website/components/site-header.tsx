@@ -15,7 +15,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center gap-2.5">
           <BrandLogo className="h-7 w-7 shrink-0" />
-          <span className="hidden truncate font-serif text-[18px] font-medium tracking-tight text-ink min-[380px]:inline">
+          <span className="hidden truncate text-[17px] font-semibold tracking-tight text-ink min-[380px]:inline">
             {site.name}
           </span>
         </Link>
@@ -24,7 +24,7 @@ export function SiteHeader() {
             href={`https://github.com/${site.githubRepo}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium text-ink-muted transition-colors hover:text-ink sm:px-2.5"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium text-ink-muted transition-colors duration-200 hover:bg-surface hover:text-ink sm:px-2.5"
           >
             <GitHubIcon className="h-4 w-4" />
             <span className="hidden sm:inline">{t.header.github}</span>
