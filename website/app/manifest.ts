@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/lib/site";
 
-// Icons are the desktop app's own icon (messageflow-app-icon-1024.png), resized only.
+// Icons: the cyan "M" from the app header (public/brand/mark-cyan.svg), rendered as PNG.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: site.name,

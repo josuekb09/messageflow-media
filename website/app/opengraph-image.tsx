@@ -8,7 +8,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  // The desktop app's own icon (messageflow-app-icon-1024.png resized to 512 px), unchanged.
+  // The cyan "M" from the app header (public/brand/mark-cyan.svg rendered at 512 px).
   const icon = await readFile(join(process.cwd(), "public/brand/icons/icon-512.png"));
   const iconSrc = `data:image/png;base64,${icon.toString("base64")}`;
 

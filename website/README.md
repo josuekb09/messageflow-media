@@ -4,19 +4,17 @@ Light-themed landing site for the MessageFlow Windows desktop application.
 
 ## Logo
 
-The site uses one logo: the desktop app's own icon (gold rounded square, cream "M"),
-the same files as the window, taskbar and installer icon. Nothing is redrawn.
+The site uses one logo everywhere: the "M" mark as the desktop app shows it in its
+header, in the app's cyan accent `#38BDF8` (`AccentBrush` in `Themes/DarkTheme.xaml`).
 
-- `public/brand/app-icon.svg` and `app/icon1.svg`: copies of
-  `src/MessageFlow.App/Assets/Brand/messageflow-app-icon.svg` (header, footer, favicon).
-- `app/favicon.ico`: copy of `src/MessageFlow.App/Assets/Brand/MessageFlow.ico`.
-- `public/brand/icons/icon-16|32|48.png` and `app/icon2|3|4.png`: the 16, 32 and 48 px
-  frames of `MessageFlow.ico`, pixel for pixel.
-- `public/brand/icons/icon-180|192|512.png` and `app/apple-icon.png` (180): resized from
-  `messageflow-app-icon-1024.png`. Used by the web manifest and the shared-link image.
+- `public/brand/mark-cyan.svg` and `app/icon1.svg`: `src/MessageFlow.App/Assets/Brand/messageflow-mark.svg`
+  with only the stroke colour changed from `#B8791E` to `#38BDF8`. The shape is untouched.
+- `public/brand/icons/icon-16|32|48|180|192|512.png`, `app/icon2|3|4.png`, `app/apple-icon.png`
+  and `app/favicon.ico` (16, 32, 48, 256): rendered from `mark-cyan.svg`, transparent background.
 
-The bare "M" (`public/brand/mark*.svg`) is the app's in-header glyph and is not shown on
-the site. The old blue `messageflow-mark-*.png` files in the app are not used anywhere.
+The gold app icon (`public/brand/app-icon.svg`, the window, taskbar and installer icon) and the
+gold, black and white marks stay in `public/brand/` as copies of the app files but are not shown
+on the site. The old blue `messageflow-mark-*.png` files in the app are not used anywhere.
 
 ## Run locally
 
