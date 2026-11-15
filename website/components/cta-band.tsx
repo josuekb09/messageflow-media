@@ -16,9 +16,7 @@ export function CtaBand() {
             aria-hidden="true"
             className="glow-orb float-slow pointer-events-none absolute -top-32 left-1/2 -z-10 h-[22rem] w-[40rem] max-w-[160vw] -translate-x-1/2 rounded-full"
           />
-          <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-line bg-page shadow-card">
-            <BrandLogo className="h-9 w-9" />
-          </span>
+          <BrandLogo className="mx-auto h-16 w-16 drop-shadow-md" />
           <h2 className="mx-auto mt-7 max-w-2xl text-balance text-[2rem] font-semibold leading-[1.12] text-ink sm:text-[2.75rem]">
             {t.cta.title}
           </h2>

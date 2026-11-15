@@ -27,7 +27,6 @@ export const metadata: Metadata = {
   },
   description: site.description,
   applicationName: site.name,
-  icons: { icon: "/brand/app-icon.svg" },
   alternates: {
     canonical: "/",
   },

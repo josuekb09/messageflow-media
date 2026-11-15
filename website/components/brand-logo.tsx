@@ -1,30 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 
 type BrandLogoProps = {
-  variant?: "mark" | "icon";
   className?: string;
 };
 
 /**
- * Official MessageFlow mark (the gold “M” badge) from the WPF desktop app.
+ * The MessageFlow brand logo: the gold rounded square with the cream "M", the same
+ * file the desktop app uses for its window, taskbar and installer icon.
  *
- * Copied from:
- *   src/MessageFlow.App/Assets/Brand/messageflow-mark.svg
- * Served on the site as:
- *   /brand/mark.svg  →  website/public/brand/mark.svg
- *
- * App icon copied from:
+ * Copied unchanged from:
  *   src/MessageFlow.App/Assets/Brand/messageflow-app-icon.svg
+ * Served on the site as:
+ *   /brand/app-icon.svg  →  website/public/brand/app-icon.svg
  *
- * The horizontal wordmark SVG is not used on this light page. The mark is paired
- * with ink “MessageFlow” type instead, matching the desktop title bar (mark + name).
+ * This is the only logo used on the site. The bare "M" (messageflow-mark.svg) is the
+ * in-app glyph and is not shown on its own here, so two different M logos never
+ * appear side by side. The gold square reads on both the light and the dark theme,
+ * so it needs no backdrop.
  */
-const sources = {
-  mark: { src: "/brand/mark.svg", alt: "MessageFlow" },
-  icon: { src: "/brand/app-icon.svg", alt: "MessageFlow" },
-} as const;
-
-export function BrandLogo({ variant = "mark", className }: BrandLogoProps) {
-  const asset = sources[variant];
-  return <img src={asset.src} alt={asset.alt} className={className} />;
+export function BrandLogo({ className }: BrandLogoProps) {
+  return <img src="/brand/app-icon.svg" alt="MessageFlow" width={512} height={512} className={className} />;
 }

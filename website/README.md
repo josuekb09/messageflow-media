@@ -4,15 +4,19 @@ Light-themed landing site for the MessageFlow Windows desktop application.
 
 ## Logo
 
-The blue wave mark is copied from the WPF app:
+The site uses one logo: the desktop app's own icon (gold rounded square, cream "M"),
+the same files as the window, taskbar and installer icon. Nothing is redrawn.
 
-- Source: `src/MessageFlow.App/Assets/Brand/messageflow-mark.svg`
-- Site file: `website/public/brand/mark.svg`
+- `public/brand/app-icon.svg` and `app/icon1.svg`: copies of
+  `src/MessageFlow.App/Assets/Brand/messageflow-app-icon.svg` (header, footer, favicon).
+- `app/favicon.ico`: copy of `src/MessageFlow.App/Assets/Brand/MessageFlow.ico`.
+- `public/brand/icons/icon-16|32|48.png` and `app/icon2|3|4.png`: the 16, 32 and 48 px
+  frames of `MessageFlow.ico`, pixel for pixel.
+- `public/brand/icons/icon-180|192|512.png` and `app/apple-icon.png` (180): resized from
+  `messageflow-app-icon-1024.png`. Used by the web manifest and the shared-link image.
 
-The app icon is copied from:
-
-- Source: `src/MessageFlow.App/Assets/Brand/messageflow-app-icon.svg`
-- Site file: `website/public/brand/app-icon.svg`
+The bare "M" (`public/brand/mark*.svg`) is the app's in-header glyph and is not shown on
+the site. The old blue `messageflow-mark-*.png` files in the app are not used anywhere.
 
 ## Run locally
 
@@ -26,7 +30,7 @@ Open http://localhost:3000
 
 Every Download button opens the `MessageFlowMediaSetup.exe` asset from the latest public GitHub Release. The installer is not served by this website or Vercel Blob.
 
-Product screenshots and the compressed demo video live in `public/media/`.
+App screenshots live in `public/screens/` (see `lib/media.ts`).
 
 ## Deploy
 

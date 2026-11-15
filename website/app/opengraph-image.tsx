@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { site } from "@/lib/site";
 
@@ -5,7 +7,11 @@ export const alt = `${site.name} — ${site.tagline}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
+  // The desktop app's own icon (messageflow-app-icon-1024.png resized to 512 px), unchanged.
+  const icon = await readFile(join(process.cwd(), "public/brand/icons/icon-512.png"));
+  const iconSrc = `data:image/png;base64,${icon.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -20,15 +26,19 @@ export default function OpenGraphImage() {
           color: "#0A0A0A",
         }}
       >
-        <div style={{ display: "flex", fontSize: 20, color: "#B8791E", fontWeight: 600 }}>
-          MessageFlow · v{site.version}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconSrc} width={96} height={96} alt="" />
+          <div style={{ display: "flex", marginLeft: 28, fontSize: 30, fontWeight: 600, color: "#0A0A0A" }}>
+            MessageFlow Media · v{site.version}
+          </div>
         </div>
         <div
           style={{
             display: "flex",
             fontSize: 48,
             fontWeight: 650,
-            marginTop: 18,
+            marginTop: 36,
             lineHeight: 1.2,
             maxWidth: 920,
           }}
