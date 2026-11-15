@@ -2,16 +2,17 @@
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
 
-## Fixes
-
-- **Bible search while you type.** The search waits 200 ms after you stop typing, and the new results replace the old ones in one step instead of the list being emptied and refilled one item at a time.
-- **The Bible list goes where you asked.** After a search, the list scrolls to the verse you asked for; if you asked for a chapter or a book, it shows the top of that chapter or book.
-- **Sermon and Bible text centred on the screen.** With Auto fit, sermon paragraphs and Bible verses are now centred horizontally on the projector, as songs already were. Only the position changes: the words, the pages, and the text size stay the same.
+## What's new
+- **Bible search is smoother while you type.** Results appear once you pause, and replace the list in a single step.
+- **The Bible list goes to the verse you asked for.** If you asked for a chapter or a book, it opens at the top of it.
+- **Auto fit centres sermon and Bible text horizontally** on the projector. The words, pages and text size stay the same.
+- **Checked before release:** 40 automated tests pass, and projection checks on songs, the longest sermon paragraphs, the longest Bible verses and all Brother Frank paragraphs found 0 overflows, 0 cut words and 0 text changes.
 
 ## Verified before release
 
 - 40 automated tests pass.
-- Projection checked at 1280x720 and 1920x1080 on the 100 longest sermon paragraphs of each language and the 100 longest verses of each Bible: 39,118 checks, 0 overflows, 0 cut words, 0 text changes.
+- Songs: 129,168 layout configurations, 32,293 real-window page checks, 0 failures (612 s).
+- Sermons, Bible and Brother Frank, at 1280x720 and 1920x1080: 73,296 layout configurations, 103,229 real-window page checks, 0 failures (2,354 s).
 - Clean install tested on Windows 11: version 1.0.10, no favorites or history, database integrity ok.
 
 ## Download
