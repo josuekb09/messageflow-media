@@ -9,16 +9,25 @@ export function CtaBand() {
 
   return (
     <section className="border-t border-line bg-surface">
-      <div className="reveal mx-auto max-w-3xl px-4 py-20 text-center sm:px-8 sm:py-24">
-        <BrandLogo className="mx-auto h-12 w-12" />
-        <h2 className="mt-7 text-balance text-[2.1rem] font-medium leading-[1.15] text-ink sm:text-5xl">
-          {t.cta.title}
-        </h2>
-        <p className="mx-auto mt-5 max-w-xl text-pretty text-[17px] leading-8 text-ink-secondary">
-          {t.cta.body}
-        </p>
-        <div className="mt-9 flex justify-center">
-          <DownloadButton size="lg" className="w-full sm:w-auto" />
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-24">
+        <div className="reveal relative isolate overflow-hidden rounded-3xl border border-line bg-card px-6 py-14 text-center shadow-card sm:px-12 sm:py-16">
+          <div aria-hidden="true" className="bg-grid pointer-events-none absolute inset-0 -z-10 opacity-70" />
+          <div
+            aria-hidden="true"
+            className="glow-orb float-slow pointer-events-none absolute -top-32 left-1/2 -z-10 h-[22rem] w-[40rem] max-w-[160vw] -translate-x-1/2 rounded-full"
+          />
+          <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-line bg-page shadow-card">
+            <BrandLogo className="h-9 w-9" />
+          </span>
+          <h2 className="mx-auto mt-7 max-w-2xl text-balance text-[2rem] font-semibold leading-[1.12] text-ink sm:text-[2.75rem]">
+            {t.cta.title}
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-pretty text-[17px] leading-8 text-ink-secondary">
+            {t.cta.body}
+          </p>
+          <div className="mt-9 flex justify-center">
+            <DownloadButton size="lg" className="w-full sm:w-auto" />
+          </div>
         </div>
       </div>
     </section>

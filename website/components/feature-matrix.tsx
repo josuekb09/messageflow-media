@@ -1,13 +1,15 @@
 "use client";
 
 import { useI18n } from "@/components/language-provider";
-import { BookIcon, CrossIcon, MusicNoteIcon } from "@/components/line-icons";
+import { BookOpenText, Cross, Music } from "lucide-react";
+import { IconBadge } from "@/components/icon-badge";
+import { revealDelay } from "@/components/reveal-delay";
 import { SectionHeading } from "@/components/section-heading";
 import { localeHtmlLang, type Locale } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 // Same order as the dictionary items: sermons, Bible, songs.
-const icons = [BookIcon, CrossIcon, MusicNoteIcon] as const;
+const icons = [BookOpenText, Cross, Music] as const;
 const languages = ["en", "fr", "sw"] as const;
 
 export function FeatureMatrix() {
@@ -30,14 +32,14 @@ export function FeatureMatrix() {
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {t.features.items.map((feature, index) => {
-            const Icon = icons[index] ?? BookIcon;
             return (
               <article
                 key={feature.title}
-                className="reveal flex flex-col rounded-2xl border border-line bg-card p-6 shadow-card sm:p-8"
+                style={revealDelay(index)}
+                className="reveal card-lift flex flex-col rounded-2xl border border-line bg-card p-6 shadow-card sm:p-8"
               >
-                <Icon className="h-7 w-7 text-brand" />
-                <h3 className="mt-6 text-[1.55rem] font-medium leading-tight text-ink">{feature.title}</h3>
+                <IconBadge icon={icons[index] ?? BookOpenText} />
+                <h3 className="mt-6 text-[1.3rem] font-semibold leading-tight text-ink">{feature.title}</h3>
                 <p className="mt-3 flex-1 text-[15px] leading-7 text-ink-secondary">{feature.body}</p>
               </article>
             );
@@ -52,7 +54,7 @@ export function FeatureMatrix() {
                   <span className="sr-only">{table.caption}</span>
                 </th>
                 {languages.map((lang) => (
-                  <th key={lang} scope="col" className="px-5 py-4 font-serif text-[1.15rem] font-medium text-ink">
+                  <th key={lang} scope="col" className="px-5 py-4 text-[1rem] font-semibold text-ink">
                     {table.columns[lang]}
                   </th>
                 ))}
@@ -60,7 +62,7 @@ export function FeatureMatrix() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.label} className="border-b border-line last:border-b-0">
+                <tr key={row.label} className="border-b border-line transition-colors duration-300 last:border-b-0 hover:bg-accent-soft">
                   <th scope="row" className="px-5 py-4 font-medium text-ink">
                     {row.label}
                     {row.note ? (

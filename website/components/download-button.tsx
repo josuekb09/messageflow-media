@@ -1,5 +1,6 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "@/components/language-provider";
 import { NotifyDialog, wasNotifyAsked } from "@/components/notify-dialog";
@@ -25,10 +26,12 @@ export function DownloadButton({ size = "md", className = "" }: DownloadButtonPr
         onClick={() => {
           if (!wasNotifyAsked()) setNotifyOpen(true);
         }}
-        className={`inline-flex items-center justify-center rounded-lg bg-brand font-semibold text-brand-ink shadow-sm transition-colors hover:bg-brand-hover ${
+        className={`btn-download group inline-flex items-center justify-center gap-2 rounded-xl bg-accent font-semibold text-accent-ink hover:bg-accent-strong ${
           large ? "h-12 px-6 text-[15px]" : "h-9 px-3.5 text-sm"
         } ${className}`}
       >
+        <span aria-hidden="true" className="shine" />
+        <Download aria-hidden="true" className={`btn-icon shrink-0 ${large ? "h-[18px] w-[18px]" : "h-4 w-4"}`} strokeWidth={2.25} />
         {t.download.button}
       </a>
       <NotifyDialog open={notifyOpen} onClose={() => setNotifyOpen(false)} />

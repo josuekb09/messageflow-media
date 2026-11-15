@@ -14,7 +14,7 @@ export function SiteFooter() {
         <div>
           <div className="flex items-center gap-2.5">
             <BrandLogo className="h-7 w-7" />
-            <span className="font-serif text-[18px] font-medium tracking-tight text-ink">
+            <span className="text-[17px] font-semibold tracking-tight text-ink">
               {site.name}
             </span>
           </div>

@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { EB_Garamond, Geist } from "next/font/google";
+import { Geist } from "next/font/google";
 import { LanguageProvider } from "@/components/language-provider";
+import { RevealObserver } from "@/components/reveal-observer";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import {
@@ -15,12 +16,6 @@ import "./globals.css";
 
 const geist = Geist({
   variable: "--font-geist",
-  subsets: ["latin", "latin-ext"],
-});
-
-// Headings only: a classic book serif, as in the printed sermons and Bibles.
-const garamond = EB_Garamond({
-  variable: "--font-garamond",
   subsets: ["latin", "latin-ext"],
 });
 
@@ -53,8 +48,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf7f0" },
-    { media: "(prefers-color-scheme: dark)", color: "#141311" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f8fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a1220" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -69,15 +64,21 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={localeHtmlLang[initialLocale]}
-      className={`${geist.variable} ${garamond.variable} h-full overflow-x-clip antialiased`}
+      className={`${geist.variable} h-full overflow-x-clip antialiased`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
+      <head>
+        {/* Marks that JavaScript runs before the first paint, so scroll-reveal content
+            is hidden only when it will also be shown again. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+      </head>
       <body className="flex min-h-full flex-col overflow-x-clip bg-page font-sans text-ink">
         <LanguageProvider initialLocale={initialLocale}>
           <SiteHeader />
           <div className="flex-1">{children}</div>
           <SiteFooter />
+          <RevealObserver />
         </LanguageProvider>
       </body>
     </html>
