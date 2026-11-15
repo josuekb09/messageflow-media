@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { BookOpenText, Cross, Music, Pause, Play, Projector, Sun, type LucideIcon } from "lucide-react";
+import { Cross, Music, Pause, Play, Projector, Sun, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useI18n } from "@/components/language-provider";
 import { SectionHeading } from "@/components/section-heading";
@@ -10,7 +10,6 @@ import { screens, tourOrder, type ScreenKey } from "@/lib/media";
 const SLIDE_MS = 6000;
 
 const icons: Record<ScreenKey, LucideIcon> = {
-  sermons: BookOpenText,
   bible: Cross,
   songs: Music,
   projection: Projector,
@@ -18,7 +17,7 @@ const icons: Record<ScreenKey, LucideIcon> = {
 };
 
 /**
- * Slideshow of the app sections (Sermons, Bible, Songs, Projection, Light theme)
+ * Slideshow of the app sections (Bible, Songs, Projection, Light theme)
  * with a cross-fade. It advances on its own while in view, pauses on hover, on
  * keyboard focus, when the tab is hidden, or with the pause button, and never
  * advances on its own for visitors who ask for reduced motion.

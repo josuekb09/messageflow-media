@@ -62,7 +62,7 @@ export type Dictionary = {
       label: string;
       play: string;
       pause: string;
-      slides: Record<"sermons" | "bible" | "songs" | "projection" | "light", { tab: string; caption: string; alt: string }>;
+      slides: Record<"bible" | "songs" | "projection" | "light", { tab: string; caption: string; alt: string }>;
     };
   };
   features: {
@@ -201,11 +201,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
         play: "Play the slideshow",
         pause: "Pause the slideshow",
         slides: {
-          sermons: {
-            tab: "Sermons",
-            caption: "Search sermons by title, code, phrase, or paragraph number, and preview the paragraph before you project it.",
-            alt: "MessageFlow Media, Sermons tab: matching sermons on the left, paragraph results in the middle, and a preview with Project and Copy buttons on the right.",
-          },
           bible: {
             tab: "Bible",
             caption: "Type a reference or a keyword. The list goes straight to the verse you asked for.",
@@ -430,11 +425,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
         play: "Lancer le diaporama",
         pause: "Mettre le diaporama en pause",
         slides: {
-          sermons: {
-            tab: "Sermons",
-            caption: "Cherchez un sermon par titre, code, phrase ou numéro de paragraphe, et vérifiez le paragraphe avant de le projeter.",
-            alt: "MessageFlow Media, onglet Sermons : sermons trouvés à gauche, paragraphes correspondants au milieu, et aperçu avec les boutons Projeter et Copier à droite.",
-          },
           bible: {
             tab: "Bible",
             caption: "Tapez une référence ou un mot-clé. La liste va directement au verset demandé.",
@@ -659,11 +649,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
         play: "Endesha onyesho la slaidi",
         pause: "Simamisha onyesho la slaidi",
         slides: {
-          sermons: {
-            tab: "Mahubiri",
-            caption: "Tafuta mahubiri kwa kichwa, msimbo, sentensi au namba ya aya, na uone aya kabla ya kuionyesha.",
-            alt: "MessageFlow Media, kichupo cha Mahubiri: mahubiri yaliyopatikana upande wa kushoto, aya zinazolingana katikati, na hakikisho lenye vitufe vya Project na Copy upande wa kulia.",
-          },
           bible: {
             tab: "Biblia",
             caption: "Andika rejea au neno. Orodha inaenda moja kwa moja kwenye mstari ulioomba.",
