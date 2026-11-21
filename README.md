@@ -4,17 +4,23 @@ I serve on the media desk at church, and I built MessageFlow Media so that what 
 
 It is free Windows software for the operator desk. You search a sermon, a Bible verse, or a song, press `Ctrl+P`, and it appears on the projector. The congregation sees only the projection window; you keep full control on the computer. It works fully offline.
 
-Current release: **v1.0.10** (November 2026). Free for church use, not for sale.
+Current release: **v1.0.11** (November 2026). Free for church use, not for sale.
 
 - Website: [www.messageflow.tech](https://www.messageflow.tech)
-- Download: [GitHub Releases v1.0.10](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.10)
+- Download: [GitHub Releases v1.0.11](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.11)
 - Report a problem: [www.messageflow.tech/feedback](https://www.messageflow.tech/feedback)
 
 ## Why I care about the text
 
 When a pastor reads paragraph 36 from the printed book, paragraph 36 on the screen has to be the same paragraph, word for word. For 1.0.9 I compared every sermon, song, and Bible verse in the library with its original source file (the PDFs, the PowerPoint slides, and the Bible source texts) and corrected the library only where the source proved it wrong. The full method and the numbers are in [docs/SOURCE_ACCURACY_AUDIT.md](docs/SOURCE_ACCURACY_AUDIT.md), including what is still not perfect.
 
-What 1.0.10 brings:
+What 1.0.11 brings:
+
+- **798 new Brother Frank broadcast transcriptions:** 66 in English and 732 in French. The text is the source text, word for word, with the paragraph numbers of the documents.
+- **French sermons: 1,116** (384 before), **English: 1,354** (1,288 before). French documents only appear when French is selected.
+- Broadcasts of Brother Branham sermons (3 English, 32 French) are kept with the Brother Branham library.
+
+What 1.0.10 brought:
 
 - **Bible search while you type.** The results change in one step after a short pause instead of the list being emptied and refilled.
 - **The Bible list goes where you asked:** to the verse you asked for, else to the top of the chapter or book.
@@ -63,7 +69,7 @@ French hymns that have a refrain are shown as **verse → chorus → verse → c
 
 ## How to install
 
-1. Open the [v1.0.10 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.10) and download `MessageFlowMediaSetup.exe`, or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download).
+1. Open the [v1.0.11 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.11) and download `MessageFlowMediaSetup.exe`, or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download).
 2. Run the installer. You do not need administrator permission. If Windows says it protected your PC, choose **More info**, then **Run anyway**.
 3. Keep the suggested folder or choose another local folder with at least 2 GB free. The installer suggests `MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia` (`%LOCALAPPDATA%\Programs\MessageFlowMedia` on a PC with only C:). Please avoid OneDrive-synchronized folders such as Documents; the installer warns you if you pick one.
 4. Launch **MessageFlow Media** from the desktop shortcut or the Start menu.
@@ -73,10 +79,10 @@ French hymns that have a refrain are shown as **verse → chorus → verse → c
 
 | | |
 |---|---|
-| Version | 1.0.10 |
+| Version | 1.0.11 |
 | File | `MessageFlowMediaSetup.exe` |
-| Size | 547,653,029 bytes (about 522 MB) |
-| SHA-256 | `B2F9A2E1FA50F1B0234A5E8532567AEFA5FE8F34CDFF04F71B412C2C87F2BB51` |
+| Size | 620,494,726 bytes (about 592 MB) |
+| SHA-256 | `BD2EBB2B126427A13B76BBFE9E1E56C98AE0CD7B03ADCC39B006E36108BF6B38` |
 
 To check your download, run `Get-FileHash .\MessageFlowMediaSetup.exe` in PowerShell and compare the hash. The installer is attached to GitHub Releases; it is not committed to git.
 

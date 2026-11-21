@@ -12,6 +12,8 @@ import time
 
 # "row 57337 missing from index X", "wrong # of entries in index X", "non-unique entry in index X"
 INDEX_PROBLEM = re.compile(r"\bindex (\S+)$")
+# "malformed inverted index for FTS5 table main.SermonParagraphsFts"
+FTS_PROBLEM = re.compile(r"malformed inverted index for FTS5 table (?:main\.)?(\S+)$")
 
 
 def integrity_check(con: sqlite3.Connection) -> list[str]:
@@ -31,6 +33,31 @@ def main() -> int:
         problems = integrity_check(con)
         if problems == ["ok"]:
             print("snapshot integrity ok")
+            return 0
+
+        # VACUUM INTO can leave an FTS5 full-text index malformed even when the source is clean
+        # (seen in 1.0.11 with 537k paragraphs). The index is derived from the paragraph text, so
+        # rebuilding it changes no text. Only FTS5 tables named by integrity_check are rebuilt,
+        # each one is checked with its own integrity-check afterwards, and any other problem
+        # still fails the build below.
+        remaining: list[str] = []
+        for problem in problems:
+            fts = FTS_PROBLEM.search(problem)
+            if fts is None:
+                remaining.append(problem)
+                continue
+            table = fts.group(1)
+            print("FTS5 rebuild %s" % table)
+            quoted = '"%s"' % table.replace('"', '""')
+            con.execute("INSERT INTO %s(%s) VALUES('rebuild')" % (quoted, quoted))
+            con.commit()
+            con.execute("INSERT INTO %s(%s) VALUES('integrity-check')" % (quoted, quoted))
+        problems = remaining
+        if not problems:
+            if integrity_check(con) != ["ok"]:
+                print("FAIL: snapshot is still not clean after the FTS5 rebuild")
+                return 1
+            print("snapshot integrity repaired (FTS5 rebuild) and ok")
             return 0
 
         index_names: list[str] = []

@@ -1,3 +1,31 @@
+# MessageFlow Media 1.0.11
+
+Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
+
+## What's new
+- **New Brother Frank broadcast transcriptions: 798 documents.** 66 in English and 732 in French (560 broadcasts and 172 monthly meetings). Search, open and project them like any other sermon.
+- **A real French library for Brother Frank.** French sermons now number 1,116 (384 before) and English 1,354 (1,288 before). French documents only appear when French is selected and never mix into English search.
+- **Brother Branham sermons that are broadcast again** (3 in English, 32 in French) are kept with the Brother Branham library, apart from Brother Frank's own words.
+- **The text is exactly the source text.** Not a word or a character was changed, and the paragraph numbers printed in the documents are kept.
+- **Checked before release:** 44 automated tests pass. Every paragraph of the new documents (80,608) passes the projection checks at 1280x720 and 1920x1080 with 0 overflows, 0 cut words and 0 text changes.
+
+## Verified before release
+
+- 44 automated tests pass, including new checks on counts per language and source, no duplicate document, no empty paragraph, no replacement character, continuous paragraph numbers and no untitled document.
+- New documents, all 80,608 paragraphs, 1280x720 and 1920x1080: 161,216 layout configurations, 212,287 real-window page checks, 0 failures (4,954 s).
+- 20 paragraphs picked at random (10 English, 10 French) are identical to the source PDF text.
+- Bible, songs and the earlier sermons are unchanged: 357 English, 499 French and 281 Kiswahili songs, three Bibles, the 1,203 English, 384 French and 622 Kiswahili Brother Branham sermons and the 85 earlier Brother Frank documents.
+- Search index rebuilt and checked; the database inside the installer passes the SQLite integrity check and the full-text index check.
+- Clean install tested on Windows 11: version 1.0.11, database integrity ok, full-text index ok, no favorites or history, search finds the new English and French documents.
+
+## Download
+
+Installer: `MessageFlowMediaSetup.exe` (620,494,726 bytes, about 592 MB), attached to the GitHub release v1.0.11.
+
+SHA-256: `BD2EBB2B126427A13B76BBFE9E1E56C98AE0CD7B03ADCC39B006E36108BF6B38`
+
+---
+
 # MessageFlow Media 1.0.10
 
 Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.

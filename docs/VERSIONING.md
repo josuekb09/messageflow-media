@@ -3,14 +3,21 @@
 ## Current Version
 
 ```text
-v1.0.10
+v1.0.11
 ```
 
 ## Release Name
 
 ```text
-MessageFlow Media v1.0.10
+MessageFlow Media v1.0.11
 ```
+
+## Included In v1.0.11
+
+- 798 Brother Frank broadcast transcriptions: 66 English and 732 French (80,608 paragraphs), imported word for word with tools/ImportFrankRetransmissions
+- French sermons 1,116 (was 384), English 1,354 (was 1,288); 35 broadcast Brother Branham sermons are kept with the Brother Branham library
+- The installer build rebuilds a full-text index that VACUUM INTO leaves malformed (tools/Installer/check-snapshot-integrity.py), then checks it again
+- 44 unit tests (4 new data checks); projection fit check of the new documents with --code-like
 
 ## Included In v1.0.10
 
