@@ -36,6 +36,9 @@ bool Runs(string group) => only is null || only.Split(',').Contains(group, Strin
 var screensOption = GetOption(args, "--screens")?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 var dpiOption = GetOption(args, "--dpi")?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
     .Select(percent => double.Parse(percent, System.Globalization.CultureInfo.InvariantCulture) / 100.0).ToArray();
+// --code-like <pattern>: the "frank" group checks every paragraph of the documents whose SermonCode
+// matches (any author or source), e.g. 'EF-%-RE%' for the imported broadcast transcriptions.
+var codeLike = GetOption(args, "--code-like");
 var frankTop = int.TryParse(GetOption(args, "--frank-top"), out var frankTopValue) ? frankTopValue : (int?)null;
 if (!File.Exists(dbPath))
 {
@@ -197,9 +200,9 @@ var frankParagraphs = await QueryAsync(
     FROM "SermonParagraphs" p
     JOIN "Sermons" s ON s."Id" = p."SermonId"
     JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
-    WHERE cs."DisplayName" LIKE '%Frank%'
+    WHERE $codeLike IS NULL AND cs."DisplayName" LIKE '%Frank%' OR $codeLike IS NOT NULL AND s."SermonCode" LIKE $codeLike
     ORDER BY s."Id", p."ParagraphNumber";
-    """);
+    """, codeLike);
 Console.WriteLine($"Loaded {frankParagraphs.Count} Brother Frank publication paragraphs (all publications, max {frankParagraphs.Max(item => item.Text.Length):N0} chars).");
 
 var syntheticWorstCases = new List<(string Title, string Subtitle, string Text)>
@@ -564,11 +567,12 @@ if (totalFailures == 0)
 Console.WriteLine($"FAILURE: {totalFailures} CHECKS FAILED!");
 return 1;
 
-async Task<List<(string Title, string Subtitle, string Text)>> QueryAsync(string sql)
+async Task<List<(string Title, string Subtitle, string Text)>> QueryAsync(string sql, string? codeLikeFilter = null)
 {
     var items = new List<(string, string, string)>();
     await using var cmd = connection.CreateCommand();
     cmd.CommandText = sql;
+    cmd.Parameters.AddWithValue("$codeLike", (object?)codeLikeFilter ?? DBNull.Value);
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
     {

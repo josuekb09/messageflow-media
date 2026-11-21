@@ -10,7 +10,10 @@ import sys
 # English sermons went 1208 -> 1288 (1203 Branham + 85 Brother Frank). French, Swahili
 # and every song count are unchanged. See docs/BROTHER_FRANK_LIBRARY_AUDIT.md before
 # "correcting" these back.
-EXPECTED_SERMONS = {"en": 1288, "fr": 384, "sw": 622}
+#
+# 1.0.11 adds the Brother Frank broadcast transcriptions (tools/ImportFrankRetransmissions):
+# 66 English (en 1288 -> 1354) and 732 French (fr 384 -> 1116); Swahili is unchanged.
+EXPECTED_SERMONS = {"en": 1354, "fr": 1116, "sw": 622}
 EXPECTED_SONGS = {"en": 357, "fr": 499, "sw": 281}
 EXPECTED_BIBLES = {"KJV", "LSG", "SWHULB"}
 
