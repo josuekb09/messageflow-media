@@ -29,7 +29,8 @@ var checks = new List<(string Name, Func<Task<string>> Run)>
     ("song title slide fit rules", SongTitleSlideFitRules),
     ("live navigation identity rules", LiveNavigationRules),
     ("projection display window rules", ProjectionDisplayRules),
-    ("sermon projection typography and pagination", SermonProjectionTypography)
+    ("sermon projection typography and pagination", SermonProjectionTypography),
+    ("Brother Frank broadcast transcriptions: search, language scope, full open", FrankTranscriptionsSearchAndScope)
 };
 
 if (args.Contains("--include-import", StringComparer.OrdinalIgnoreCase))
@@ -470,6 +471,41 @@ static async Task<string> LanguageScopedSearchAndFavorites()
                                    history.SermonParagraph.Sermon.Language == language);
 
         details.Add($"{language}:search={results.Count}/sermons={sermonCount}/fav={favoriteCount}/hist={historyCount}");
+    }
+
+    return string.Join("; ", details);
+}
+
+static async Task<string> FrankTranscriptionsSearchAndScope()
+{
+    await using var db = CreateDb();
+    ISermonSearchService search = new SermonSearchService(db);
+    var details = new List<string>();
+
+    foreach (var (language, phrase) in new[] { ("en", "anchored in the promises"), ("fr", "obéissance pire que la sorcellerie") })
+    {
+        var imported = db.Sermons.AsNoTracking().Where(sermon => sermon.Language == language && sermon.SermonCode.StartsWith("EF-") &&
+            (sermon.SermonCode.Contains("-RETR-") || sermon.SermonCode.Contains("-REUN-")));
+        var importedIds = await imported.Select(sermon => sermon.Id).ToListAsync();
+        Assert(importedIds.Count > 0, $"{language}: imported transcriptions should exist");
+
+        var results = await search.SearchAsync(phrase, 100, CancellationToken.None, language);
+        Assert(results.Any(result => importedIds.Contains(result.SermonId)), $"{language}: search '{phrase}' should find an imported transcription");
+        var languages = await db.Sermons.AsNoTracking().Where(sermon => results.Select(r => r.SermonId).Contains(sermon.Id))
+            .Select(sermon => sermon.Language).Distinct().ToListAsync();
+        Assert(languages.Count == 1 && languages[0] == language, $"{language}: results must stay in {language} ({string.Join(",", languages)})");
+
+        // The other language must never show these documents.
+        var other = language == "en" ? "fr" : "en";
+        var otherResults = await search.SearchAsync(phrase, 100, CancellationToken.None, other);
+        Assert(!otherResults.Any(result => importedIds.Contains(result.SermonId)), $"{language} transcription leaked into {other} search");
+
+        // Full open: every paragraph loads, in order, none empty.
+        var sermonId = results.First(result => importedIds.Contains(result.SermonId)).SermonId;
+        var paragraphs = await db.SermonParagraphs.AsNoTracking().Where(p => p.SermonId == sermonId).OrderBy(p => p.ParagraphNumber).ToListAsync();
+        Assert(paragraphs.Count > 0 && paragraphs.All(p => !string.IsNullOrWhiteSpace(p.Text)), $"{language}: sermon {sermonId} paragraphs should load and be non-empty");
+        Assert(paragraphs.Select(p => p.ParagraphNumber).SequenceEqual(Enumerable.Range(1, paragraphs.Count)), $"{language}: sermon {sermonId} paragraph numbers should run 1..n");
+        details.Add($"{language}: imported={importedIds.Count}, search hits={results.Count}, opened sermon {sermonId} with {paragraphs.Count} paragraphs");
     }
 
     return string.Join("; ", details);
