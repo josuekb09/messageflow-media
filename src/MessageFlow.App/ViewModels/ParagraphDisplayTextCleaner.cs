@@ -31,7 +31,12 @@ public static partial class ParagraphDisplayTextCleaner
             cleaned = remainder;
         }
 
-        return ProjectionTextCleaner.CleanSermonText(cleaned);
+        // The cleaner removes whitespace before punctuation. French keeps the space before
+        // : ; ! ? » and after «, so those spaces are carried through the cleaner and shown as
+        // no-break spaces: the line never breaks between the word and the mark. The stored text
+        // is not touched.
+        return FrenchTypography.Restore(
+            ProjectionTextCleaner.CleanSermonText(FrenchTypography.Protect(cleaned)));
     }
 
     public static string CreatePreview(string text, int maxLength = 160)
@@ -47,6 +52,7 @@ public static partial class ParagraphDisplayTextCleaner
     [GeneratedRegex("^\\[(?=[^\\]]{1,240}\\bEd\\.?\\])(?=[^\\]]{1,240}[-\\u2013\\u2014]\\s*Ed\\.?\\])[^\\]]{1,240}\\]\\s*", RegexOptions.IgnoreCase)]
     private static partial Regex LeadingEditorNoteRegex();
 
-    [GeneratedRegex("\\s+")]
+    // Collapses breaking whitespace only: the no-break spaces of French typography stay.
+    [GeneratedRegex(@"[^\S\u00A0\u202F]+")]
     private static partial Regex WhiteSpaceRegex();
 }

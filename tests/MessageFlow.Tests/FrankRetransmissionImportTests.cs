@@ -100,6 +100,17 @@ public sealed class FrankRetransmissionImportTests
     }
 
     [Fact]
+    public void NoParagraphKeepsTrailingWhiteSpaceFromTheCrLfSourceFiles()
+    {
+        using var connection = Open();
+        if (connection is null) return;
+
+        // The source files end their lines with CR LF; the CR must not be stored.
+        Assert.Equal(0, Scalar(connection,
+            $"SELECT COUNT(1) FROM SermonParagraphs p JOIN Sermons s ON s.Id = p.SermonId WHERE {ImportedFilter} AND (p.Text LIKE '%' || char(13) OR p.Text LIKE '%' || char(10) OR p.Text LIKE '% ' OR p.Text LIKE '%' || char(9))"));
+    }
+
+    [Fact]
     public void ParagraphNumbersAreContinuousFromOne()
     {
         using var connection = Open();

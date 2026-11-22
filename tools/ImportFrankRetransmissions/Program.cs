@@ -41,8 +41,12 @@ foreach (var lang in new[] { "EN", "FR" })
         var collection = row["collection"];
         var number = int.Parse(row["number"], CultureInfo.InvariantCulture);
         var textFile = Path.Combine(TextCache, $"{lang}_{collection}_{number:000}.txt");
+        // The source files end their lines with CR LF: only the trailing whitespace (the CR) is
+        // taken off each paragraph; every other character is stored as it is.
         var lines = File.ReadAllText(textFile, new UTF8Encoding(false)).Split('\n')
-            .Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => line.TrimEnd())
+            .ToList();
         var date = Regex.Match(row["original date"], @"(\d{4})\D(\d{2})\D(\d{2})");
         // A few items have no original date in the app ("…"): the date is left empty and the
         // year comes from the Krefeld broadcast date, so nothing is invented.

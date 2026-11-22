@@ -200,7 +200,7 @@ var frankParagraphs = await QueryAsync(
     FROM "SermonParagraphs" p
     JOIN "Sermons" s ON s."Id" = p."SermonId"
     JOIN "ContentSources" cs ON cs."Id" = s."ContentSourceId"
-    WHERE $codeLike IS NULL AND cs."DisplayName" LIKE '%Frank%' OR $codeLike IS NOT NULL AND s."SermonCode" LIKE $codeLike
+    WHERE $codeLike IS NULL AND cs."DisplayName" LIKE '%Frank%' OR $codeLike IS NOT NULL AND (s."SermonCode" LIKE $codeLike OR s."SermonCode" GLOB $codeLike)
     ORDER BY s."Id", p."ParagraphNumber";
     """, codeLike);
 Console.WriteLine($"Loaded {frankParagraphs.Count} Brother Frank publication paragraphs (all publications, max {frankParagraphs.Max(item => item.Text.Length):N0} chars).");
@@ -398,6 +398,12 @@ var staThread = new Thread(() =>
                 if (!SameWords(text, layout.Pages))
                 {
                     Fail(ref textFailures, $"FAIL [{label}] TEXT CHANGED on {screen.Name} (scale {opScale:0.00}): pages do not hold exactly the original words.");
+                }
+
+                // French typography: the space before : ; ! ? » and after « must not be a breaking space.
+                if (!FrenchSpacesCannotBreak(layout.Pages))
+                {
+                    Fail(ref textFailures, $"FAIL [{label}] FRENCH SPACING on {screen.Name}: a breaking space before : ; ! ? » or after « can start a new line.");
                 }
 
                 if (contentType == ProjectionContentType.Song && !SongLinesPreserved(text, layout.Pages))
@@ -981,6 +987,12 @@ static bool SameWords(string original, IReadOnlyList<string> pages)
     var expected = Regex.Split(original.Trim(), @"\s+").Where(word => word.Length > 0);
     var actual = pages.SelectMany(page => Regex.Split(page.Trim(), @"\s+")).Where(word => word.Length > 0);
     return expected.SequenceEqual(actual, StringComparer.Ordinal);
+}
+
+static bool FrenchSpacesCannotBreak(IReadOnlyList<string> pages)
+{
+    return pages.All(page => !Regex.IsMatch(page, "[ ](?=[:;!?»])") &&
+                             !Regex.IsMatch(page, "(?<=«)[ ]"));
 }
 
 static bool SongLinesPreserved(string original, IReadOnlyList<string> pages)

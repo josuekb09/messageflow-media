@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using MessageFlow.App.ViewModels;
+using MessageFlow.Core.Text;
 
 namespace MessageFlow.App.Services;
 
@@ -83,7 +84,7 @@ public static partial class ProjectionAutoFitEngine
 
         var weight = fontWeight.ToOpenTypeWeight();
         var widest = 0.0;
-        foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var word in BreakingWhiteSpaceRegex().Split(text).Where(piece => piece.Length > 0))
         {
             if (!cache.TryGetValue((word, weight), out var width))
             {
@@ -174,6 +175,9 @@ public static partial class ProjectionAutoFitEngine
 
         // 2. Normalize body text
         var text = isSong ? NormalizeSongText(rawText) : NormalizeProseText(rawText);
+
+        // French typography: the space before : ; ! ? » and after « may not break a line.
+        text = FrenchTypography.KeepWithNeighbour(text);
 
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -810,12 +814,17 @@ public static partial class ProjectionAutoFitEngine
         return string.Join("\n", lines);
     }
 
-    [GeneratedRegex("""(?<=[.!?]["'\)\]}]?)\s+""")]
+    // Sentence, clause and word boundaries are breaking whitespace only: a no-break space
+    // (French typography before : ; ! ? » and after «) never ends a unit or a page.
+    [GeneratedRegex("""(?<=[.!?]["'\)\]}]?)[^\S\u00A0\u202F]+""")]
     private static partial Regex SentenceDelimiterRegex();
 
-    [GeneratedRegex(@"(?<=[;:,—]|--)\s+")]
+    [GeneratedRegex(@"(?<=[;:,—]|--)[^\S\u00A0\u202F]+")]
     private static partial Regex ClauseDelimiterRegex();
 
-    [GeneratedRegex(@"\s+")]
+    [GeneratedRegex(@"[^\S\u00A0\u202F]+")]
     private static partial Regex MultipleWhitespaceRegex();
+
+    [GeneratedRegex(@"[^\S\u00A0\u202F]+")]
+    private static partial Regex BreakingWhiteSpaceRegex();
 }
