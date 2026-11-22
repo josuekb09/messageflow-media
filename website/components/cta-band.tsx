@@ -11,11 +11,6 @@ export function CtaBand() {
     <section className="border-t border-line bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-24">
         <div className="reveal relative isolate overflow-hidden rounded-3xl border border-line bg-card px-6 py-14 text-center shadow-card sm:px-12 sm:py-16">
-          <div aria-hidden="true" className="bg-grid pointer-events-none absolute inset-0 -z-10 opacity-70" />
-          <div
-            aria-hidden="true"
-            className="glow-orb float-slow pointer-events-none absolute -top-32 left-1/2 -z-10 h-[22rem] w-[40rem] max-w-[160vw] -translate-x-1/2 rounded-full"
-          />
           <BrandLogo className="mx-auto h-16 w-16" />
           <h2 className="mx-auto mt-7 max-w-2xl text-balance text-[2rem] font-semibold leading-[1.12] text-ink sm:text-[2.75rem]">
             {t.cta.title}

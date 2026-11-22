@@ -4,7 +4,7 @@ type SectionHeadingProps = {
   align?: "left" | "center";
 };
 
-/** Section title with a short cyan rule under it, and an optional lead. */
+/** Section title with a short rule under it, and an optional lead. */
 export function SectionHeading({ title, lead, align = "left" }: SectionHeadingProps) {
   const centered = align === "center";
   return (
@@ -14,7 +14,7 @@ export function SectionHeading({ title, lead, align = "left" }: SectionHeadingPr
       </h2>
       <span
         aria-hidden="true"
-        className={`mt-5 block h-1 w-14 rounded-full bg-gradient-to-r from-accent to-accent/20 ${centered ? "mx-auto" : ""}`}
+        className={`mt-5 block h-[3px] w-12 rounded-full bg-accent ${centered ? "mx-auto" : ""}`}
       />
       {lead ? (
         <p className="mt-5 text-pretty text-[16px] leading-7 text-ink-secondary sm:text-[17px] sm:leading-8">

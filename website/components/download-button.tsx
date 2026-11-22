@@ -30,8 +30,7 @@ export function DownloadButton({ size = "md", className = "" }: DownloadButtonPr
           large ? "h-12 px-6 text-[15px]" : "h-9 px-3.5 text-sm"
         } ${className}`}
       >
-        <span aria-hidden="true" className="shine" />
-        <Download aria-hidden="true" className={`btn-icon shrink-0 ${large ? "h-[18px] w-[18px]" : "h-4 w-4"}`} strokeWidth={2.25} />
+        <Download aria-hidden="true" className={`shrink-0 ${large ? "h-[18px] w-[18px]" : "h-4 w-4"}`} strokeWidth={2.25} />
         {t.download.button}
       </a>
       <NotifyDialog open={notifyOpen} onClose={() => setNotifyOpen(false)} />

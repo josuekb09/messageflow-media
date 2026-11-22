@@ -79,10 +79,6 @@ export function AppTour() {
 
   return (
     <section id="product" className="relative scroll-mt-16 overflow-hidden border-t border-line bg-page">
-      <div
-        aria-hidden="true"
-        className="glow-orb pointer-events-none absolute left-1/2 top-1/3 -z-0 h-[30rem] w-[56rem] max-w-[180vw] -translate-x-1/2 rounded-full opacity-70"
-      />
       <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-8 sm:py-24">
         <div className="reveal">
           <SectionHeading title={t.product.title} lead={t.product.lead} align="center" />

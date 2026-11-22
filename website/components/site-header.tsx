@@ -11,7 +11,7 @@ export function SiteHeader() {
   const { t } = useI18n();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-page/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-page pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center gap-2.5">
           <BrandLogo className="h-7 w-7 shrink-0" />
