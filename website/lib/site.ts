@@ -1,4 +1,4 @@
-const githubReleaseTag = "v1.0.10";
+const githubReleaseTag = "v1.0.11";
 
 export const site = {
   name: "MessageFlow Media",
@@ -6,7 +6,7 @@ export const site = {
   description:
     "Free offline Windows software for church media teams. Search and project Brother Branham's sermons, Brother Frank's publications, the Bible, and songs in English, French, and Kiswahili.",
   url: "https://www.messageflow.tech",
-  version: "1.0.10",
+  version: "1.0.11",
   releaseDate: "November 2026",
   // Same date as releaseDate, for month names in French and Kiswahili.
   releaseMonth: "2026-11",
@@ -21,8 +21,8 @@ export const site = {
   // GitHub release notes and the README, never on the public site.
   downloadHref:
     "https://github.com/josuekb09/messageflow-media/releases/latest/download/MessageFlowMediaSetup.exe",
-  installerSize: "522 MB",
-  requiredFreeSpace: "2 GB",
+  installerSize: "697 MB",
+  requiredFreeSpace: "3 GB",
   // Counts in the bundled 1.0.9 database. Brother Frank publications exist in
   // English only; the French and Kiswahili sermons are all Brother Branham.
   library: {
