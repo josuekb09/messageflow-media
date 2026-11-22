@@ -21,7 +21,7 @@ export const site = {
   // GitHub release notes and the README, never on the public site.
   downloadHref:
     "https://github.com/josuekb09/messageflow-media/releases/latest/download/MessageFlowMediaSetup.exe",
-  installerSize: "592 MB",
+  installerSize: "697 MB",
   requiredFreeSpace: "2 GB",
   // Counts in the bundled 1.0.9 database. Brother Frank publications exist in
   // English only; the French and Kiswahili sermons are all Brother Branham.
