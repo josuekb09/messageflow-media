@@ -14,11 +14,15 @@ Current release: **v1.0.11** (November 2026). Free for church use, not for sale.
 
 When a pastor reads paragraph 36 from the printed book, paragraph 36 on the screen has to be the same paragraph, word for word. For 1.0.9 I compared every sermon, song, and Bible verse in the library with its original source file (the PDFs, the PowerPoint slides, and the Bible source texts) and corrected the library only where the source proved it wrong. The full method and the numbers are in [docs/SOURCE_ACCURACY_AUDIT.md](docs/SOURCE_ACCURACY_AUDIT.md), including what is still not perfect.
 
-What 1.0.11 brings:
+What 1.0.11 brings (November 2026):
 
-- **798 new Brother Frank broadcast transcriptions:** 66 in English and 732 in French. The text is the source text, word for word, with the paragraph numbers of the documents.
-- **French sermons: 1,116** (384 before), **English: 1,354** (1,288 before). French documents only appear when French is selected.
-- Broadcasts of Brother Branham sermons (3 English, 32 French) are kept with the Brother Branham library.
+- **798 new Brother Frank broadcast transcriptions:** 66 in English and 732 in French (560 broadcasts and 172 monthly meetings in French). The text is the source text, word for word, with the paragraph numbers printed in the documents.
+- **French sermons: 1,116** (384 before), **English: 1,354** (1,288 before). French documents only appear when French is selected and never mix into English search.
+- **Broadcasts of Brother Branham sermons** (3 in English, 32 in French) are kept with the Brother Branham library, apart from Brother Frank's own words.
+- **French typography on screen.** A line never breaks between a word and the `: ; ! ? »` that follows it, or after `«`, on the operator screen and on the projector. The stored text is not changed.
+- **Import fix.** The line ending of the source files (a trailing carriage return) is not stored in the paragraphs.
+
+Checked before the release: 67 automated tests pass; all 80,608 paragraphs of the new documents pass the projection checks at 1280x720 and 1920x1080 (161,216 layout configurations and 212,310 real-window page checks, 0 overflows, 0 cut words, 0 text changes); the database in the installer passes the SQLite integrity check and the full-text index check; and a clean install was tested on Windows 11 in English, French, and Kiswahili (sermons, Bible, songs).
 
 What 1.0.10 brought:
 
@@ -40,10 +44,12 @@ Every change is listed in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 | | English | French | Kiswahili |
 |---|---|---|---|
-| Brother Branham sermons | 1,203 | 384 | 622 |
-| Brother Frank publications | 85 (English only) | — | — |
-| Bible | King James Version (KJV) | Louis Segond 1910 (LSG) | SWHULB (Biblia Takatifu) |
+| Brother Branham sermons | 1,206 | 416 | 622 |
+| Brother Frank documents | 148 | 700 | none |
+| Bible | King James Version (KJV), 31,102 verses | Louis Segond 1910 (LSG), 31,170 verses | SWHULB (Biblia Takatifu), 31,101 verses |
 | Songs | 357 | 499 French hymns | 281 Swahili hymns |
+
+The English Brother Branham count includes 3 broadcasts of his sermons from the Brother Frank transcriptions; the French count includes 32. Brother Frank documents in English are 75 circular letters, 4 books, and 69 meetings (6 older ones and 63 new broadcast transcriptions). In French all 700 are the new broadcast transcriptions (528 broadcasts and 172 monthly meetings). Kiswahili has no Brother Frank content.
 
 French hymns that have a refrain are shown as **verse → chorus → verse → chorus**.
 
@@ -63,7 +69,7 @@ French hymns that have a refrain are shown as **verse → chorus → verse → c
 ## Requirements
 
 - Windows 10 or 11, 64-bit
-- At least 2 GB free on the install drive (the app and library take about 1.7 GB), plus about 0.6 GB for the downloaded installer
+- At least 3 GB free: the installed app and library take about 2 GB, and the downloaded installer is about 0.7 GB (you can delete it after installing)
 - A projector or TV connected as a second display
 - Internet only to download. After installation the app works 100% offline: no account, no sign-in, no data sent anywhere.
 
@@ -71,7 +77,7 @@ French hymns that have a refrain are shown as **verse → chorus → verse → c
 
 1. Open the [v1.0.11 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.11) and download `MessageFlowMediaSetup.exe`, or use the Download button on [www.messageflow.tech/download](https://www.messageflow.tech/download).
 2. Run the installer. You do not need administrator permission. If Windows says it protected your PC, choose **More info**, then **Run anyway**.
-3. Keep the suggested folder or choose another local folder with at least 2 GB free. The installer suggests `MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia` (`%LOCALAPPDATA%\Programs\MessageFlowMedia` on a PC with only C:). Please avoid OneDrive-synchronized folders such as Documents; the installer warns you if you pick one.
+3. Keep the suggested folder or choose another local folder with at least 2.5 GB free. The installer suggests `MessageFlowMedia` on the local data drive with the most free space, for example `E:\MessageFlowMedia` (`%LOCALAPPDATA%\Programs\MessageFlowMedia` on a PC with only C:). Please avoid OneDrive-synchronized folders such as Documents; the installer warns you if you pick one.
 4. Launch **MessageFlow Media** from the desktop shortcut or the Start menu.
 5. Choose English, Français, or Kiswahili, search a sermon, verse, or hymn, and press `Ctrl+P` to project.
 
@@ -93,6 +99,13 @@ To check your download, run `Get-FileHash .\MessageFlowMediaSetup.exe` in PowerS
 3. Open MessageFlow Media and project something with `Ctrl+P`.
 4. Check that the projector shows only the projection window, while the operator controls stay on the computer screen.
 5. If the projector is unplugged or plugged in during the service, MessageFlow moves the projection by itself: to the projector when it is connected, to a normal window on the computer when it is not.
+
+## Known limitations
+
+- **Two pairs of French Brother Branham sermons have identical text** (for example "L'adoption"), because the same sermon exists twice in the library.
+- **One sermon starts with a glued heading.** Paragraph 1 of "Why Are People So Tossed About" (56-0101) begins with "S O TOSSED A BOUT?...".
+- **The screen can pause for a moment** when you search by sermon code (about 2 seconds) or open the longest sermon, which has 852 paragraphs (about 3.5 seconds). The rest of the app responds again right after.
+- The Brother Frank circular letters with side boxes or tables can still have jumbled paragraphs ([audit](docs/SOURCE_ACCURACY_AUDIT.md)).
 
 ## Free church use
 

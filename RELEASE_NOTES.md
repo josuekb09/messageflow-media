@@ -1,27 +1,42 @@
 # MessageFlow Media 1.0.11
 
-Church operator and projection software for Windows. Search and project sermons, Scripture, and hymns from the operator desk. Free for church use.
+Church operator and projection software for Windows 10 and 11. Search and project sermons, Scripture, and hymns from the operator desk, in English, French, and Kiswahili. Free for church use, not for sale. It works fully offline after installation.
 
 ## What's new
 - **New Brother Frank broadcast transcriptions: 798 documents.** 66 in English and 732 in French (560 broadcasts and 172 monthly meetings). Search, open and project them like any other sermon.
 - **A real French library for Brother Frank.** French sermons now number 1,116 (384 before) and English 1,354 (1,288 before). French documents only appear when French is selected and never mix into English search.
 - **Brother Branham sermons that are broadcast again** (3 in English, 32 in French) are kept with the Brother Branham library, apart from Brother Frank's own words.
 - **The text is exactly the source text.** Not a word or a character was changed, and the paragraph numbers printed in the documents are kept.
-- **French typography is respected on screen.** A line never breaks between a word and the : ; ! ? » that follows it, or after «, on the operator screen and on the projector. The stored text is not touched.
-- **Checked before release:** 67 automated tests pass. Every paragraph of the new documents (80,608) passes the projection checks at 1280x720 and 1920x1080 with 0 overflows, 0 cut words and 0 text changes.
+- **French typography is respected on screen.** A line never breaks between a word and the `: ; ! ? »` that follows it, or after `«`, on the operator screen and on the projector. The stored text is not touched.
+- **Import fix.** The line ending of the source files (a trailing carriage return) is not stored in the paragraphs.
+
+## What is in the library
+
+| | English | French | Kiswahili |
+|---|---|---|---|
+| Brother Branham sermons | 1,206 | 416 | 622 |
+| Brother Frank documents | 148 | 700 | none |
+| Bible | KJV | LSG | SWHULB |
+| Songs | 357 | 499 | 281 |
 
 ## Verified before release
 
-- 67 automated tests pass, including new checks on counts per language and source, no duplicate document, no empty paragraph, no replacement character, continuous paragraph numbers, no untitled document, no trailing whitespace, and the French typography rules.
-- New documents, all 80,608 paragraphs, 1280x720 and 1920x1080: 161,216 layout configurations, 212,310 real-window page checks, 0 failures.
-- 20 paragraphs picked at random (10 English, 10 French) are identical to the source PDF text.
-- Bible, songs and the earlier sermons are unchanged: 357 English, 499 French and 281 Kiswahili songs, three Bibles, the 1,203 English, 384 French and 622 Kiswahili Brother Branham sermons and the 85 earlier Brother Frank documents.
-- Search index rebuilt and checked; the database inside the installer passes the SQLite integrity check and the full-text index check.
-- Clean install tested on Windows 11: version 1.0.11, database integrity ok, full-text index ok, no favorites or history, search finds the new English and French documents.
+- 67 automated tests pass, including checks on counts per language and source, no duplicate document, no empty paragraph, no replacement character, continuous paragraph numbers, no untitled document, no trailing whitespace, and the French typography rules.
+- All 80,608 paragraphs of the new documents, at 1280x720 and 1920x1080: 161,216 layout configurations and 212,310 real-window page checks, 0 overflows, 0 cut words, 0 text changes, 0 French spacing problems.
+- 20 paragraphs picked at random (10 English, 10 French) were identical to the source PDF text before the line-ending fix; after it, every paragraph was compared with its earlier text and differs only by trailing whitespace.
+- The database in the installer passes the SQLite integrity check and the full-text index check, and so does the installed database.
+- Clean install tested on Windows 11 in English, French, and Kiswahili: sermons of Brother Branham and Brother Frank (open, project, next and previous paragraph), Bible (reference, chapter, keyword, next and previous verse), songs (title and lyrics search, next and previous section).
 
-## Download
+## Known limitations
 
-Installer: `MessageFlowMediaSetup.exe` (731,196,615 bytes, about 697 MB), attached to the GitHub release v1.0.11.
+- Two pairs of French Brother Branham sermons have identical text because the same sermon exists twice in the library (for example "L'adoption").
+- Paragraph 1 of "Why Are People So Tossed About" (56-0101) begins with a glued heading: "S O TOSSED A BOUT?...".
+- The screen can pause for a moment when you search by sermon code (about 2 seconds) or open the longest sermon, which has 852 paragraphs (about 3.5 seconds).
+- Some Brother Frank circular letters with side boxes or tables can still have jumbled paragraphs.
+
+## Download and install
+
+Open the [v1.0.11 release](https://github.com/josuekb09/messageflow-media/releases/tag/v1.0.11), download `MessageFlowMediaSetup.exe` (731,196,615 bytes, about 697 MB) and run it. No administrator permission is needed. If Windows says it protected your PC, choose **More info**, then **Run anyway**. Keep at least 3 GB free: the installed app and library take about 2 GB.
 
 SHA-256: `623A5A7D4D61C61BC69731818E1C88D2A88620DC2CFC4635FCF6F1B3186FB254`
 
