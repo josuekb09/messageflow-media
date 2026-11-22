@@ -26,6 +26,9 @@ export function DownloadCenter() {
             <p className="mt-3 max-w-lg text-sm leading-6 text-ink-muted">
               {interpolate(t.download.note, { size: localizedSize(locale, site.installerSize) })}
             </p>
+            <p className="mt-2 max-w-lg text-sm leading-6 text-ink-secondary">
+              {interpolate(t.hero.whatsNew, { version: site.version })}
+            </p>
           </div>
           <div className="mt-6 sm:mt-0 sm:shrink-0">
             <DownloadButton size="lg" className="w-full sm:w-auto" />

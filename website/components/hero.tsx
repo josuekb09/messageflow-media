@@ -63,6 +63,9 @@ export function Hero() {
                   size: localizedSize(locale, site.installerSize),
                 })}
               </p>
+              <p className="mt-1 max-w-xs text-pretty text-[13px] leading-5 text-ink-secondary sm:text-center lg:text-left">
+                {interpolate(t.hero.whatsNew, { version: site.version })}
+              </p>
             </div>
             <a
               href="#product"

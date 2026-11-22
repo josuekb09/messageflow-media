@@ -33,6 +33,7 @@ export type Dictionary = {
     title: string;
     subtitle: string;
     downloadMeta: string;
+    whatsNew: string;
     secondaryCta: string;
   };
   about: {
@@ -74,7 +75,7 @@ export type Dictionary = {
       columns: { en: string; fr: string; sw: string };
       branham: string;
       frank: string;
-      englishOnly: string;
+      frankNote: string;
       bible: string;
       songs: string;
       notAvailable: string;
@@ -179,6 +180,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       subtitle:
         "MessageFlow Media is free projection software for church media teams. Search Brother Branham's sermons, Brother Frank's publications, the Bible, and the songbook — then project the exact paragraph or verse on the second screen, online or off.",
       downloadMeta: "Latest version {version} · about {size}",
+      whatsNew: "New in {version}: Brother Frank's broadcast transcriptions in English and French, and better French typography on the projector.",
       secondaryCta: "See the app",
     },
     download: {
@@ -267,8 +269,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
         caption: "Content by language",
         columns: { en: "English", fr: "French", sw: "Kiswahili" },
         branham: "Brother Branham sermons",
-        frank: "Brother Frank publications",
-        englishOnly: "English only",
+        frank: "Brother Frank documents",
+        frankNote: "Includes the new broadcast transcriptions: 63 in English, all 700 in French.",
         bible: "Bible translation",
         songs: "Songs",
         notAvailable: "Not available",
@@ -403,6 +405,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       subtitle:
         "MessageFlow Media est un logiciel de projection gratuit pour les équipes média des églises. Recherchez les prédications de frère Branham, les publications de frère Frank, la Bible et le recueil de cantiques, puis projetez le paragraphe ou le verset exact sur le second écran, avec ou sans Internet.",
       downloadMeta: "Dernière version {version} · environ {size}",
+      whatsNew: "Nouveau dans la version {version} : les retranscriptions des retransmissions de frère Frank en anglais et en français, et une meilleure typographie française à la projection.",
       secondaryCta: "Voir l'application",
     },
     download: {
@@ -491,8 +494,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
         caption: "Contenu par langue",
         columns: { en: "Anglais", fr: "Français", sw: "Kiswahili" },
         branham: "Prédications de frère Branham",
-        frank: "Publications de frère Frank",
-        englishOnly: "en anglais uniquement",
+        frank: "Documents de frère Frank",
+        frankNote: "Comprend les nouvelles retranscriptions des retransmissions : 63 en anglais, les 700 en français.",
         bible: "Traduction de la Bible",
         songs: "Cantiques",
         notAvailable: "Non disponible",
@@ -627,6 +630,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       subtitle:
         "MessageFlow Media ni programu ya bure ya kuonyesha maandiko kwa timu za media za kanisa. Tafuta mahubiri ya Ndugu Branham, machapisho ya Ndugu Frank, Biblia na kitabu cha nyimbo, kisha onyesha aya au mstari halisi kwenye skrini ya pili, ukiwa na intaneti au bila.",
       downloadMeta: "Toleo jipya {version} · takriban {size}",
+      whatsNew: "Mpya katika toleo {version}: nakala za matangazo ya Ndugu Frank kwa Kiingereza na Kifaransa, na uandishi bora wa Kifaransa kwenye skrini ya onyesho.",
       secondaryCta: "Tazama programu",
     },
     download: {
@@ -715,8 +719,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
         caption: "Maudhui kwa lugha",
         columns: { en: "Kiingereza", fr: "Kifaransa", sw: "Kiswahili" },
         branham: "Mahubiri ya Ndugu Branham",
-        frank: "Machapisho ya Ndugu Frank",
-        englishOnly: "kwa Kiingereza pekee",
+        frank: "Nyaraka za Ndugu Frank",
+        frankNote: "Inajumuisha nakala mpya za matangazo: 63 kwa Kiingereza, zote 700 kwa Kifaransa.",
         bible: "Tafsiri ya Biblia",
         songs: "Nyimbo",
         notAvailable: "Haipatikani",

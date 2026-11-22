@@ -19,7 +19,7 @@ export function FeatureMatrix() {
   const { library } = site;
   const rows: { label: string; note?: string; cells: (string | null)[] }[] = [
     { label: table.branham, cells: languages.map((lang) => count(library.branham[lang])) },
-    { label: table.frank, note: table.englishOnly, cells: [count(library.frank.en), null, null] },
+    { label: table.frank, note: table.frankNote, cells: [count(library.frank.en), count(library.frank.fr), null] },
     { label: table.bible, cells: languages.map((lang) => library.bibles[lang]) },
     { label: table.songs, cells: languages.map((lang) => count(library.songs[lang])) },
   ];
